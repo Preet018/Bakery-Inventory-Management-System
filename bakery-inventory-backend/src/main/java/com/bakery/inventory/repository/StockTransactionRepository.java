@@ -4,6 +4,15 @@ import com.bakery.inventory.entity.StockTransaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface StockTransactionRepository extends JpaRepository<StockTransaction, Integer> {
+    List<StockTransaction> findByInventoryId(
+            Integer inventoryId
+    );
+
+    List<StockTransaction> findByInventoryProductId(
+            Integer productId
+    );
 }
