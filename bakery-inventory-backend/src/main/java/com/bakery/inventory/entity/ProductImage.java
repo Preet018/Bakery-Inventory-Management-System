@@ -22,5 +22,5 @@ public class ProductImage {
     private String imagePath;
 
     @Column(name = "is_active", nullable = false)
-    private Boolean active;
+    private Boolean isActive;
 }
