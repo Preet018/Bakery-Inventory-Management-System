@@ -34,5 +34,5 @@ public class Product {
     private Supplier supplier;
 
     @Column(name = "is_active", nullable = false)
-    private Boolean active;
+    private Boolean isActive;
 }
