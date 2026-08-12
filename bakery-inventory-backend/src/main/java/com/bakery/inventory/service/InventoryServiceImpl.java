@@ -192,7 +192,7 @@ public class InventoryServiceImpl implements InventoryService {
         );
     }
 
-    
+
     private InventoryResponse updateInventory(
             Integer productId,
             Integer quantityChange,
