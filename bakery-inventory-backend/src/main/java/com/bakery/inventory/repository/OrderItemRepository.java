@@ -1,6 +1,5 @@
 package com.bakery.inventory.repository;
 
-import com.bakery.inventory.entity.CustomerOrder;
 import com.bakery.inventory.entity.OrderItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

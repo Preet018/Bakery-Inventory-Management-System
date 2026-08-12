@@ -192,18 +192,7 @@ public class InventoryServiceImpl implements InventoryService {
         );
     }
 
-    /*
-     * Central inventory mutation logic.
-     *
-     * Positive quantityChange:
-     *      inventory increases
-     *
-     * Negative quantityChange:
-     *      inventory decreases
-     *
-     * This method also creates the corresponding
-     * stock transaction.
-     */
+    
     private InventoryResponse updateInventory(
             Integer productId,
             Integer quantityChange,
