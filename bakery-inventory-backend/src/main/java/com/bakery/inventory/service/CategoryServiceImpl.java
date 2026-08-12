@@ -14,77 +14,66 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
 
-    private final CategoryRepository categoryRepository;
+        private final CategoryRepository categoryRepository;
 
-    @Override
-    public CategoryResponse createCategory(CategoryRequest request) {
+        @Override
+        public CategoryResponse createCategory(CategoryRequest request) {
 
-        Category category = new Category();
-        category.setName(request.getName());
+                Category category = new Category();
+                category.setName(request.getName());
 
-        Category savedCategory = categoryRepository.save(category);
+                Category savedCategory = categoryRepository.save(category);
 
-        return new CategoryResponse(
-                savedCategory.getId(),
-                savedCategory.getName()
-        );
-    }
+                return new CategoryResponse(
+                                savedCategory.getId(),
+                                savedCategory.getName());
+        }
 
-    @Override
-    public List<CategoryResponse> getAllCategories() {
+        @Override
+        public List<CategoryResponse> getAllCategories() {
 
-        return categoryRepository.findAll()
-                .stream()
-                .map(category -> new CategoryResponse(
-                        category.getId(),
-                        category.getName()
-                ))
-                .toList();
-    }
+                return categoryRepository.findAll()
+                                .stream()
+                                .map(category -> new CategoryResponse(
+                                                category.getId(),
+                                                category.getName()))
+                                .toList();
+        }
 
-    @Override
-    public CategoryResponse getCategoryById(Integer id) {
+        @Override
+        public CategoryResponse getCategoryById(Integer id) {
 
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Category not found with id: " + id)
-                );
+                Category category = categoryRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
 
-        return new CategoryResponse(
-                category.getId(),
-                category.getName()
-        );
-    }
+                return new CategoryResponse(
+                                category.getId(),
+                                category.getName());
+        }
 
-    @Override
-    public CategoryResponse updateCategory(
-            Integer id,
-            CategoryRequest request
-    ) {
+        @Override
+        public CategoryResponse updateCategory(
+                        Integer id,
+                        CategoryRequest request) {
 
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Category not found with id: " + id)
-                );
+                Category category = categoryRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
 
-        category.setName(request.getName());
+                category.setName(request.getName());
 
-        Category updatedCategory = categoryRepository.save(category);
+                Category updatedCategory = categoryRepository.save(category);
 
-        return new CategoryResponse(
-                updatedCategory.getId(),
-                updatedCategory.getName()
-        );
-    }
+                return new CategoryResponse(
+                                updatedCategory.getId(),
+                                updatedCategory.getName());
+        }
 
-    @Override
-    public void deleteCategory(Integer id) {
+        @Override
+        public void deleteCategory(Integer id) {
 
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Category not found with id: " + id)
-                );
+                Category category = categoryRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
 
-        categoryRepository.delete(category);
-    }
+                categoryRepository.delete(category);
+        }
 }

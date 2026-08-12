@@ -6,7 +6,6 @@ import com.bakery.inventory.dto.inventory.InventoryResponse;
 import java.util.List;
 
 public interface InventoryService {
-
     InventoryResponse createInventory(InventoryRequest request);
 
     InventoryResponse getInventoryByProductId(Integer productId);
@@ -14,6 +13,8 @@ public interface InventoryService {
     List<InventoryResponse> getAllInventory();
 
     InventoryResponse stockIn(Integer productId, Integer quantity, String reason);
+
+    InventoryResponse stockOut(Integer productId, Integer quantity, String reason);
 
     InventoryResponse adjustStock(Integer productId, Integer quantity, String reason);
 
@@ -24,6 +25,4 @@ public interface InventoryService {
     List<InventoryResponse> getOutOfStockProducts();
 
     void recordDamage(Integer productId, Integer quantity, String reason);
-
-    void returnToSupplier(Integer productId, Integer quantity, String reason);
 }

@@ -25,8 +25,13 @@ public class InventoryServiceImpl implements InventoryService {
     private final StockTransactionRepository stockTransactionRepository;
 
     @Override
-    public InventoryResponse createInventory(InventoryRequest request) {
-        Product product = productRepository.findById(request.getProductId())
+    public InventoryResponse createInventory(
+            InventoryRequest request
+    ) {
+
+        Product product = productRepository.findById(
+                        request.getProductId()
+                )
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "Product not found with id: "
@@ -40,13 +45,15 @@ public class InventoryServiceImpl implements InventoryService {
         inventory.setQuantity(request.getQuantity());
         inventory.setMinimumStock(request.getMinimumStock());
 
-        Inventory savedInventory = inventoryRepository.save(inventory);
+        Inventory savedInventory =
+                inventoryRepository.save(inventory);
 
         return mapToResponse(savedInventory);
     }
 
     @Override
     public InventoryResponse getInventoryByProductId(Integer productId) {
+
         Inventory inventory = getInventory(productId);
 
         return mapToResponse(inventory);
@@ -54,6 +61,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public List<InventoryResponse> getAllInventory() {
+
         return inventoryRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
@@ -63,6 +71,7 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional
     public InventoryResponse stockIn(Integer productId, Integer quantity, String reason) {
+
         validatePositiveQuantity(quantity);
 
         return updateInventory(
@@ -75,7 +84,30 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public InventoryResponse adjustStock(Integer productId, Integer quantity, String reason) {
+    public InventoryResponse stockOut(
+            Integer productId,
+            Integer quantity,
+            String reason
+    ) {
+
+        validatePositiveQuantity(quantity);
+
+        return updateInventory(
+                productId,
+                -quantity,
+                StockTransactionType.ADJUSTMENT,
+                reason
+        );
+    }
+
+    @Override
+    @Transactional
+    public InventoryResponse adjustStock(
+            Integer productId,
+            Integer quantity,
+            String reason
+    ) {
+
         if (quantity == null || quantity < 0) {
             throw new RuntimeException(
                     "Adjusted stock quantity cannot be negative"
@@ -84,7 +116,8 @@ public class InventoryServiceImpl implements InventoryService {
 
         Inventory inventory = getInventory(productId);
 
-        int adjustment = quantity - inventory.getQuantity();
+        int adjustment =
+                quantity - inventory.getQuantity();
 
         return updateInventory(
                 productId,
@@ -95,7 +128,11 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public InventoryResponse updateMinimumStock(Integer productId, Integer minimumStock) {
+    public InventoryResponse updateMinimumStock(
+            Integer productId,
+            Integer minimumStock
+    ) {
+
         if (minimumStock == null || minimumStock < 0) {
             throw new RuntimeException(
                     "Minimum stock cannot be negative"
@@ -114,6 +151,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public List<InventoryResponse> getLowStockProducts() {
+
         return inventoryRepository.findAll()
                 .stream()
                 .filter(inventory ->
@@ -126,6 +164,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public List<InventoryResponse> getOutOfStockProducts() {
+
         return inventoryRepository.findAll()
                 .stream()
                 .filter(inventory ->
@@ -137,7 +176,12 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public void recordDamage(Integer productId, Integer quantity, String reason) {
+    public void recordDamage(
+            Integer productId,
+            Integer quantity,
+            String reason
+    ) {
+
         validatePositiveQuantity(quantity);
 
         updateInventory(
@@ -148,25 +192,32 @@ public class InventoryServiceImpl implements InventoryService {
         );
     }
 
-    @Override
-    @Transactional
-    public void returnToSupplier(Integer productId, Integer quantity, String reason) {
-        validatePositiveQuantity(quantity);
+    /*
+     * Central inventory mutation logic.
+     *
+     * Positive quantityChange:
+     *      inventory increases
+     *
+     * Negative quantityChange:
+     *      inventory decreases
+     *
+     * This method also creates the corresponding
+     * stock transaction.
+     */
+    private InventoryResponse updateInventory(
+            Integer productId,
+            Integer quantityChange,
+            StockTransactionType transactionType,
+            String reason
+    ) {
 
-        updateInventory(
-                productId,
-                -quantity,
-                StockTransactionType.RETURN,
-                reason
-        );
-    }
-
-
-    private InventoryResponse updateInventory(Integer productId, Integer quantityChange, StockTransactionType transactionType, String reason) {
         Inventory inventory = getInventory(productId);
 
-        int currentQuantity = inventory.getQuantity();
-        int newQuantity = currentQuantity + quantityChange;
+        int currentQuantity =
+                inventory.getQuantity();
+
+        int newQuantity =
+                currentQuantity + quantityChange;
 
         if (newQuantity < 0) {
             throw new RuntimeException(
@@ -180,20 +231,38 @@ public class InventoryServiceImpl implements InventoryService {
         Inventory updatedInventory =
                 inventoryRepository.save(inventory);
 
-        StockTransaction transaction = new StockTransaction();
+        StockTransaction transaction =
+                new StockTransaction();
 
         transaction.setInventory(inventory);
         transaction.setType(transactionType);
+
+        /*
+         * Store the actual inventory change.
+         *
+         * Example:
+         *
+         * PURCHASE    -> +10
+         * ADJUSTMENT  -> -5
+         * DAMAGE      -> -2
+         */
         transaction.setQuantity(quantityChange);
+
         transaction.setReason(reason);
-        transaction.setCreatedAt(LocalDateTime.now());
+
+        transaction.setCreatedAt(
+                LocalDateTime.now()
+        );
 
         stockTransactionRepository.save(transaction);
 
         return mapToResponse(updatedInventory);
     }
 
-    private Inventory getInventory(Integer productId) {
+    private Inventory getInventory(
+            Integer productId
+    ) {
+
         return inventoryRepository.findByProductId(productId)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -203,7 +272,10 @@ public class InventoryServiceImpl implements InventoryService {
                 );
     }
 
-    private void validatePositiveQuantity(Integer quantity) {
+    private void validatePositiveQuantity(
+            Integer quantity
+    ) {
+
         if (quantity == null || quantity <= 0) {
             throw new RuntimeException(
                     "Quantity must be greater than zero"
@@ -211,7 +283,9 @@ public class InventoryServiceImpl implements InventoryService {
         }
     }
 
-    private InventoryResponse mapToResponse(Inventory inventory) {
+    private InventoryResponse mapToResponse(
+            Inventory inventory
+    ) {
 
         return new InventoryResponse(
                 inventory.getId(),
