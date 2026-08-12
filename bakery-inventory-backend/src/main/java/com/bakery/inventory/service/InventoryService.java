@@ -13,28 +13,11 @@ public interface InventoryService {
 
     List<InventoryResponse> getAllInventory();
 
-    InventoryResponse stockIn(
-            Integer productId,
-            Integer quantity,
-            String reason
-    );
+    InventoryResponse stockIn(Integer productId, Integer quantity, String reason);
 
-    InventoryResponse stockOut(
-            Integer productId,
-            Integer quantity,
-            String reason
-    );
+    InventoryResponse adjustStock(Integer productId, Integer quantity, String reason);
 
-    InventoryResponse adjustStock(
-            Integer productId,
-            Integer quantity,
-            String reason
-    );
-
-    InventoryResponse updateMinimumStock(
-            Integer productId,
-            Integer minimumStock
-    );
+    InventoryResponse updateMinimumStock(Integer productId, Integer minimumStock);
 
     List<InventoryResponse> getLowStockProducts();
 

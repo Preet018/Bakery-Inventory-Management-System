@@ -26,7 +26,6 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public InventoryResponse createInventory(InventoryRequest request) {
-
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -48,21 +47,13 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public InventoryResponse getInventoryByProductId(Integer productId) {
-
-        Inventory inventory = inventoryRepository.findByProductId(productId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Inventory not found for product id: "
-                                        + productId
-                        )
-                );
+        Inventory inventory = getInventory(productId);
 
         return mapToResponse(inventory);
     }
 
     @Override
     public List<InventoryResponse> getAllInventory() {
-
         return inventoryRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
@@ -71,133 +62,47 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public InventoryResponse stockIn(
-            Integer productId,
-            Integer quantity,
-            String reason
-    ) {
+    public InventoryResponse stockIn(Integer productId, Integer quantity, String reason) {
+        validatePositiveQuantity(quantity);
 
-        Inventory inventory = inventoryRepository.findByProductId(productId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Inventory not found for product id: "
-                                        + productId
-                        )
-                );
-
-        inventory.setQuantity(
-                inventory.getQuantity() + quantity
+        return updateInventory(
+                productId,
+                quantity,
+                StockTransactionType.PURCHASE,
+                reason
         );
-
-        Inventory updatedInventory =
-                inventoryRepository.save(inventory);
-
-        StockTransaction transaction = new StockTransaction();
-
-        transaction.setInventory(inventory);
-        transaction.setType(StockTransactionType.PURCHASE);
-        transaction.setQuantity(quantity);
-        transaction.setReason(reason);
-        transaction.setCreatedAt(LocalDateTime.now());
-
-        stockTransactionRepository.save(transaction);
-
-        return mapToResponse(updatedInventory);
     }
 
     @Override
     @Transactional
-    public InventoryResponse stockOut(
-            Integer productId,
-            Integer quantity,
-            String reason
-    ) {
-
-        Inventory inventory = inventoryRepository.findByProductId(productId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Inventory not found for product id: "
-                                        + productId
-                        )
-                );
-
-        if (quantity > inventory.getQuantity()) {
+    public InventoryResponse adjustStock(Integer productId, Integer quantity, String reason) {
+        if (quantity == null || quantity < 0) {
             throw new RuntimeException(
-                    "Insufficient stock for product id: " + productId
+                    "Adjusted stock quantity cannot be negative"
             );
         }
 
-        inventory.setQuantity(
-                inventory.getQuantity() - quantity
+        Inventory inventory = getInventory(productId);
+
+        int adjustment = quantity - inventory.getQuantity();
+
+        return updateInventory(
+                productId,
+                adjustment,
+                StockTransactionType.ADJUSTMENT,
+                reason
         );
-
-        Inventory updatedInventory =
-                inventoryRepository.save(inventory);
-
-        StockTransaction transaction = new StockTransaction();
-
-        transaction.setInventory(inventory);
-        transaction.setType(StockTransactionType.SALE);
-        transaction.setQuantity(-quantity);
-        transaction.setReason(reason);
-        transaction.setCreatedAt(LocalDateTime.now());
-
-        stockTransactionRepository.save(transaction);
-
-        return mapToResponse(updatedInventory);
     }
 
     @Override
-    @Transactional
-    public InventoryResponse adjustStock(
-            Integer productId,
-            Integer quantity,
-            String reason
-    ) {
+    public InventoryResponse updateMinimumStock(Integer productId, Integer minimumStock) {
+        if (minimumStock == null || minimumStock < 0) {
+            throw new RuntimeException(
+                    "Minimum stock cannot be negative"
+            );
+        }
 
-        Inventory inventory = inventoryRepository.findByProductId(productId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Inventory not found for product id: "
-                                        + productId
-                        )
-                );
-
-        int oldQuantity = inventory.getQuantity();
-
-        int adjustment = quantity - oldQuantity;
-
-        inventory.setQuantity(quantity);
-
-        Inventory updatedInventory =
-                inventoryRepository.save(inventory);
-
-        StockTransaction transaction = new StockTransaction();
-
-        transaction.setInventory(inventory);
-        transaction.setType(StockTransactionType.ADJUSTMENT);
-        transaction.setQuantity(adjustment);
-        transaction.setReason(reason);
-        transaction.setCreatedAt(LocalDateTime.now());
-
-        stockTransactionRepository.save(transaction);
-
-        return mapToResponse(updatedInventory);
-    }
-
-    @Override
-    public InventoryResponse updateMinimumStock(
-            Integer productId,
-            Integer minimumStock
-    ) {
-
-        Inventory inventory = inventoryRepository.findByProductId(productId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Inventory not found for product id: "
-                                        + productId
-                        )
-                );
+        Inventory inventory = getInventory(productId);
 
         inventory.setMinimumStock(minimumStock);
 
@@ -209,7 +114,6 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public List<InventoryResponse> getLowStockProducts() {
-
         return inventoryRepository.findAll()
                 .stream()
                 .filter(inventory ->
@@ -222,7 +126,6 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public List<InventoryResponse> getOutOfStockProducts() {
-
         return inventoryRepository.findAll()
                 .stream()
                 .filter(inventory ->
@@ -232,9 +135,83 @@ public class InventoryServiceImpl implements InventoryService {
                 .toList();
     }
 
-    private InventoryResponse mapToResponse(
-            Inventory inventory
-    ) {
+    @Override
+    @Transactional
+    public void recordDamage(Integer productId, Integer quantity, String reason) {
+        validatePositiveQuantity(quantity);
+
+        updateInventory(
+                productId,
+                -quantity,
+                StockTransactionType.DAMAGE,
+                reason
+        );
+    }
+
+    @Override
+    @Transactional
+    public void returnToSupplier(Integer productId, Integer quantity, String reason) {
+        validatePositiveQuantity(quantity);
+
+        updateInventory(
+                productId,
+                -quantity,
+                StockTransactionType.RETURN,
+                reason
+        );
+    }
+
+
+    private InventoryResponse updateInventory(Integer productId, Integer quantityChange, StockTransactionType transactionType, String reason) {
+        Inventory inventory = getInventory(productId);
+
+        int currentQuantity = inventory.getQuantity();
+        int newQuantity = currentQuantity + quantityChange;
+
+        if (newQuantity < 0) {
+            throw new RuntimeException(
+                    "Insufficient stock for product id: "
+                            + productId
+            );
+        }
+
+        inventory.setQuantity(newQuantity);
+
+        Inventory updatedInventory =
+                inventoryRepository.save(inventory);
+
+        StockTransaction transaction = new StockTransaction();
+
+        transaction.setInventory(inventory);
+        transaction.setType(transactionType);
+        transaction.setQuantity(quantityChange);
+        transaction.setReason(reason);
+        transaction.setCreatedAt(LocalDateTime.now());
+
+        stockTransactionRepository.save(transaction);
+
+        return mapToResponse(updatedInventory);
+    }
+
+    private Inventory getInventory(Integer productId) {
+        return inventoryRepository.findByProductId(productId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Inventory not found for product id: "
+                                        + productId
+                        )
+                );
+    }
+
+    private void validatePositiveQuantity(Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw new RuntimeException(
+                    "Quantity must be greater than zero"
+            );
+        }
+    }
+
+    private InventoryResponse mapToResponse(Inventory inventory) {
 
         return new InventoryResponse(
                 inventory.getId(),
@@ -244,57 +221,5 @@ public class InventoryServiceImpl implements InventoryService {
                 inventory.getQuantity()
                         <= inventory.getMinimumStock()
         );
-    }
-
-    @Override
-    public void recordDamage(Integer productId, Integer quantity, String reason) {
-
-        Inventory inventory = inventoryRepository.findByProductId(productId)
-                .orElseThrow(() -> new RuntimeException("Inventory not found"));
-
-        if (quantity <= 0) {
-            throw new RuntimeException("Damage quantity must be greater than zero");
-        }
-
-        if (inventory.getQuantity() < quantity) {
-            throw new RuntimeException("Insufficient stock for damage adjustment");
-        }
-
-        inventory.setQuantity(inventory.getQuantity() - quantity);
-        inventoryRepository.save(inventory);
-
-        StockTransaction transaction = new StockTransaction();
-        transaction.setInventory(inventory);
-        transaction.setType(StockTransactionType.DAMAGE);
-        transaction.setQuantity(quantity);
-        transaction.setReason(reason);
-
-        stockTransactionRepository.save(transaction);
-    }
-
-    @Override
-    public void returnToSupplier(Integer productId, Integer quantity, String reason) {
-
-        Inventory inventory = inventoryRepository.findByProductId(productId)
-                .orElseThrow(() -> new RuntimeException("Inventory not found"));
-
-        if (quantity <= 0) {
-            throw new RuntimeException("Return quantity must be greater than zero");
-        }
-
-        if (inventory.getQuantity() < quantity) {
-            throw new RuntimeException("Insufficient stock for supplier return");
-        }
-
-        inventory.setQuantity(inventory.getQuantity() - quantity);
-        inventoryRepository.save(inventory);
-
-        StockTransaction transaction = new StockTransaction();
-        transaction.setInventory(inventory);
-        transaction.setType(StockTransactionType.RETURN);
-        transaction.setQuantity(quantity);
-        transaction.setReason(reason);
-
-        stockTransactionRepository.save(transaction);
     }
 }
