@@ -39,4 +39,8 @@ public interface InventoryService {
     List<InventoryResponse> getLowStockProducts();
 
     List<InventoryResponse> getOutOfStockProducts();
+
+    void recordDamage(Integer productId, Integer quantity, String reason);
+
+    void returnToSupplier(Integer productId, Integer quantity, String reason);
 }

@@ -11,5 +11,5 @@ public class ProductImageResponse {
     private Integer id;
     private Integer productId;
     private String imagePath;
-    private Boolean active;
+    private Boolean isActive;
 }

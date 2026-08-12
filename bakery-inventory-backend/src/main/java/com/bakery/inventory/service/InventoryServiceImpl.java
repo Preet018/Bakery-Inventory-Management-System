@@ -245,4 +245,56 @@ public class InventoryServiceImpl implements InventoryService {
                         <= inventory.getMinimumStock()
         );
     }
+
+    @Override
+    public void recordDamage(Integer productId, Integer quantity, String reason) {
+
+        Inventory inventory = inventoryRepository.findByProductId(productId)
+                .orElseThrow(() -> new RuntimeException("Inventory not found"));
+
+        if (quantity <= 0) {
+            throw new RuntimeException("Damage quantity must be greater than zero");
+        }
+
+        if (inventory.getQuantity() < quantity) {
+            throw new RuntimeException("Insufficient stock for damage adjustment");
+        }
+
+        inventory.setQuantity(inventory.getQuantity() - quantity);
+        inventoryRepository.save(inventory);
+
+        StockTransaction transaction = new StockTransaction();
+        transaction.setInventory(inventory);
+        transaction.setType(StockTransactionType.DAMAGE);
+        transaction.setQuantity(quantity);
+        transaction.setReason(reason);
+
+        stockTransactionRepository.save(transaction);
+    }
+
+    @Override
+    public void returnToSupplier(Integer productId, Integer quantity, String reason) {
+
+        Inventory inventory = inventoryRepository.findByProductId(productId)
+                .orElseThrow(() -> new RuntimeException("Inventory not found"));
+
+        if (quantity <= 0) {
+            throw new RuntimeException("Return quantity must be greater than zero");
+        }
+
+        if (inventory.getQuantity() < quantity) {
+            throw new RuntimeException("Insufficient stock for supplier return");
+        }
+
+        inventory.setQuantity(inventory.getQuantity() - quantity);
+        inventoryRepository.save(inventory);
+
+        StockTransaction transaction = new StockTransaction();
+        transaction.setInventory(inventory);
+        transaction.setType(StockTransactionType.RETURN);
+        transaction.setQuantity(quantity);
+        transaction.setReason(reason);
+
+        stockTransactionRepository.save(transaction);
+    }
 }
