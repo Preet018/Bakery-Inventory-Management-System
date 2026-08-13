@@ -115,11 +115,7 @@ CREATE TABLE inventory (
 );
 
 
--- =========================================================
--- 7. STOCK TRANSACTION
--- =========================================================
-
-CREATE TABLE stock_transaction (
+CREATE TABLE StockTransaction (
     id INT AUTO_INCREMENT PRIMARY KEY,
     inventory_id INT NOT NULL,
     type VARCHAR(30) NOT NULL,
@@ -130,7 +126,7 @@ CREATE TABLE stock_transaction (
 
     CONSTRAINT fk_stock_transaction_inventory
         FOREIGN KEY (inventory_id)
-        REFERENCES inventory(id)
+        REFERENCES Inventory(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
@@ -139,9 +135,10 @@ CREATE TABLE stock_transaction (
             type IN (
                 'PURCHASE',
                 'SALE',
+                'SUPPLIER_RETURN',
                 'DAMAGE',
                 'ADJUSTMENT',
-                'RETURN'
+                'CANCEL'
             )
         ),
 

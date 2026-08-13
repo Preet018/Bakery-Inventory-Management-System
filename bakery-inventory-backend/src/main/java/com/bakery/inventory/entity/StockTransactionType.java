@@ -3,7 +3,8 @@ package com.bakery.inventory.entity;
 public enum StockTransactionType {
     PURCHASE,
     SALE,
-    RETURN,
+    SUPPLIER_RETURN,
     DAMAGE,
-    ADJUSTMENT
+    ADJUSTMENT,
+    CANCEL
 }

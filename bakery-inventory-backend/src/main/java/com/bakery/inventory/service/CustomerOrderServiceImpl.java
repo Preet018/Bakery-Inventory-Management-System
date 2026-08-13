@@ -23,7 +23,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CustomerOrderServiceImpl implements CustomerOrderService {
-
         private final CustomerOrderRepository customerOrderRepository;
         private final OrderItemRepository orderItemRepository;
         private final UserAccountRepository userAccountRepository;
@@ -41,8 +40,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                                                 + request.getUserId()));
 
                 if (request.getItems() == null || request.getItems().isEmpty()) {
-                        throw new RuntimeException(
-                                        "Order must contain at least one item");
+                        throw new RuntimeException("Order must contain at least one item");
                 }
 
                 CustomerOrder order = new CustomerOrder();
@@ -52,7 +50,6 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                 order.setDeliveryAddress(request.getDeliveryAddress());
                 order.setPaymentMethod(request.getPaymentMethod());
 
-                // Initial states are controlled by the backend.
                 order.setPaymentStatus(PaymentStatus.PENDING);
                 order.setOrderStatus(OrderStatus.PLACED);
 
@@ -69,7 +66,6 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                 List<OrderItem> orderItems = new ArrayList<>();
 
                 for (OrderItemRequest itemRequest : request.getItems()) {
-
                         Product product = productRepository.findById(
                                         itemRequest.getProductId())
                                         .orElseThrow(() -> new RuntimeException(
@@ -82,11 +78,8 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                                                 + product.getId());
                         }
 
-                        if (itemRequest.getQuantity() == null
-                                        || itemRequest.getQuantity() <= 0) {
-
-                                throw new RuntimeException(
-                                                "Quantity must be greater than zero");
+                        if (itemRequest.getQuantity() == null || itemRequest.getQuantity() <= 0) {
+                                throw new RuntimeException("Quantity must be greater than zero");
                         }
 
                         Inventory inventory = inventoryRepository.findByProductId(
@@ -96,7 +89,6 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                                                         + product.getId()));
 
                         if (inventory.getQuantity() < itemRequest.getQuantity()) {
-
                                 throw new RuntimeException(
                                                 "Insufficient stock for product id: "
                                                                 + product.getId());
@@ -104,9 +96,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                         BigDecimal unitPrice = product.getPrice();
 
-                        BigDecimal subtotal = unitPrice.multiply(
-                                        BigDecimal.valueOf(
-                                                        itemRequest.getQuantity()));
+                        BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
 
                         OrderItem orderItem = new OrderItem();
 
@@ -120,25 +110,18 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                         totalAmount = totalAmount.add(subtotal);
 
-                        // Deduct inventory.
-                        inventory.setQuantity(
-                                        inventory.getQuantity()
-                                                        - itemRequest.getQuantity());
+                        inventory.setQuantity(inventory.getQuantity() - itemRequest.getQuantity());
 
                         inventoryRepository.save(inventory);
 
-                        // Create stock audit record.
                         StockTransaction transaction = new StockTransaction();
 
                         transaction.setInventory(inventory);
                         transaction.setType(StockTransactionType.SALE);
 
-                        // Stock leaving inventory = negative.
-                        transaction.setQuantity(
-                                        -itemRequest.getQuantity());
+                        transaction.setQuantity(-itemRequest.getQuantity());
 
-                        transaction.setReason(
-                                        "Stock sold through customer order");
+                        transaction.setReason("Stock sold through customer order");
 
                         transaction.setReferenceId(savedOrder.getId());
                         transaction.setCreatedAt(now);
@@ -158,7 +141,6 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
         @Override
         public List<CustomerOrderResponse> getAllOrders() {
-
                 return customerOrderRepository.findAll()
                                 .stream()
                                 .map(this::mapToResponse)
@@ -167,7 +149,6 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
         @Override
         public CustomerOrderResponse getOrderById(Integer id) {
-
                 CustomerOrder order = customerOrderRepository.findById(id)
                                 .orElseThrow(() -> new RuntimeException(
                                                 "Order not found with id: "
@@ -177,9 +158,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         }
 
         @Override
-        public List<CustomerOrderResponse> getOrdersByUserId(
-                        Integer userId) {
-
+        public List<CustomerOrderResponse> getOrdersByUserId(Integer userId) {
                 userAccountRepository.findById(userId)
                                 .orElseThrow(() -> new RuntimeException(
                                                 "User not found with id: "
@@ -192,10 +171,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         }
 
         @Override
-        public CustomerOrderResponse updateOrderStatus(
-                        Integer id,
-                        OrderStatus newStatus) {
-
+        public CustomerOrderResponse updateOrderStatus(Integer id, OrderStatus newStatus) {
                 CustomerOrder order = customerOrderRepository.findById(id)
                                 .orElseThrow(() -> new RuntimeException(
                                                 "Order not found with id: "
@@ -203,15 +179,10 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                 OrderStatus currentStatus = order.getOrderStatus();
 
-                if (!isValidStatusTransition(
-                                currentStatus,
-                                newStatus)) {
-
+                if (!isValidStatusTransition(currentStatus, newStatus)) {
                         throw new RuntimeException(
                                         "Invalid order status transition: "
-                                                        + currentStatus
-                                                        + " -> "
-                                                        + newStatus);
+                                                        + currentStatus + " -> " + newStatus);
                 }
 
                 order.setOrderStatus(newStatus);
@@ -225,22 +196,18 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         @Override
         @Transactional
         public CustomerOrderResponse cancelOrder(Integer id) {
-
                 CustomerOrder order = customerOrderRepository.findById(id)
                                 .orElseThrow(() -> new RuntimeException(
                                                 "Order not found with id: "
                                                                 + id));
 
                 if (order.getOrderStatus() != OrderStatus.PLACED) {
-
-                        throw new RuntimeException(
-                                        "Only placed orders can be cancelled");
+                        throw new RuntimeException("Only placed orders can be cancelled");
                 }
 
                 List<OrderItem> orderItems = orderItemRepository.findByOrderId(id);
 
                 for (OrderItem orderItem : orderItems) {
-
                         Product product = orderItem.getProduct();
 
                         Inventory inventory = inventoryRepository.findByProductId(
@@ -251,24 +218,16 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                         int quantity = orderItem.getQuantity();
 
-                        // Return stock to inventory.
-                        inventory.setQuantity(
-                                        inventory.getQuantity() + quantity);
+                        inventory.setQuantity(inventory.getQuantity() + quantity);
 
                         inventoryRepository.save(inventory);
 
-                        // Create RETURN transaction.
                         StockTransaction transaction = new StockTransaction();
 
                         transaction.setInventory(inventory);
-                        transaction.setType(
-                                        StockTransactionType.RETURN);
-
+                        transaction.setType(StockTransactionType.CANCEL);
                         transaction.setQuantity(quantity);
-
-                        transaction.setReason(
-                                        "Stock returned due to order cancellation");
-
+                        transaction.setReason("Stock returned due to order cancellation");
                         transaction.setReferenceId(order.getId());
                         transaction.setCreatedAt(LocalDateTime.now());
 
@@ -283,37 +242,27 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                 return mapToResponse(cancelledOrder);
         }
 
-        private boolean isValidStatusTransition(
-                        OrderStatus currentStatus,
-                        OrderStatus newStatus) {
-
+        private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
                 if (currentStatus == OrderStatus.PLACED) {
-
-                        return newStatus == OrderStatus.CONFIRMED
-                                        || newStatus == OrderStatus.CANCELLED;
+                        return newStatus == OrderStatus.CONFIRMED || newStatus == OrderStatus.CANCELLED;
                 }
 
                 if (currentStatus == OrderStatus.CONFIRMED) {
-
                         return newStatus == OrderStatus.PROCESSING;
                 }
 
                 if (currentStatus == OrderStatus.PROCESSING) {
-
                         return newStatus == OrderStatus.READY;
                 }
 
                 if (currentStatus == OrderStatus.READY) {
-
                         return newStatus == OrderStatus.DELIVERED;
                 }
 
                 return false;
         }
 
-        private CustomerOrderResponse mapToResponse(
-                        CustomerOrder order) {
-
+        private CustomerOrderResponse mapToResponse(CustomerOrder order) {
                 List<OrderItemResponse> itemResponses = orderItemRepository.findByOrderId(
                                 order.getId())
                                 .stream()
@@ -334,9 +283,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                 itemResponses);
         }
 
-        private OrderItemResponse mapOrderItemToResponse(
-                        OrderItem orderItem) {
-
+        private OrderItemResponse mapOrderItemToResponse(OrderItem orderItem) {
                 return new OrderItemResponse(
                                 orderItem.getId(),
                                 orderItem.getProduct().getId(),
