@@ -56,7 +56,8 @@ CREATE TABLE supplier (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150),
     phone VARCHAR(20),
-    address VARCHAR(255)
+    address VARCHAR(255),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 

@@ -25,6 +25,8 @@ public class SupplierServiceImpl implements SupplierService {
         supplier.setPhone(request.getPhone());
         supplier.setAddress(request.getAddress());
 
+        supplier.setIsActive(true);
+
         Supplier savedSupplier = supplierRepository.save(supplier);
 
         return new SupplierResponse(
@@ -32,7 +34,8 @@ public class SupplierServiceImpl implements SupplierService {
                 savedSupplier.getName(),
                 savedSupplier.getEmail(),
                 savedSupplier.getPhone(),
-                savedSupplier.getAddress()
+                savedSupplier.getAddress(),
+                savedSupplier.getIsActive()
         );
     }
 
@@ -46,7 +49,8 @@ public class SupplierServiceImpl implements SupplierService {
                         supplier.getName(),
                         supplier.getEmail(),
                         supplier.getPhone(),
-                        supplier.getAddress()
+                        supplier.getAddress(),
+                        supplier.getIsActive()
                 ))
                 .toList();
     }
@@ -66,7 +70,8 @@ public class SupplierServiceImpl implements SupplierService {
                 supplier.getName(),
                 supplier.getEmail(),
                 supplier.getPhone(),
-                supplier.getAddress()
+                supplier.getAddress(),
+                supplier.getIsActive()
         );
     }
 
@@ -95,12 +100,13 @@ public class SupplierServiceImpl implements SupplierService {
                 updatedSupplier.getName(),
                 updatedSupplier.getEmail(),
                 updatedSupplier.getPhone(),
-                updatedSupplier.getAddress()
+                updatedSupplier.getAddress(),
+                updatedSupplier.getIsActive()
         );
     }
 
     @Override
-    public void deleteSupplier(Integer id) {
+    public void deactivateSupplier(Integer id) {
 
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() ->
@@ -109,6 +115,23 @@ public class SupplierServiceImpl implements SupplierService {
                         )
                 );
 
-        supplierRepository.delete(supplier);
+        supplier.setIsActive(false);
+
+        supplierRepository.save(supplier);
+    }
+
+    @Override
+    public void activateSupplier(Integer id) {
+
+        Supplier supplier = supplierRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Supplier not found with id: " + id
+                        )
+                );
+
+        supplier.setIsActive(true);
+
+        supplierRepository.save(supplier);
     }
 }

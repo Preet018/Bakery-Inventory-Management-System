@@ -13,13 +13,11 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
-
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
 
     @Override
     public CategoryResponse createCategory(CategoryRequest request) {
-
         Category category = new Category();
         category.setName(request.getName());
 
@@ -32,7 +30,6 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public List<CategoryResponse> getAllCategories() {
-
         return categoryRepository.findAll()
                 .stream()
                 .map(category -> new CategoryResponse(
@@ -43,7 +40,6 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryResponse getCategoryById(Integer id) {
-
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -72,7 +68,6 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public void deleteCategory(Integer id) {
-
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(

@@ -15,5 +15,7 @@ public interface SupplierService {
 
     SupplierResponse updateSupplier(Integer id, SupplierRequest request);
 
-    void deleteSupplier(Integer id);
+    void deactivateSupplier(Integer id);
+
+    void activateSupplier(Integer id);
 }

@@ -116,67 +116,77 @@ VALUES
 -- =========================================================
 
 INSERT INTO supplier
-    (name, email, phone, address)
+    (name, email, phone, address, is_active)
 VALUES
     (
         'Fresh Ingredients Ltd.',
         'contact@freshingredients.com',
         '9876500001',
-        'Bangalore, Karnataka'
+        'Bangalore, Karnataka',
+        TRUE
     ),
     (
         'BakePro Supplies',
         'sales@bakepro.com',
         '9876500002',
-        'Mumbai, Maharashtra'
+        'Mumbai, Maharashtra',
+        TRUE
     ),
     (
         'Golden Grain Foods',
         'info@goldengrain.com',
         '9876500003',
-        'Delhi, India'
+        'Delhi, India',
+        TRUE
     ),
     (
         'Sweet Source Pvt Ltd',
         'contact@sweetsource.com',
         '9876500004',
-        'Pune, Maharashtra'
+        'Pune, Maharashtra',
+        FALSE
     ),
     (
         'DairyFresh Suppliers',
         'sales@dairyfresh.com',
         '9876500005',
-        'Hyderabad, Telangana'
+        'Hyderabad, Telangana',
+        TRUE
     ),
     (
         'Premium Flour Co.',
         NULL,
         '9876500006',
-        'Chennai, Tamil Nadu'
+        'Chennai, Tamil Nadu',
+        TRUE
     ),
     (
         'Bakers Choice',
         'support@bakerschoice.com',
         NULL,
-        'Kolkata, West Bengal'
+        'Kolkata, West Bengal',
+        TRUE
     ),
     (
         'Natural Sweeteners',
         'hello@naturalsweeteners.com',
         '9876500008',
-        NULL
+        NULL,
+        FALSE
     ),
     (
         'Cocoa World',
         'sales@cocoaworld.com',
         '9876500009',
-        'Ahmedabad, Gujarat'
+        'Ahmedabad, Gujarat',
+        TRUE
     ),
     (
         'Local Bakery Supplies',
         NULL,
         NULL,
-        NULL
+        NULL,
+        TRUE
     );
 
 
