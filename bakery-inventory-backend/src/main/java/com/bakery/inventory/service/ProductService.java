@@ -16,4 +16,6 @@ public interface ProductService {
     ProductResponse updateProduct(Integer id, ProductRequest request);
 
     ProductResponse deactivateProduct(Integer id);
+
+    ProductResponse activateProduct(Integer id);
 }

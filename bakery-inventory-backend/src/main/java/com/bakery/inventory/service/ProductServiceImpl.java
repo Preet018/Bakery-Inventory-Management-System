@@ -3,13 +3,16 @@ package com.bakery.inventory.service;
 import com.bakery.inventory.dto.product.ProductRequest;
 import com.bakery.inventory.dto.product.ProductResponse;
 import com.bakery.inventory.entity.Category;
+import com.bakery.inventory.entity.Inventory;
 import com.bakery.inventory.entity.Product;
 import com.bakery.inventory.entity.Supplier;
 import com.bakery.inventory.repository.CategoryRepository;
+import com.bakery.inventory.repository.InventoryRepository;
 import com.bakery.inventory.repository.ProductRepository;
 import com.bakery.inventory.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,11 +23,14 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final SupplierRepository supplierRepository;
+    private final InventoryRepository inventoryRepository;
 
     @Override
+    @Transactional
     public ProductResponse createProduct(ProductRequest request) {
-
-        Category category = categoryRepository.findById(request.getCategoryId())
+        Category category = categoryRepository.findById(
+                        request.getCategoryId()
+                )
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "Category not found with id: "
@@ -32,13 +38,21 @@ public class ProductServiceImpl implements ProductService {
                         )
                 );
 
-        Supplier supplier = supplierRepository.findById(request.getSupplierId())
+        Supplier supplier = supplierRepository.findById(
+                        request.getSupplierId()
+                )
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "Supplier not found with id: "
                                         + request.getSupplierId()
                         )
                 );
+
+        if (!Boolean.TRUE.equals(supplier.getIsActive())) {
+            throw new RuntimeException(
+                    "Cannot create product with inactive supplier"
+            );
+        }
 
         Product product = new Product();
 
@@ -51,12 +65,19 @@ public class ProductServiceImpl implements ProductService {
 
         Product savedProduct = productRepository.save(product);
 
+        Inventory inventory = new Inventory();
+
+        inventory.setProduct(savedProduct);
+        inventory.setQuantity(0);
+        inventory.setMinimumStock(0);
+
+        inventoryRepository.save(inventory);
+
         return mapToResponse(savedProduct);
     }
 
     @Override
     public List<ProductResponse> getAllProducts() {
-
         return productRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
@@ -65,7 +86,6 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductResponse getProductById(Integer id) {
-
         Product product = productRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -77,11 +97,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponse updateProduct(
-            Integer id,
-            ProductRequest request
-    ) {
-
+    public ProductResponse updateProduct(Integer id, ProductRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -89,7 +105,9 @@ public class ProductServiceImpl implements ProductService {
                         )
                 );
 
-        Category category = categoryRepository.findById(request.getCategoryId())
+        Category category = categoryRepository.findById(
+                        request.getCategoryId()
+                )
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "Category not found with id: "
@@ -97,19 +115,35 @@ public class ProductServiceImpl implements ProductService {
                         )
                 );
 
-        Supplier supplier = supplierRepository.findById(request.getSupplierId())
-                .orElseThrow(() ->
+        if (request.getSupplierId() != null) {
+            Integer currentSupplierId = product.getSupplier().getId();
+            Integer requestedSupplierId = request.getSupplierId();
+
+            if (!currentSupplierId.equals(requestedSupplierId)) {
+                Supplier newSupplier = supplierRepository.findById(
+                            requestedSupplierId
+                        )
+                        .orElseThrow(() ->
                         new RuntimeException(
                                 "Supplier not found with id: "
-                                        + request.getSupplierId()
+                                        + requestedSupplierId
                         )
-                );
+                    );
+
+                if (!Boolean.TRUE.equals(newSupplier.getIsActive())) {
+                    throw new RuntimeException(
+                            "Cannot change product to an inactive supplier"
+                    );
+                }
+
+                product.setSupplier(newSupplier);
+            }
+        }
 
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setCategory(category);
-        product.setSupplier(supplier);
 
         Product updatedProduct = productRepository.save(product);
 
@@ -118,7 +152,6 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductResponse deactivateProduct(Integer id) {
-
         Product product = productRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -133,8 +166,23 @@ public class ProductServiceImpl implements ProductService {
         return mapToResponse(updatedProduct);
     }
 
-    private ProductResponse mapToResponse(Product product) {
+    @Override
+    public ProductResponse activateProduct(Integer id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Product not found with id: " + id
+                        )
+                );
 
+        product.setIsActive(true);
+
+        Product updatedProduct = productRepository.save(product);
+
+        return mapToResponse(updatedProduct);
+    }
+
+    private ProductResponse mapToResponse(Product product) {
         return new ProductResponse(
                 product.getId(),
                 product.getName(),

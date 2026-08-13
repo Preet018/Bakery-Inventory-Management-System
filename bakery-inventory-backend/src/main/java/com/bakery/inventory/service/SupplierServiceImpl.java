@@ -12,12 +12,10 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class SupplierServiceImpl implements SupplierService {
-
     private final SupplierRepository supplierRepository;
 
     @Override
     public SupplierResponse createSupplier(SupplierRequest request) {
-
         Supplier supplier = new Supplier();
 
         supplier.setName(request.getName());
@@ -29,35 +27,20 @@ public class SupplierServiceImpl implements SupplierService {
 
         Supplier savedSupplier = supplierRepository.save(supplier);
 
-        return new SupplierResponse(
-                savedSupplier.getId(),
-                savedSupplier.getName(),
-                savedSupplier.getEmail(),
-                savedSupplier.getPhone(),
-                savedSupplier.getAddress(),
-                savedSupplier.getIsActive()
-        );
+        return mapToResponse(savedSupplier);
     }
+
 
     @Override
     public List<SupplierResponse> getAllSuppliers() {
-
         return supplierRepository.findAll()
                 .stream()
-                .map(supplier -> new SupplierResponse(
-                        supplier.getId(),
-                        supplier.getName(),
-                        supplier.getEmail(),
-                        supplier.getPhone(),
-                        supplier.getAddress(),
-                        supplier.getIsActive()
-                ))
+                .map(this::mapToResponse)
                 .toList();
     }
 
     @Override
     public SupplierResponse getSupplierById(Integer id) {
-
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -65,22 +48,11 @@ public class SupplierServiceImpl implements SupplierService {
                         )
                 );
 
-        return new SupplierResponse(
-                supplier.getId(),
-                supplier.getName(),
-                supplier.getEmail(),
-                supplier.getPhone(),
-                supplier.getAddress(),
-                supplier.getIsActive()
-        );
+        return mapToResponse(supplier);
     }
 
     @Override
-    public SupplierResponse updateSupplier(
-            Integer id,
-            SupplierRequest request
-    ) {
-
+    public SupplierResponse updateSupplier(Integer id, SupplierRequest request) {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -95,19 +67,11 @@ public class SupplierServiceImpl implements SupplierService {
 
         Supplier updatedSupplier = supplierRepository.save(supplier);
 
-        return new SupplierResponse(
-                updatedSupplier.getId(),
-                updatedSupplier.getName(),
-                updatedSupplier.getEmail(),
-                updatedSupplier.getPhone(),
-                updatedSupplier.getAddress(),
-                updatedSupplier.getIsActive()
-        );
+        return mapToResponse(updatedSupplier);
     }
 
     @Override
     public void deactivateSupplier(Integer id) {
-
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -122,7 +86,6 @@ public class SupplierServiceImpl implements SupplierService {
 
     @Override
     public void activateSupplier(Integer id) {
-
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -133,5 +96,17 @@ public class SupplierServiceImpl implements SupplierService {
         supplier.setIsActive(true);
 
         supplierRepository.save(supplier);
+    }
+
+    private SupplierResponse mapToResponse(Supplier supplier) {
+
+        return new SupplierResponse(
+                supplier.getId(),
+                supplier.getName(),
+                supplier.getEmail(),
+                supplier.getPhone(),
+                supplier.getAddress(),
+                supplier.getIsActive()
+        );
     }
 }

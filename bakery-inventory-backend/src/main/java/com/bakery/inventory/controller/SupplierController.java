@@ -14,16 +14,11 @@ import java.util.List;
 @RequestMapping("/api/suppliers")
 @RequiredArgsConstructor
 public class SupplierController {
-
     private final SupplierService supplierService;
 
     @PostMapping
-    public ResponseEntity<SupplierResponse> createSupplier(
-            @RequestBody SupplierRequest request
-    ) {
-
-        SupplierResponse response =
-                supplierService.createSupplier(request);
+    public ResponseEntity<SupplierResponse> createSupplier(@RequestBody SupplierRequest request) {
+        SupplierResponse response = supplierService.createSupplier(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -32,48 +27,34 @@ public class SupplierController {
 
     @GetMapping
     public ResponseEntity<List<SupplierResponse>> getAllSuppliers() {
-
         return ResponseEntity.ok(
                 supplierService.getAllSuppliers()
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SupplierResponse> getSupplierById(
-            @PathVariable Integer id
-    ) {
-
+    public ResponseEntity<SupplierResponse> getSupplierById(@PathVariable Integer id) {
         return ResponseEntity.ok(
                 supplierService.getSupplierById(id)
         );
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SupplierResponse> updateSupplier(
-            @PathVariable Integer id,
-            @RequestBody SupplierRequest request
-    ) {
-
+    public ResponseEntity<SupplierResponse> updateSupplier(@PathVariable Integer id, @RequestBody SupplierRequest request) {
         return ResponseEntity.ok(
                 supplierService.updateSupplier(id, request)
         );
     }
 
     @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<Void> deactivateSupplier(
-            @PathVariable Integer id
-    ) {
-
+    public ResponseEntity<Void> deactivateSupplier(@PathVariable Integer id) {
         supplierService.deactivateSupplier(id);
 
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/activate")
-    public ResponseEntity<Void> activateSupplier(
-            @PathVariable Integer id
-    ) {
-
+    public ResponseEntity<Void> activateSupplier(@PathVariable Integer id) {
         supplierService.activateSupplier(id);
 
         return ResponseEntity.noContent().build();
