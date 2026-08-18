@@ -1,22 +1,17 @@
 package com.bakery.inventory.dto.product;
 
-import com.bakery.inventory.dto.productimage.ProductImageResponse;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductResponse {
-    private Integer id;
+public class ProductUpdateRequest {
     private String name;
     private String description;
     private BigDecimal price;
     private Integer categoryId;
     private Integer supplierId;
-    private Boolean isActive;
-    private List<ProductImageResponse> images;
 }

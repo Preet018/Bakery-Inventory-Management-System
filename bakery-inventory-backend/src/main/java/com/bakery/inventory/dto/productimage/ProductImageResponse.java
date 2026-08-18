@@ -7,7 +7,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductImageResponse {
-
     private Integer id;
     private Integer productId;
     private String imagePath;

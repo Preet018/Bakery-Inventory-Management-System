@@ -1,7 +1,10 @@
 package com.bakery.inventory.controller;
 
-import com.bakery.inventory.dto.product.ProductRequest;
+import com.bakery.inventory.dto.product.ProductCreateRequest;
 import com.bakery.inventory.dto.product.ProductResponse;
+import com.bakery.inventory.dto.product.ProductUpdateRequest;
+import com.bakery.inventory.dto.productimage.ProductImageRequest;
+import com.bakery.inventory.dto.productimage.ProductImageResponse;
 import com.bakery.inventory.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,7 +20,7 @@ public class ProductController {
     private final ProductService productService;
 
     @PostMapping
-    public ResponseEntity<ProductResponse> createProduct(@RequestBody ProductRequest request) {
+    public ResponseEntity<ProductResponse> createProduct(@RequestBody ProductCreateRequest request) {
         ProductResponse response = productService.createProduct(request);
 
         return ResponseEntity
@@ -40,7 +43,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateProduct(@PathVariable Integer id, @RequestBody ProductRequest request) {
+    public ResponseEntity<ProductResponse> updateProduct(@PathVariable Integer id, @RequestBody ProductUpdateRequest request) {
         return ResponseEntity.ok(
                 productService.updateProduct(id, request)
         );
@@ -58,5 +61,21 @@ public class ProductController {
         return ResponseEntity.ok(
                 productService.activateProduct(id)
         );
+    }
+
+    @PostMapping("/{productId}/images")
+    public ResponseEntity<List<ProductImageResponse>> addProductImage(@PathVariable Integer productId, @RequestBody ProductImageRequest request) {
+        List<ProductImageResponse> responses = productService.addProductImages(productId, request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(responses);
+    }
+
+    @DeleteMapping("/{productId}/images/{imageId}")
+    public ResponseEntity<Void> removeProductImage(@PathVariable Integer productId, @PathVariable Integer imageId) {
+        productService.removeProductImage(productId, imageId);
+
+        return ResponseEntity.noContent().build();
     }
 }
