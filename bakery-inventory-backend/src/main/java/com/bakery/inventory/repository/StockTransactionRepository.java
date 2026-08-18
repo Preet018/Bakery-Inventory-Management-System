@@ -8,11 +8,9 @@ import java.util.List;
 
 @Repository
 public interface StockTransactionRepository extends JpaRepository<StockTransaction, Integer> {
-    List<StockTransaction> findByInventoryId(
-            Integer inventoryId
-    );
+    List<StockTransaction> findByInventoryProductId(Integer productId);
 
-    List<StockTransaction> findByInventoryProductId(
-            Integer productId
-    );
+    List<StockTransaction> findByInventoryProductCategoryId(Integer categoryId);
+
+    List<StockTransaction> findByOrderId(Integer orderId);
 }

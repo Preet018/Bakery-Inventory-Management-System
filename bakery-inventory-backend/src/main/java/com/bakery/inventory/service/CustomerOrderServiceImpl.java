@@ -123,7 +123,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                         transaction.setReason("Stock sold through customer order");
 
-                        transaction.setReferenceId(savedOrder.getId());
+                        transaction.setOrder(savedOrder);
                         transaction.setCreatedAt(now);
 
                         stockTransactionRepository.save(transaction);
@@ -228,7 +228,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                         transaction.setType(StockTransactionType.CANCEL);
                         transaction.setQuantity(quantity);
                         transaction.setReason("Stock returned due to order cancellation");
-                        transaction.setReferenceId(order.getId());
+                        transaction.setOrder(order);
                         transaction.setCreatedAt(LocalDateTime.now());
 
                         stockTransactionRepository.save(transaction);

@@ -10,25 +10,8 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class StockTransactionServiceImpl
-        implements StockTransactionService {
-
+public class StockTransactionServiceImpl implements StockTransactionService {
     private final StockTransactionRepository stockTransactionRepository;
-
-    @Override
-    public StockTransactionResponse getTransactionById(Integer id) {
-
-        StockTransaction transaction =
-                stockTransactionRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Stock transaction not found with id: "
-                                                + id
-                                )
-                        );
-
-        return mapToResponse(transaction);
-    }
 
     @Override
     public List<StockTransactionResponse> getAllTransactions() {
@@ -52,20 +35,24 @@ public class StockTransactionServiceImpl
     }
 
     @Override
-    public List<StockTransactionResponse> getTransactionsByInventoryId(
-            Integer inventoryId
-    ) {
-
+    public List<StockTransactionResponse> getTransactionsByCategoryId(Integer categoryId) {
         return stockTransactionRepository
-                .findByInventoryId(inventoryId)
+                .findByInventoryProductCategoryId(categoryId)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
     }
 
-    private StockTransactionResponse mapToResponse(
-            StockTransaction transaction
-    ) {
+    @Override
+    public List<StockTransactionResponse> getTransactionsByOrderId(Integer orderId) {
+        return stockTransactionRepository
+                .findByOrderId(orderId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    private StockTransactionResponse mapToResponse(StockTransaction transaction) {
 
         return new StockTransactionResponse(
                 transaction.getId(),
@@ -73,7 +60,7 @@ public class StockTransactionServiceImpl
                 transaction.getType(),
                 transaction.getQuantity(),
                 transaction.getReason(),
-                transaction.getReferenceId(),
+                transaction.getOrder() != null ? transaction.getOrder().getId() : null,
                 transaction.getCreatedAt()
         );
     }

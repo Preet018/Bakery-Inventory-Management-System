@@ -30,8 +30,9 @@ public class StockTransaction {
     @Column(name = "reason", length = 255)
     private String reason;
 
-    @Column(name = "reference_id")
-    private Integer referenceId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", foreignKey = @ForeignKey(name = "fk_stock_transaction_order"))
+    private CustomerOrder order;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
