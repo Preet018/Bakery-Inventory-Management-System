@@ -150,7 +150,7 @@ CREATE TABLE customer_order (
 -- 8. STOCK TRANSACTION
 -- =========================================================
 
-CREATE TABLE Stock_Transaction (
+CREATE TABLE stock_transaction (
     id INT AUTO_INCREMENT PRIMARY KEY,
     inventory_id INT NOT NULL,
     type VARCHAR(30) NOT NULL,

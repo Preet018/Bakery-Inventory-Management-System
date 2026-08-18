@@ -16,6 +16,6 @@ public class StockTransactionResponse {
     private StockTransactionType type;
     private Integer quantity;
     private String reason;
-    private Integer referenceId;
+    private Integer orderId;
     private LocalDateTime createdAt;
 }
