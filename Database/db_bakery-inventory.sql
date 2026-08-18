@@ -115,58 +115,8 @@ CREATE TABLE inventory (
 );
 
 
-CREATE TABLE StockTransaction (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    inventory_id INT NOT NULL,
-    type VARCHAR(30) NOT NULL,
-    quantity INT NOT NULL,
-    reason VARCHAR(255),
-    reference_id INT,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_stock_transaction_inventory
-        FOREIGN KEY (inventory_id)
-        REFERENCES Inventory(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
-
-    CONSTRAINT chk_stock_transaction_type
-        CHECK (
-            type IN (
-                'PURCHASE',
-                'SALE',
-                'SUPPLIER_RETURN',
-                'DAMAGE',
-                'ADJUSTMENT',
-                'CANCEL'
-            )
-        ),
-
-    CONSTRAINT chk_stock_transaction_quantity
-        CHECK (quantity <> 0)
-);
-
-
 -- =========================================================
--- 8. PRODUCT IMAGE
--- =========================================================
-
-CREATE TABLE product_image (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    image_path VARCHAR(500) NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-
-    CONSTRAINT fk_product_image_product
-        FOREIGN KEY (product_id)
-        REFERENCES product(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
-
-
--- =========================================================
--- 9. CUSTOMER ORDER
+-- 7. CUSTOMER ORDER
 -- =========================================================
 
 CREATE TABLE customer_order (
@@ -193,6 +143,66 @@ CREATE TABLE customer_order (
 
     CONSTRAINT chk_order_total
         CHECK (total_amount >= 0)
+);
+
+
+-- =========================================================
+-- 8. STOCK TRANSACTION
+-- =========================================================
+
+CREATE TABLE Stock_Transaction (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    inventory_id INT NOT NULL,
+    type VARCHAR(30) NOT NULL,
+    quantity INT NOT NULL,
+    reason VARCHAR(255),
+    order_id INT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_stock_transaction_inventory
+        FOREIGN KEY (inventory_id)
+        REFERENCES inventory(id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_stock_transaction_order
+        FOREIGN KEY (order_id)
+        REFERENCES customer_order(id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT chk_stock_transaction_type
+        CHECK (
+            type IN (
+                'PURCHASE',
+                'SALE',
+                'SUPPLIER_RETURN',
+                'DAMAGE',
+                'ADJUSTMENT',
+                'CANCEL'
+            )
+        ),
+
+    CONSTRAINT chk_stock_transaction_quantity
+        CHECK (quantity <> 0)
+);
+
+
+-- =========================================================
+-- 9. PRODUCT IMAGE
+-- =========================================================
+
+CREATE TABLE product_image (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    image_path VARCHAR(500) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+
+    CONSTRAINT fk_product_image_product
+        FOREIGN KEY (product_id)
+        REFERENCES product(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 
