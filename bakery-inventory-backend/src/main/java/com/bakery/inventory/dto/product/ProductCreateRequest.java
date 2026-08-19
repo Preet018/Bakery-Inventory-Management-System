@@ -3,7 +3,6 @@ package com.bakery.inventory.dto.product;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Getter
 @Setter
@@ -15,5 +14,4 @@ public class ProductCreateRequest {
     private BigDecimal price;
     private Integer categoryId;
     private Integer supplierId;
-    private List<String> imagePaths;
 }

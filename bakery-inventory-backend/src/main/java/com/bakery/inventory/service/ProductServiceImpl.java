@@ -3,15 +3,15 @@ package com.bakery.inventory.service;
 import com.bakery.inventory.dto.product.ProductCreateRequest;
 import com.bakery.inventory.dto.product.ProductResponse;
 import com.bakery.inventory.dto.product.ProductUpdateRequest;
-import com.bakery.inventory.dto.productimage.ProductImageRequest;
 import com.bakery.inventory.dto.productimage.ProductImageResponse;
 import com.bakery.inventory.entity.*;
 import com.bakery.inventory.repository.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,29 +23,28 @@ public class ProductServiceImpl implements ProductService {
     private final SupplierRepository supplierRepository;
     private final InventoryRepository inventoryRepository;
     private final ProductImageRepository productImageRepository;
+    private final ImageStorageService imageStorageService;
 
     @Override
-    @Transactional
-    public ProductResponse createProduct(ProductCreateRequest request) {
-        Category category = categoryRepository.findById(
-                        request.getCategoryId()
-                )
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Category not found with id: "
-                                        + request.getCategoryId()
-                        )
-                );
+    @Transactional(rollbackFor = Exception.class)
+    public ProductResponse createProduct(ProductCreateRequest request, List<MultipartFile> images) throws IOException {
+        validateImagesPresent(images);
 
-        Supplier supplier = supplierRepository.findById(
-                        request.getSupplierId()
-                )
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Supplier not found with id: "
-                                        + request.getSupplierId()
-                        )
-                );
+        Category category = categoryRepository.findById(request.getCategoryId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Category not found with id: "
+                                                + request.getCategoryId()
+                                )
+                        );
+
+        Supplier supplier = supplierRepository.findById(request.getSupplierId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Supplier not found with id: "
+                                                + request.getSupplierId()
+                                )
+                        );
 
         if (!Boolean.TRUE.equals(supplier.getIsActive())) {
             throw new RuntimeException(
@@ -60,6 +59,7 @@ public class ProductServiceImpl implements ProductService {
         product.setPrice(request.getPrice());
         product.setCategory(category);
         product.setSupplier(supplier);
+
         product.setIsActive(true);
 
         Product savedProduct = productRepository.save(product);
@@ -72,20 +72,14 @@ public class ProductServiceImpl implements ProductService {
 
         inventoryRepository.save(inventory);
 
-        for (String imagePath : request.getImagePaths()) {
-            validateImagePath(imagePath);
-
-            if (productImageRepository.existsByProductIdAndImagePath(savedProduct.getId(), imagePath)) {
-                throw new RuntimeException(
-                        "Image already associated with product: "
-                                + imagePath
-                );
-            }
+        for (MultipartFile image : images) {
+            String imagePath = imageStorageService.storeImage(image);
 
             ProductImage productImage = new ProductImage();
 
             productImage.setProduct(savedProduct);
             productImage.setImagePath(imagePath);
+
             productImage.setIsActive(true);
 
             productImageRepository.save(productImage);
@@ -220,34 +214,35 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @Transactional
-    public List<ProductImageResponse> addProductImages(Integer productId, ProductImageRequest request) {
+    @Transactional(rollbackFor = Exception.class)
+    public List<ProductImageResponse> addProductImages(Integer productId, List<MultipartFile> images) throws IOException {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Product not found with id: "
-                                        + productId
-                        )
-                );
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Product not found with id: "
+                                                + productId
+                                )
+                        );
+
+        if (!Boolean.TRUE.equals(product.getIsActive())) {
+            throw new RuntimeException(
+                    "Cannot upload images for an inactive product"
+            );
+        }
+
+        validateImagesPresent(images);
 
         List<ProductImageResponse> responses = new ArrayList<>();
 
-        for (String imagePath : request.getImagePaths()) {
-            validateImagePath(imagePath);
-
-            if (productImageRepository.existsByProductIdAndImagePath(productId, imagePath)) {
-                throw new RuntimeException(
-                        "Image already associated with product: "
-                                + imagePath
-                );
-            }
+        for (MultipartFile image : images) {
+            String imagePath = imageStorageService.storeImage(image);
 
             ProductImage productImage = new ProductImage();
 
             productImage.setProduct(product);
             productImage.setImagePath(imagePath);
 
-            productImage.setIsActive(Boolean.TRUE.equals(product.getIsActive()));
+            productImage.setIsActive(true);
 
             ProductImage savedImage = productImageRepository.save(productImage);
 
@@ -258,15 +253,15 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @Transactional
-    public void removeProductImage(Integer productId, Integer imageId) {
+    @Transactional(rollbackFor = Exception.class)
+    public void removeProductImage(Integer productId, Integer imageId) throws IOException {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Product not found with id: "
-                                        + productId
-                        )
-                );
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Product not found with id: "
+                                                + productId
+                                )
+                        );
 
         ProductImage productImage = productImageRepository.findById(imageId)
                         .orElseThrow(() ->
@@ -282,6 +277,16 @@ public class ProductServiceImpl implements ProductService {
                             + productId
             );
         }
+
+        List<ProductImage> productImages = productImageRepository.findByProductId(productId);
+
+        if (productImages.size() == 1) {
+            throw new RuntimeException(
+                    "Cannot delete the only image of a product"
+            );
+        }
+
+        imageStorageService.deleteImage(productImage.getImagePath());
 
         productImageRepository.delete(productImage);
     }
@@ -316,34 +321,10 @@ public class ProductServiceImpl implements ProductService {
         );
     }
 
-    private void validateImagePath(String imagePath) {
-        if (imagePath == null || imagePath.isBlank()) {
+    private void validateImagesPresent(List<MultipartFile> images) {
+        if (images == null || images.isEmpty()) {
             throw new RuntimeException(
-                    "Image path cannot be empty"
-            );
-        }
-
-        if (!imagePath.startsWith("/images/products/")) {
-            throw new RuntimeException(
-                    "Invalid image path. Product images must be under "
-                            + "/images/products/"
-            );
-        }
-
-        if (imagePath.contains("..")) {
-            throw new RuntimeException(
-                    "Invalid image path"
-            );
-        }
-
-        String relativePath = imagePath.substring(1);
-
-        ClassPathResource resource = new ClassPathResource("static/" + relativePath);
-
-        if (!resource.exists()) {
-            throw new RuntimeException(
-                    "Product image does not exist: "
-                            + imagePath
+                    "At least one product image is required"
             );
         }
     }

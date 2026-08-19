@@ -11,6 +11,4 @@ public interface ProductImageRepository extends JpaRepository<ProductImage, Inte
     List<ProductImage> findByProductId(Integer productId);
 
     List<ProductImage> findByProductIdAndIsActiveTrue(Integer productId);
-
-    boolean existsByProductIdAndImagePath(Integer productId, String imagePath);
 }

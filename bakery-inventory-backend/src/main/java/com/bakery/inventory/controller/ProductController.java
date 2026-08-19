@@ -3,14 +3,16 @@ package com.bakery.inventory.controller;
 import com.bakery.inventory.dto.product.ProductCreateRequest;
 import com.bakery.inventory.dto.product.ProductResponse;
 import com.bakery.inventory.dto.product.ProductUpdateRequest;
-import com.bakery.inventory.dto.productimage.ProductImageRequest;
 import com.bakery.inventory.dto.productimage.ProductImageResponse;
 import com.bakery.inventory.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -19,9 +21,9 @@ import java.util.List;
 public class ProductController {
     private final ProductService productService;
 
-    @PostMapping
-    public ResponseEntity<ProductResponse> createProduct(@RequestBody ProductCreateRequest request) {
-        ProductResponse response = productService.createProduct(request);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProductResponse> createProduct(@RequestPart("product") ProductCreateRequest request, @RequestPart("images") List<MultipartFile> images) throws IOException {
+        ProductResponse response = productService.createProduct(request, images);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -63,9 +65,9 @@ public class ProductController {
         );
     }
 
-    @PostMapping("/{productId}/images")
-    public ResponseEntity<List<ProductImageResponse>> addProductImage(@PathVariable Integer productId, @RequestBody ProductImageRequest request) {
-        List<ProductImageResponse> responses = productService.addProductImages(productId, request);
+    @PostMapping(value = "/{productId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<ProductImageResponse>> addProductImages(@PathVariable Integer productId, @RequestPart("images") List<MultipartFile> images) throws IOException {
+        List<ProductImageResponse> responses = productService.addProductImages(productId, images);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -73,7 +75,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{productId}/images/{imageId}")
-    public ResponseEntity<Void> removeProductImage(@PathVariable Integer productId, @PathVariable Integer imageId) {
+    public ResponseEntity<Void> removeProductImage(@PathVariable Integer productId, @PathVariable Integer imageId) throws IOException {
         productService.removeProductImage(productId, imageId);
 
         return ResponseEntity.noContent().build();
