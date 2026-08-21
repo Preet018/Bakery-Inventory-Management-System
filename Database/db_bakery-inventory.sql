@@ -11,7 +11,7 @@ USE bakery_inventory;
 -- 1. ROLE
 -- =========================================================
 
-CREATE TABLE Role (
+CREATE TABLE role (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(30) NOT NULL UNIQUE
 );
@@ -21,7 +21,7 @@ CREATE TABLE Role (
 -- 2. USER ACCOUNT
 -- =========================================================
 
-CREATE TABLE User_Account (
+CREATE TABLE user_account (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE User_Account (
 
     CONSTRAINT fk_user_role
         FOREIGN KEY (role_id)
-        REFERENCES Role(id)
+        REFERENCES role(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 );
@@ -41,7 +41,7 @@ CREATE TABLE User_Account (
 -- 3. CATEGORY
 -- =========================================================
 
-CREATE TABLE Category (
+CREATE TABLE category (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE
 );
@@ -51,7 +51,7 @@ CREATE TABLE Category (
 -- 4. SUPPLIER
 -- =========================================================
 
-CREATE TABLE Supplier (
+CREATE TABLE supplier (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150),
@@ -65,7 +65,7 @@ CREATE TABLE Supplier (
 -- 5. PRODUCT
 -- =========================================================
 
-CREATE TABLE Product (
+CREATE TABLE product (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     description TEXT,
@@ -76,13 +76,13 @@ CREATE TABLE Product (
 
     CONSTRAINT fk_product_category
         FOREIGN KEY (category_id)
-        REFERENCES Category(id)
+        REFERENCES category(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_product_supplier
         FOREIGN KEY (supplier_id)
-        REFERENCES Supplier(id)
+        REFERENCES supplier(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
@@ -95,7 +95,7 @@ CREATE TABLE Product (
 -- 6. INVENTORY
 -- =========================================================
 
-CREATE TABLE Inventory (
+CREATE TABLE inventory (
     id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT NOT NULL UNIQUE,
     quantity INT NOT NULL DEFAULT 0,
@@ -104,7 +104,7 @@ CREATE TABLE Inventory (
 
     CONSTRAINT fk_inventory_product
         FOREIGN KEY (product_id)
-        REFERENCES Product(id)
+        REFERENCES product(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
@@ -126,7 +126,7 @@ CREATE TABLE Inventory (
 -- 7. CUSTOMER ORDER
 -- =========================================================
 
-CREATE TABLE Customer_Order (
+CREATE TABLE customer_order (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     contact VARCHAR(20) NOT NULL,
@@ -138,7 +138,7 @@ CREATE TABLE Customer_Order (
 
     CONSTRAINT fk_order_user
         FOREIGN KEY (user_id)
-        REFERENCES User_Account(id)
+        REFERENCES user_account(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
@@ -163,7 +163,7 @@ CREATE TABLE Customer_Order (
 -- 8. ORDER ITEM
 -- =========================================================
 
-CREATE TABLE Order_Item (
+CREATE TABLE order_item (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
     product_id INT NOT NULL,
@@ -173,13 +173,13 @@ CREATE TABLE Order_Item (
 
     CONSTRAINT fk_order_item_order
         FOREIGN KEY (order_id)
-        REFERENCES Customer_Order(id)
+        REFERENCES customer_order(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_order_item_product
         FOREIGN KEY (product_id)
-        REFERENCES Product(id)
+        REFERENCES product(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
@@ -198,7 +198,7 @@ CREATE TABLE Order_Item (
 -- 9. PAYMENT
 -- =========================================================
 
-CREATE TABLE Payment (
+CREATE TABLE payment (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
     payment_method VARCHAR(30) NOT NULL,
@@ -217,7 +217,7 @@ CREATE TABLE Payment (
 
     CONSTRAINT fk_payment_order
         FOREIGN KEY (order_id)
-        REFERENCES Customer_Order(id)
+        REFERENCES customer_order(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
@@ -248,7 +248,7 @@ CREATE TABLE Payment (
 -- 10. INVENTORY RESERVATION
 -- =========================================================
 
-CREATE TABLE Inventory_Reservation (
+CREATE TABLE inventory_reservation (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
     product_id INT NOT NULL,
@@ -262,13 +262,13 @@ CREATE TABLE Inventory_Reservation (
 
     CONSTRAINT fk_reservation_order
         FOREIGN KEY (order_id)
-        REFERENCES Customer_Order(id)
+        REFERENCES customer_order(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_reservation_product
         FOREIGN KEY (product_id)
-        REFERENCES Product(id)
+        REFERENCES product(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
@@ -290,7 +290,7 @@ CREATE TABLE Inventory_Reservation (
 -- 11. STOCK TRANSACTION
 -- =========================================================
 
-CREATE TABLE Stock_Transaction (
+CREATE TABLE stock_transaction (
     id INT AUTO_INCREMENT PRIMARY KEY,
     inventory_id INT NOT NULL,
     type VARCHAR(30) NOT NULL,
@@ -301,13 +301,13 @@ CREATE TABLE Stock_Transaction (
 
     CONSTRAINT fk_stock_transaction_inventory
         FOREIGN KEY (inventory_id)
-        REFERENCES Inventory(id)
+        REFERENCES inventory(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
     
     CONSTRAINT fk_stock_transaction_order
         FOREIGN KEY (order_id)
-        REFERENCES Customer_Order(id)
+        REFERENCES customer_order(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
@@ -332,7 +332,7 @@ CREATE TABLE Stock_Transaction (
 -- 12. PRODUCT IMAGE
 -- =========================================================
 
-CREATE TABLE Product_Image (
+CREATE TABLE product_image (
     id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT NOT NULL,
     image_path VARCHAR(500) NOT NULL,
@@ -340,7 +340,7 @@ CREATE TABLE Product_Image (
 
     CONSTRAINT fk_product_image_product
         FOREIGN KEY (product_id)
-        REFERENCES Product(id)
+        REFERENCES product(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
@@ -351,7 +351,7 @@ CREATE TABLE Product_Image (
 -- INITIAL ROLES
 -- =========================================================
 
-INSERT INTO Role (name)
+INSERT INTO role (name)
 VALUES
     ('ADMIN'),
     ('INVENTORY_MANAGER'),

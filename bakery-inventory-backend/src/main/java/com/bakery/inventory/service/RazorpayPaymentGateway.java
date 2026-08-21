@@ -2,10 +2,7 @@ package com.bakery.inventory.service;
 
 import com.bakery.inventory.dto.payment.PaymentGatewayOrder;
 import com.bakery.inventory.dto.payment.PaymentGatewayVerification;
-import com.razorpay.Order;
-import com.razorpay.Payment;
-import com.razorpay.RazorpayClient;
-import com.razorpay.Utils;
+import com.razorpay.*;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,9 +35,16 @@ public class RazorpayPaymentGateway implements PaymentGateway {
         orderRequest.put("currency", currency);
         orderRequest.put("receipt", "ORDER_" + internalOrderId);
 
-        Order razorpayOrder = razorpayClient.orders.create(orderRequest);
+        try {
+            Order razorpayOrder = razorpayClient.orders.create(orderRequest);
 
-        return new PaymentGatewayOrder(razorpayOrder.get("id"), keyId);
+            return new PaymentGatewayOrder(razorpayOrder.get("id"), keyId);
+        } catch (RazorpayException e) {
+            throw new RuntimeException(
+                    "Failed to create Razorpay order for internal order "
+                            + internalOrderId, e
+            );
+        }
     }
 
     @Override
@@ -53,59 +57,67 @@ public class RazorpayPaymentGateway implements PaymentGateway {
 
         signatureAttributes.put("razorpay_signature", providerSignature);
 
-        boolean signatureValid = Utils.verifyPaymentSignature(signatureAttributes, keySecret);
+        try {
+            boolean signatureValid = Utils.verifyPaymentSignature(signatureAttributes, keySecret);
 
-        if (!signatureValid) {
+            if (!signatureValid) {
+                return new PaymentGatewayVerification(
+                        providerPaymentId,
+                        false
+                );
+            }
+
+            Payment razorpayPayment = razorpayClient.payments.fetch(providerPaymentId);
+
+            String actualOrderId = razorpayPayment.get("order_id");
+
+            String status = razorpayPayment.get("status");
+
+            String actualCurrency = razorpayPayment.get("currency");
+
+            long actualAmount = ((Number) razorpayPayment.get("amount")).longValue();
+
+            long expectedAmountInPaise = expectedAmount
+                            .movePointRight(2)
+                            .setScale(
+                                    0,
+                                    RoundingMode.UNNECESSARY
+                            )
+                            .longValueExact();
+
+            if (!providerOrderId.equals(actualOrderId)) {
+                return new PaymentGatewayVerification(
+                        providerPaymentId,
+                        false
+                );
+            }
+
+            if (actualAmount != expectedAmountInPaise) {
+                return new PaymentGatewayVerification(
+                        providerPaymentId,
+                        false
+                );
+            }
+
+            if (!expectedCurrency.equals(actualCurrency)) {
+                return new PaymentGatewayVerification(
+                        providerPaymentId,
+                        false
+                );
+            }
+
+            boolean captured = "captured".equalsIgnoreCase(status);
+
             return new PaymentGatewayVerification(
                     providerPaymentId,
-                    false
+                    captured
+            );
+        } catch (RazorpayException e) {
+            throw new RuntimeException(
+                    "Failed to verify Razorpay payment "
+                            + providerPaymentId,
+                    e
             );
         }
-
-        Payment razorpayPayment = razorpayClient.payments.fetch(providerPaymentId);
-
-        String actualOrderId = razorpayPayment.get("order_id");
-
-        String status = razorpayPayment.get("status");
-
-        String actualCurrency = razorpayPayment.get("currency");
-
-        long actualAmount = ((Number) razorpayPayment.get("amount")).longValue();
-
-        long expectedAmountInPaise = expectedAmount
-                        .movePointRight(2)
-                        .setScale(
-                                0,
-                                RoundingMode.UNNECESSARY
-                        )
-                        .longValueExact();
-
-        if (!providerOrderId.equals(actualOrderId)) {
-            return new PaymentGatewayVerification(
-                    providerPaymentId,
-                    false
-            );
-        }
-
-        if (actualAmount != expectedAmountInPaise) {
-            return new PaymentGatewayVerification(
-                    providerPaymentId,
-                    false
-            );
-        }
-
-        if (!expectedCurrency.equals(actualCurrency)) {
-            return new PaymentGatewayVerification(
-                    providerPaymentId,
-                    false
-            );
-        }
-
-        boolean captured = "captured".equalsIgnoreCase(status);
-
-        return new PaymentGatewayVerification(
-                providerPaymentId,
-                captured
-        );
     }
 }
