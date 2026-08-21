@@ -1,7 +1,7 @@
 package com.bakery.inventory.service;
 
 import com.bakery.inventory.dto.inventory.InventoryResponse;
-import com.bakery.inventory.dto.inventory.StockOperationRequest;
+import com.bakery.inventory.dto.stocktransaction.StockTransactionRequest;
 
 import java.util.List;
 
@@ -10,11 +10,11 @@ public interface InventoryService {
 
     List<InventoryResponse> getAllInventory();
 
-    InventoryResponse purchaseStock(Integer productId, StockOperationRequest request);
+    InventoryResponse purchaseStock(Integer productId, StockTransactionRequest request);
 
-    InventoryResponse returnStock(Integer productId, StockOperationRequest request);
+    InventoryResponse returnStock(Integer productId, StockTransactionRequest request);
 
-    InventoryResponse adjustStock(Integer productId, StockOperationRequest request);
+    InventoryResponse adjustStock(Integer productId, StockTransactionRequest request);
 
     InventoryResponse updateMinimumStock(Integer productId, Integer minimumStock);
 
@@ -22,5 +22,5 @@ public interface InventoryService {
 
     List<InventoryResponse> getOutOfStockProducts();
 
-    InventoryResponse recordDamage(Integer productId, StockOperationRequest request);
+    InventoryResponse recordDamage(Integer productId, StockTransactionRequest request);
 }

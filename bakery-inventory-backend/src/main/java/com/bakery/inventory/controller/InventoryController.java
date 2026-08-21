@@ -1,7 +1,7 @@
 package com.bakery.inventory.controller;
 
 import com.bakery.inventory.dto.inventory.InventoryResponse;
-import com.bakery.inventory.dto.inventory.StockOperationRequest;
+import com.bakery.inventory.dto.stocktransaction.StockTransactionRequest;
 import com.bakery.inventory.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -44,7 +44,7 @@ public class InventoryController {
     }
 
     @PostMapping("/{productId}/purchase")
-    public ResponseEntity<InventoryResponse> purchaseStock(@PathVariable Integer productId, @RequestBody StockOperationRequest request) {
+    public ResponseEntity<InventoryResponse> purchaseStock(@PathVariable Integer productId, @RequestBody StockTransactionRequest request) {
         return ResponseEntity.ok(
                 inventoryService.purchaseStock(
                         productId,
@@ -54,7 +54,7 @@ public class InventoryController {
     }
 
     @PostMapping("/{productId}/return")
-    public ResponseEntity<InventoryResponse> returnStock(@PathVariable Integer productId, @RequestBody StockOperationRequest request) {
+    public ResponseEntity<InventoryResponse> returnStock(@PathVariable Integer productId, @RequestBody StockTransactionRequest request) {
         return ResponseEntity.ok(
                 inventoryService.returnStock(
                         productId,
@@ -64,7 +64,7 @@ public class InventoryController {
     }
 
     @PostMapping("/{productId}/adjust")
-    public ResponseEntity<InventoryResponse> adjustStock(@PathVariable Integer productId, @RequestBody StockOperationRequest request) {
+    public ResponseEntity<InventoryResponse> adjustStock(@PathVariable Integer productId, @RequestBody StockTransactionRequest request) {
         return ResponseEntity.ok(
                 inventoryService.adjustStock(
                         productId,
@@ -74,7 +74,7 @@ public class InventoryController {
     }
 
     @PostMapping("/{productId}/damage")
-    public ResponseEntity<InventoryResponse> recordDamage(@PathVariable Integer productId, @RequestBody StockOperationRequest request) {
+    public ResponseEntity<InventoryResponse> recordDamage(@PathVariable Integer productId, @RequestBody StockTransactionRequest request) {
         return ResponseEntity.ok(
                 inventoryService.recordDamage(
                         productId,

@@ -15,7 +15,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CustomerOrderResponse {
-
     private Integer id;
     private Integer userId;
     private String contact;

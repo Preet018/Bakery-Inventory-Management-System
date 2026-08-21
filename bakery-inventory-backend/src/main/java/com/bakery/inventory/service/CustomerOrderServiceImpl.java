@@ -4,12 +4,11 @@ import com.bakery.inventory.dto.customerorder.CustomerOrderRequest;
 import com.bakery.inventory.dto.customerorder.CustomerOrderResponse;
 import com.bakery.inventory.dto.orderitem.OrderItemRequest;
 import com.bakery.inventory.dto.orderitem.OrderItemResponse;
+import com.bakery.inventory.dto.payment.PaymentResponse;
 import com.bakery.inventory.entity.*;
 import com.bakery.inventory.repository.CustomerOrderRepository;
-import com.bakery.inventory.repository.InventoryRepository;
 import com.bakery.inventory.repository.OrderItemRepository;
 import com.bakery.inventory.repository.ProductRepository;
-import com.bakery.inventory.repository.StockTransactionRepository;
 import com.bakery.inventory.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,20 +26,22 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         private final OrderItemRepository orderItemRepository;
         private final UserAccountRepository userAccountRepository;
         private final ProductRepository productRepository;
-        private final InventoryRepository inventoryRepository;
-        private final StockTransactionRepository stockTransactionRepository;
+
+        private final InventoryReservationService inventoryReservationService;
+        private final PaymentService paymentService;
 
         @Override
         @Transactional
         public CustomerOrderResponse createOrder(CustomerOrderRequest request) {
-                UserAccount user = userAccountRepository.findById(
-                                request.getUserId())
+                UserAccount user = userAccountRepository.findById(request.getUserId())
                                 .orElseThrow(() -> new RuntimeException(
                                                 "User not found with id: "
                                                                 + request.getUserId()));
 
                 if (request.getItems() == null || request.getItems().isEmpty()) {
-                        throw new RuntimeException("Order must contain at least one item");
+                        throw new RuntimeException(
+                                "Order must contain at least one item"
+                        );
                 }
 
                 CustomerOrder order = new CustomerOrder();
@@ -48,9 +49,6 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                 order.setUser(user);
                 order.setContact(request.getContact());
                 order.setDeliveryAddress(request.getDeliveryAddress());
-                order.setPaymentMethod(request.getPaymentMethod());
-
-                order.setPaymentStatus(PaymentStatus.PENDING);
                 order.setOrderStatus(OrderStatus.PLACED);
 
                 LocalDateTime now = LocalDateTime.now();
@@ -82,18 +80,6 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                 throw new RuntimeException("Quantity must be greater than zero");
                         }
 
-                        Inventory inventory = inventoryRepository.findByProductId(
-                                        product.getId())
-                                        .orElseThrow(() -> new RuntimeException(
-                                                        "Inventory not found for product id: "
-                                                                        + product.getId()));
-
-                        if (inventory.getQuantity() < itemRequest.getQuantity()) {
-                                throw new RuntimeException(
-                                                "Insufficient stock for product id: "
-                                                                + product.getId());
-                        }
-
                         BigDecimal unitPrice = product.getPrice();
 
                         BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
@@ -110,23 +96,11 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                         totalAmount = totalAmount.add(subtotal);
 
-                        inventory.setQuantity(inventory.getQuantity() - itemRequest.getQuantity());
-
-                        inventoryRepository.save(inventory);
-
-                        StockTransaction transaction = new StockTransaction();
-
-                        transaction.setInventory(inventory);
-                        transaction.setType(StockTransactionType.SALE);
-
-                        transaction.setQuantity(-itemRequest.getQuantity());
-
-                        transaction.setReason("Stock sold through customer order");
-
-                        transaction.setOrder(savedOrder);
-                        transaction.setCreatedAt(now);
-
-                        stockTransactionRepository.save(transaction);
+                        inventoryReservationService.reserve(
+                                savedOrder.getId(),
+                                product.getId(),
+                                itemRequest.getQuantity()
+                        );
                 }
 
                 orderItemRepository.saveAll(orderItems);
@@ -136,7 +110,17 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                 CustomerOrder updatedOrder = customerOrderRepository.save(savedOrder);
 
-                return mapToResponse(updatedOrder);
+                PaymentResponse paymentResponse =
+                        paymentService.createPayment(
+                                updatedOrder.getId(),
+                                request.getPaymentMethod(),
+                                totalAmount
+                        );
+
+                return mapToResponse(
+                        updatedOrder,
+                        paymentResponse
+                );
         }
 
         @Override
@@ -151,8 +135,9 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         public CustomerOrderResponse getOrderById(Integer id) {
                 CustomerOrder order = customerOrderRepository.findById(id)
                                 .orElseThrow(() -> new RuntimeException(
-                                                "Order not found with id: "
-                                                                + id));
+                                                "Order not found with id: " + id
+                                        )
+                                );
 
                 return mapToResponse(order);
         }
@@ -161,8 +146,9 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         public List<CustomerOrderResponse> getOrdersByUserId(Integer userId) {
                 userAccountRepository.findById(userId)
                                 .orElseThrow(() -> new RuntimeException(
-                                                "User not found with id: "
-                                                                + userId));
+                                                "User not found with id: " + userId
+                                        )
+                                );
 
                 return customerOrderRepository.findByUserId(userId)
                                 .stream()
@@ -205,34 +191,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                         throw new RuntimeException("Only placed orders can be cancelled");
                 }
 
-                List<OrderItem> orderItems = orderItemRepository.findByOrderId(id);
-
-                for (OrderItem orderItem : orderItems) {
-                        Product product = orderItem.getProduct();
-
-                        Inventory inventory = inventoryRepository.findByProductId(
-                                        product.getId())
-                                        .orElseThrow(() -> new RuntimeException(
-                                                        "Inventory not found for product id: "
-                                                                        + product.getId()));
-
-                        int quantity = orderItem.getQuantity();
-
-                        inventory.setQuantity(inventory.getQuantity() + quantity);
-
-                        inventoryRepository.save(inventory);
-
-                        StockTransaction transaction = new StockTransaction();
-
-                        transaction.setInventory(inventory);
-                        transaction.setType(StockTransactionType.CANCEL);
-                        transaction.setQuantity(quantity);
-                        transaction.setReason("Stock returned due to order cancellation");
-                        transaction.setOrder(order);
-                        transaction.setCreatedAt(LocalDateTime.now());
-
-                        stockTransactionRepository.save(transaction);
-                }
+                inventoryReservationService.releaseByOrderId(id);
 
                 order.setOrderStatus(OrderStatus.CANCELLED);
                 order.setUpdatedAt(LocalDateTime.now());
@@ -244,7 +203,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
         private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
                 if (currentStatus == OrderStatus.PLACED) {
-                        return newStatus == OrderStatus.CONFIRMED || newStatus == OrderStatus.CANCELLED;
+                        return newStatus == OrderStatus.CANCELLED;
                 }
 
                 if (currentStatus == OrderStatus.CONFIRMED) {
@@ -263,8 +222,9 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         }
 
         private CustomerOrderResponse mapToResponse(CustomerOrder order) {
-                List<OrderItemResponse> itemResponses = orderItemRepository.findByOrderId(
-                                order.getId())
+                Payment payment = order.getPayment();
+
+                List<OrderItemResponse> itemResponses = orderItemRepository.findByOrderId(order.getId())
                                 .stream()
                                 .map(this::mapOrderItemToResponse)
                                 .toList();
@@ -275,13 +235,35 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                 order.getContact(),
                                 order.getDeliveryAddress(),
                                 order.getTotalAmount(),
-                                order.getPaymentMethod(),
-                                order.getPaymentStatus(),
+                                payment != null ? payment.getPaymentMethod() : null,
+                                payment != null ? payment.getPaymentStatus() : null,
                                 order.getOrderStatus(),
                                 order.getCreatedAt(),
                                 order.getUpdatedAt(),
-                                itemResponses);
+                                itemResponses
+                );
         }
+
+    private CustomerOrderResponse mapToResponse(CustomerOrder order, PaymentResponse payment) {
+        List<OrderItemResponse> itemResponses = orderItemRepository.findByOrderId(order.getId())
+                        .stream()
+                        .map(this::mapOrderItemToResponse)
+                        .toList();
+
+        return new CustomerOrderResponse(
+                order.getId(),
+                order.getUser().getId(),
+                order.getContact(),
+                order.getDeliveryAddress(),
+                order.getTotalAmount(),
+                payment.getPaymentMethod(),
+                payment.getPaymentStatus(),
+                order.getOrderStatus(),
+                order.getCreatedAt(),
+                order.getUpdatedAt(),
+                itemResponses
+        );
+    }
 
         private OrderItemResponse mapOrderItemToResponse(OrderItem orderItem) {
                 return new OrderItemResponse(
@@ -289,6 +271,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                 orderItem.getProduct().getId(),
                                 orderItem.getQuantity(),
                                 orderItem.getUnitPrice(),
-                                orderItem.getSubtotal());
+                                orderItem.getSubtotal()
+                );
         }
 }

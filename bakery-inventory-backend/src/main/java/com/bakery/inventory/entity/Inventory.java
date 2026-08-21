@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "inventory")
+@Table(name = "Inventory")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,6 +20,9 @@ public class Inventory {
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
+
+    @Column(name = "reserved_quantity", nullable = false)
+    private Integer reservedQuantity;
 
     @Column(name = "minimum_stock", nullable = false)
     private Integer minimumStock;

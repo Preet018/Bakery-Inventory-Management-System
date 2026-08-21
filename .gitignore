@@ -17,3 +17,6 @@
 # OS
 .DS_Store
 Thumbs.db
+
+# Runtime uploaded files
+**/uploads/

@@ -1,7 +1,7 @@
 package com.bakery.inventory.service;
 
 import com.bakery.inventory.dto.inventory.InventoryResponse;
-import com.bakery.inventory.dto.inventory.StockOperationRequest;
+import com.bakery.inventory.dto.stocktransaction.StockTransactionRequest;
 import com.bakery.inventory.entity.Inventory;
 import com.bakery.inventory.entity.StockTransaction;
 import com.bakery.inventory.entity.StockTransactionType;
@@ -38,7 +38,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public InventoryResponse purchaseStock(Integer productId, StockOperationRequest request) {
+    public InventoryResponse purchaseStock(Integer productId, StockTransactionRequest request) {
         validatePositiveQuantity(request.getQuantity());
 
         return updateInventory(
@@ -51,7 +51,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public InventoryResponse returnStock(Integer productId, StockOperationRequest request) {
+    public InventoryResponse returnStock(Integer productId, StockTransactionRequest request) {
         validatePositiveQuantity(request.getQuantity());
 
         return updateInventory(
@@ -64,7 +64,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public InventoryResponse adjustStock(Integer productId, StockOperationRequest request) {
+    public InventoryResponse adjustStock(Integer productId, StockTransactionRequest request) {
         Integer targetQuantity = request.getQuantity();
 
         if (targetQuantity == null || targetQuantity < 0) {
@@ -74,6 +74,13 @@ public class InventoryServiceImpl implements InventoryService {
         }
 
         Inventory inventory = getInventory(productId);
+
+        if (targetQuantity < inventory.getReservedQuantity()) {
+            throw new RuntimeException(
+                    "Adjusted stock cannot be less than reserved stock for product id: "
+                            + productId
+            );
+        }
 
         int adjustment = targetQuantity - inventory.getQuantity();
 
@@ -107,8 +114,7 @@ public class InventoryServiceImpl implements InventoryService {
         return inventoryRepository.findAll()
                 .stream()
                 .filter(inventory ->
-                        inventory.getQuantity()
-                                <= inventory.getMinimumStock()
+                        getAvailableQuantity(inventory) <= inventory.getMinimumStock()
                 )
                 .map(this::mapToResponse)
                 .toList();
@@ -127,7 +133,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public InventoryResponse recordDamage(Integer productId, StockOperationRequest request) {
+    public InventoryResponse recordDamage(Integer productId, StockTransactionRequest request) {
         validatePositiveQuantity(request.getQuantity());
 
         return updateInventory(
@@ -148,6 +154,13 @@ public class InventoryServiceImpl implements InventoryService {
         if (newQuantity < 0) {
             throw new RuntimeException(
                     "Insufficient stock for product id: "
+                            + productId
+            );
+        }
+
+        if (newQuantity < inventory.getReservedQuantity()) {
+            throw new RuntimeException(
+                    "Insufficient unreserved stock for product id: "
                             + productId
             );
         }
@@ -187,14 +200,21 @@ public class InventoryServiceImpl implements InventoryService {
         }
     }
 
+    private int getAvailableQuantity(Inventory inventory) {
+        return inventory.getQuantity() - inventory.getReservedQuantity();
+    }
+
     private InventoryResponse mapToResponse(Inventory inventory) {
+        int availableQuantity = getAvailableQuantity(inventory);
+
         return new InventoryResponse(
                 inventory.getId(),
                 inventory.getProduct().getId(),
                 inventory.getQuantity(),
+                inventory.getReservedQuantity(),
+                availableQuantity,
                 inventory.getMinimumStock(),
-                inventory.getQuantity()
-                        <= inventory.getMinimumStock()
+                availableQuantity <= inventory.getMinimumStock()
         );
     }
 }

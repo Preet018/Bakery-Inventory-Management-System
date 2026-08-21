@@ -7,7 +7,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SupplierRequest {
-
     private String name;
     private String email;
     private String phone;

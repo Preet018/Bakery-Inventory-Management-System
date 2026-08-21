@@ -57,10 +57,10 @@ public class StockTransactionServiceImpl implements StockTransactionService {
         return new StockTransactionResponse(
                 transaction.getId(),
                 transaction.getInventory().getId(),
+                transaction.getOrder() != null ? transaction.getOrder().getId() : null,
                 transaction.getType(),
                 transaction.getQuantity(),
                 transaction.getReason(),
-                transaction.getOrder() != null ? transaction.getOrder().getId() : null,
                 transaction.getCreatedAt()
         );
     }

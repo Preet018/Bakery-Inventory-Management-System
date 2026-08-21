@@ -1,4 +1,4 @@
-package com.bakery.inventory.dto.inventory;
+package com.bakery.inventory.dto.stocktransaction;
 
 import lombok.*;
 
@@ -6,7 +6,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class StockOperationRequest {
+public class StockTransactionRequest {
     private Integer quantity;
     private String reason;
 }

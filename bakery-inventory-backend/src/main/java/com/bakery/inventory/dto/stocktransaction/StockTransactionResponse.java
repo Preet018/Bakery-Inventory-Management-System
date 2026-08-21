@@ -10,12 +10,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StockTransactionResponse {
-
     private Integer id;
     private Integer inventoryId;
+    private Integer orderId;
     private StockTransactionType type;
     private Integer quantity;
     private String reason;
-    private Integer orderId;
     private LocalDateTime createdAt;
 }
