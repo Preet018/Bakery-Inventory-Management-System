@@ -1,10 +1,11 @@
 package com.bakery.inventory.service;
 
-import com.bakery.inventory.dto.payment.PaymentGatewayOrder;
-import com.bakery.inventory.dto.payment.PaymentGatewayVerification;
-import com.bakery.inventory.dto.payment.PaymentResponse;
+import com.bakery.inventory.dto.payment.*;
 import com.bakery.inventory.dto.payment.PaymentVerificationRequest;
 import com.bakery.inventory.entity.*;
+import com.bakery.inventory.exception.BadRequestException;
+import com.bakery.inventory.exception.BusinessRuleException;
+import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.CustomerOrderRepository;
 import com.bakery.inventory.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,9 +31,8 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponse createPayment(Integer orderId, PaymentMethod paymentMethod, BigDecimal amount) {
         CustomerOrder order = customerOrderRepository.findById(orderId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Order not found with id: "
-                                                + orderId
+                                new ResourceNotFoundException(
+                                        "Order not found with id: " + orderId
                                 )
                         );
 
@@ -50,20 +50,11 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setCreatedAt(now);
         payment.setUpdatedAt(now);
 
-        PaymentGatewayOrder gatewayOrder =
-                paymentGateway.createOrder(
-                        orderId,
-                        amount,
-                        PAYMENT_CURRENCY
-                );
+        PaymentGatewayOrder gatewayOrder = paymentGateway.createOrder(orderId, amount, PAYMENT_CURRENCY);
 
-        // CHANGE: Store Razorpay's provider order ID.
-        payment.setProviderOrderId(
-                gatewayOrder.getProviderOrderId()
-        );
+        payment.setProviderOrderId(gatewayOrder.getProviderOrderId());
 
-        Payment savedPayment =
-                paymentRepository.save(payment);
+        Payment savedPayment = paymentRepository.save(payment);
 
         return mapToResponse(
                 savedPayment,
@@ -75,9 +66,8 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponse getPaymentByOrderId(Integer orderId) {
         Payment payment = paymentRepository.findByOrderId(orderId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Payment not found for order id: "
-                                                + orderId
+                                new ResourceNotFoundException(
+                                        "Payment not found for order id: " + orderId
                                 )
                         );
 
@@ -89,9 +79,8 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponse verifyAndConfirmPayment(Integer paymentId, PaymentVerificationRequest request) {
         Payment payment = paymentRepository.findByIdForUpdate(paymentId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Payment not found with id: "
-                                                + paymentId
+                                new ResourceNotFoundException(
+                                        "Payment not found with id: " + paymentId
                                 )
                         );
 
@@ -100,18 +89,19 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         if (payment.getPaymentStatus() == PaymentStatus.FAILED) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Failed payment cannot be confirmed"
             );
         }
 
         if (!payment.getProviderOrderId().equals(request.getRazorpayOrderId())) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Razorpay order does not match payment"
             );
         }
 
-        PaymentGatewayVerification verification = paymentGateway.verifyPayment(
+        PaymentGatewayVerification verification = paymentGateway
+                .verifyPayment(
                         payment.getProviderOrderId(),
                         request.getRazorpayPaymentId(),
                         request.getRazorpaySignature(),
@@ -120,7 +110,7 @@ public class PaymentServiceImpl implements PaymentService {
                 );
 
         if (!verification.isVerified()) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Razorpay payment verification failed"
             );
         }
@@ -137,16 +127,13 @@ public class PaymentServiceImpl implements PaymentService {
         );
     }
 
-
-
     @Override
     @Transactional
     public PaymentResponse markAsFailed(Integer paymentId) {
         Payment payment = paymentRepository.findByIdForUpdate(paymentId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Payment not found with id: "
-                                                + paymentId
+                                new ResourceNotFoundException(
+                                        "Payment not found with id: " + paymentId
                                 )
                         );
 
@@ -155,7 +142,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         if (payment.getPaymentStatus() == PaymentStatus.PAID) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Paid payment cannot be marked as failed"
             );
         }
@@ -163,9 +150,8 @@ public class PaymentServiceImpl implements PaymentService {
         CustomerOrder order = payment.getOrder();
 
         if (order.getOrderStatus() == OrderStatus.CONFIRMED) {
-            throw new RuntimeException(
-                    "Payment cannot be marked as failed "
-                            + "for a confirmed order"
+            throw new BusinessRuleException(
+                    "Payment cannot be marked as failed for a confirmed order"
             );
         }
 
@@ -178,10 +164,8 @@ public class PaymentServiceImpl implements PaymentService {
             customerOrderRepository.save(order);
 
         } else if (order.getOrderStatus() != OrderStatus.CANCELLED) {
-            throw new RuntimeException(
-                    "Payment cannot be marked as failed "
-                            + "for order status: "
-                            + order.getOrderStatus()
+            throw new BusinessRuleException(
+                    "Payment cannot be marked as failed for order status: " + order.getOrderStatus()
             );
         }
 
@@ -198,7 +182,7 @@ public class PaymentServiceImpl implements PaymentService {
         CustomerOrder order = payment.getOrder();
 
         if (order.getOrderStatus() != OrderStatus.PLACED) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Only placed orders can be confirmed by payment"
             );
         }
@@ -216,7 +200,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         customerOrderRepository.save(order);
 
-        return mapToResponse(payment, null);
+        return mapToResponse(payment, providerPaymentId);
     }
 
     private PaymentResponse mapToResponse(Payment payment, String providerKeyId) {

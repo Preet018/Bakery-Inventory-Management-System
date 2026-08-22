@@ -4,6 +4,9 @@ import com.bakery.inventory.dto.inventory.*;
 import com.bakery.inventory.entity.Inventory;
 import com.bakery.inventory.entity.StockTransaction;
 import com.bakery.inventory.entity.StockTransactionType;
+import com.bakery.inventory.exception.BusinessRuleException;
+import com.bakery.inventory.exception.InsufficientStockException;
+import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.InventoryRepository;
 import com.bakery.inventory.repository.StockTransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -65,7 +68,7 @@ public class InventoryServiceImpl implements InventoryService {
         Inventory inventory = getInventory(productId);
 
         if (targetQuantity < inventory.getReservedQuantity()) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Adjusted stock cannot be less than reserved stock for product id: "
                             + productId
             );
@@ -133,14 +136,14 @@ public class InventoryServiceImpl implements InventoryService {
         int newQuantity = currentQuantity + quantityChange;
 
         if (newQuantity < 0) {
-            throw new RuntimeException(
+            throw new InsufficientStockException(
                     "Insufficient stock for product id: "
                             + productId
             );
         }
 
         if (newQuantity < inventory.getReservedQuantity()) {
-            throw new RuntimeException(
+            throw new InsufficientStockException(
                     "Insufficient unreserved stock for product id: "
                             + productId
             );
@@ -166,7 +169,7 @@ public class InventoryServiceImpl implements InventoryService {
     private Inventory getInventory(Integer productId) {
         return inventoryRepository.findByProductId(productId)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Inventory not found for product id: "
                                         + productId
                         )

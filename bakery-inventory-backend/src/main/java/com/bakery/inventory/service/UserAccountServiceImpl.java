@@ -3,6 +3,7 @@ package com.bakery.inventory.service;
 import com.bakery.inventory.dto.useraccount.*;
 import com.bakery.inventory.entity.Role;
 import com.bakery.inventory.entity.UserAccount;
+import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.RoleRepository;
 import com.bakery.inventory.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     public UserAccountResponse createUser(UserAccountCreateRequest request) {
         Role role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Role not found with id: " + request.getRoleId()
                         )
                 );
@@ -49,7 +50,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     public UserAccountResponse getUserById(Integer id) {
         UserAccount user = userAccountRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "User not found with id: " + id
                         )
                 );
@@ -61,7 +62,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     public UserAccountResponse updateUser(Integer id, UserAccountUpdateRequest request) {
         UserAccount user = userAccountRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "User not found with id: " + id
                         )
                 );
@@ -78,7 +79,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     public void deleteUser(Integer id) {
         UserAccount user = userAccountRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "User not found with id: " + id
                         )
                 );

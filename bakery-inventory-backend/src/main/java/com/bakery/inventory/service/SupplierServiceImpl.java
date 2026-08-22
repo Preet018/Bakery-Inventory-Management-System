@@ -3,6 +3,7 @@ package com.bakery.inventory.service;
 import com.bakery.inventory.dto.supplier.SupplierRequest;
 import com.bakery.inventory.dto.supplier.SupplierResponse;
 import com.bakery.inventory.entity.Supplier;
+import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -43,7 +44,7 @@ public class SupplierServiceImpl implements SupplierService {
     public SupplierResponse getSupplierById(Integer id) {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Supplier not found with id: " + id
                         )
                 );
@@ -55,7 +56,7 @@ public class SupplierServiceImpl implements SupplierService {
     public SupplierResponse updateSupplier(Integer id, SupplierRequest request) {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Supplier not found with id: " + id
                         )
                 );
@@ -74,7 +75,7 @@ public class SupplierServiceImpl implements SupplierService {
     public void deactivateSupplier(Integer id) {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Supplier not found with id: " + id
                         )
                 );
@@ -88,7 +89,7 @@ public class SupplierServiceImpl implements SupplierService {
     public void activateSupplier(Integer id) {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Supplier not found with id: " + id
                         )
                 );

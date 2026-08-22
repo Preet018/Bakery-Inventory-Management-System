@@ -3,6 +3,7 @@ package com.bakery.inventory.service;
 import com.bakery.inventory.dto.savedaddress.*;
 import com.bakery.inventory.entity.SavedAddress;
 import com.bakery.inventory.entity.UserAccount;
+import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.SavedAddressRepository;
 import com.bakery.inventory.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +22,11 @@ public class SavedAddressServiceImpl implements SavedAddressService {
     @Transactional
     public SavedAddressResponse createAddress(Integer userId, SavedAddressCreateRequest request) {
         UserAccount user = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException(
-                        "User not found with id: " + userId
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User not found with id: " + userId
+                        )
+                );
 
         SavedAddress address = new SavedAddress();
 
@@ -57,9 +60,11 @@ public class SavedAddressServiceImpl implements SavedAddressService {
     @Transactional(readOnly = true)
     public List<SavedAddressResponse> getUserAddresses(Integer userId) {
         userAccountRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException(
-                        "User not found with id: " + userId
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User not found with id: " + userId
+                        )
+                );
 
         return savedAddressRepository.findByUserId(userId)
                 .stream()
@@ -72,10 +77,11 @@ public class SavedAddressServiceImpl implements SavedAddressService {
     public SavedAddressResponse getAddress(Integer userId, Integer addressId) {
         SavedAddress address = savedAddressRepository
                 .findByIdAndUserId(addressId, userId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Saved address not found with id: "
-                                + addressId
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Saved address not found with id: " + addressId
+                        )
+                );
 
         return mapToResponse(address);
     }
@@ -85,10 +91,11 @@ public class SavedAddressServiceImpl implements SavedAddressService {
     public SavedAddressResponse updateAddress(Integer userId, Integer addressId, SavedAddressUpdateRequest request) {
         SavedAddress address = savedAddressRepository
                 .findByIdAndUserId(addressId, userId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Saved address not found with id: "
-                                + addressId
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Saved address not found with id: " + addressId
+                        )
+                );
 
         address.setLabel(request.getLabel());
         address.setAddressLine(request.getAddressLine());
@@ -110,10 +117,11 @@ public class SavedAddressServiceImpl implements SavedAddressService {
     public void deleteAddress(Integer userId, Integer addressId) {
         SavedAddress address = savedAddressRepository
                 .findByIdAndUserId(addressId, userId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Saved address not found with id: "
-                                + addressId
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Saved address not found with id: " + addressId
+                        )
+                );
 
         savedAddressRepository.delete(address);
     }
@@ -123,10 +131,11 @@ public class SavedAddressServiceImpl implements SavedAddressService {
     public SavedAddressResponse setDefaultAddress(Integer userId, Integer addressId) {
         SavedAddress address = savedAddressRepository
                 .findByIdAndUserId(addressId, userId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Saved address not found with id: "
-                                + addressId
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Saved address not found with id: " + addressId
+                        )
+                );
 
         clearDefaultAddress(userId);
 

@@ -2,6 +2,7 @@ package com.bakery.inventory.service;
 
 import com.bakery.inventory.dto.payment.PaymentGatewayOrder;
 import com.bakery.inventory.dto.payment.PaymentGatewayVerification;
+import com.bakery.inventory.exception.PaymentGatewayException;
 import com.razorpay.*;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
@@ -40,9 +41,8 @@ public class RazorpayPaymentGateway implements PaymentGateway {
 
             return new PaymentGatewayOrder(razorpayOrder.get("id"), keyId);
         } catch (RazorpayException e) {
-            throw new RuntimeException(
-                    "Failed to create Razorpay order for internal order "
-                            + internalOrderId, e
+            throw new PaymentGatewayException(
+                    "Failed to create Razorpay order for internal order " + internalOrderId, e
             );
         }
     }
@@ -113,10 +113,8 @@ public class RazorpayPaymentGateway implements PaymentGateway {
                     captured
             );
         } catch (RazorpayException e) {
-            throw new RuntimeException(
-                    "Failed to verify Razorpay payment "
-                            + providerPaymentId,
-                    e
+            throw new PaymentGatewayException(
+                    "Failed to verify Razorpay payment " + providerPaymentId, e
             );
         }
     }

@@ -1,5 +1,7 @@
 package com.bakery.inventory.service;
 
+import com.bakery.inventory.exception.BadRequestException;
+import com.bakery.inventory.exception.StorageException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,7 +40,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         Path destination = uploadDirectory.resolve(generatedFilename).normalize();
 
         if (!destination.startsWith(uploadDirectory)) {
-            throw new RuntimeException(
+            throw new StorageException(
                     "Invalid image file path"
             );
         }
@@ -59,7 +61,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         Path filePath = uploadDirectory.resolve(filename).normalize();
 
         if (!filePath.startsWith(uploadDirectory)) {
-            throw new RuntimeException(
+            throw new StorageException(
                     "Invalid image file path"
             );
         }
@@ -69,13 +71,13 @@ public class ImageStorageServiceImpl implements ImageStorageService {
 
     private void validateImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Image file cannot be empty"
             );
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Image file size cannot exceed 5 MB"
             );
         }
@@ -83,7 +85,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         String contentType = file.getContentType();
 
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Only JPEG, PNG and WebP images are allowed"
             );
         }
@@ -91,7 +93,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         String originalFilename = file.getOriginalFilename();
 
         if (originalFilename == null || originalFilename.isBlank()) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Image filename cannot be empty"
             );
         }
@@ -101,7 +103,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         int lastDot = filename.lastIndexOf('.');
 
         if (lastDot == -1) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Image file must have an extension"
             );
         }
@@ -109,7 +111,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         String extension = filename.substring(lastDot).toLowerCase();
 
         if (!extension.equals(".jpg") && !extension.equals(".jpeg") && !extension.equals(".png") && !extension.equals(".webp")) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Unsupported image format"
             );
         }

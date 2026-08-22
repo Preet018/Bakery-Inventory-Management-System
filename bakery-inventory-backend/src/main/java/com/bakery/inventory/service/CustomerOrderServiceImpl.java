@@ -6,6 +6,9 @@ import com.bakery.inventory.dto.orderitem.OrderItemRequest;
 import com.bakery.inventory.dto.orderitem.OrderItemResponse;
 import com.bakery.inventory.dto.payment.PaymentResponse;
 import com.bakery.inventory.entity.*;
+import com.bakery.inventory.exception.BadRequestException;
+import com.bakery.inventory.exception.BusinessRuleException;
+import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,12 +35,14 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         @Transactional
         public CustomerOrderResponse createOrder(CustomerOrderCreateRequest request) {
                 UserAccount user = userAccountRepository.findById(request.getUserId())
-                                .orElseThrow(() -> new RuntimeException(
-                                                "User not found with id: "
-                                                                + request.getUserId()));
+                                .orElseThrow(() ->
+                                        new ResourceNotFoundException(
+                                                "User not found with id: " + request.getUserId()
+                                        )
+                                );
 
                 if (request.getItems() == null || request.getItems().isEmpty()) {
-                        throw new RuntimeException(
+                        throw new BadRequestException(
                                 "Order must contain at least one item"
                         );
                 }
@@ -51,10 +56,12 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                         .findByIdAndUserId(
                                 request.getSavedAddressId(),
                                 request.getUserId()
-                        ).orElseThrow(() -> new RuntimeException(
-                                "Saved address not found for user with id: "
-                                        + request.getUserId()
-                        ));
+                        )
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Saved address not found for user with id: " + request.getUserId()
+                                )
+                        );
 
                 order.setSavedAddress(savedAddress);
 
@@ -85,18 +92,22 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                 for (OrderItemRequest itemRequest : request.getItems()) {
                         Product product = productRepository.findById(
                                         itemRequest.getProductId())
-                                        .orElseThrow(() -> new RuntimeException(
-                                                        "Product not found with id: "
-                                                                        + itemRequest.getProductId()));
+                                        .orElseThrow(() ->
+                                                new ResourceNotFoundException(
+                                                        "Product not found with id: " + itemRequest.getProductId()
+                                                )
+                                        );
 
                         if (!Boolean.TRUE.equals(product.getIsActive())) {
-                                throw new RuntimeException(
-                                                "Product is inactive with id: "
-                                                                + product.getId());
+                                throw new BusinessRuleException(
+                                        "Product is inactive with id: " + product.getId()
+                                );
                         }
 
                         if (itemRequest.getQuantity() == null || itemRequest.getQuantity() <= 0) {
-                                throw new RuntimeException("Quantity must be greater than zero");
+                                throw new BadRequestException(
+                                        "Quantity must be greater than zero"
+                                );
                         }
 
                         BigDecimal unitPrice = product.getPrice();
@@ -152,7 +163,8 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         @Transactional(readOnly = true)
         public CustomerOrderResponse getOrderById(Integer id) {
                 CustomerOrder order = customerOrderRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException(
+                                .orElseThrow(() ->
+                                        new ResourceNotFoundException(
                                                 "Order not found with id: " + id
                                         )
                                 );
@@ -164,7 +176,8 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         @Transactional(readOnly = true)
         public List<CustomerOrderResponse> getOrdersByUserId(Integer userId) {
                 userAccountRepository.findById(userId)
-                                .orElseThrow(() -> new RuntimeException(
+                                .orElseThrow(() ->
+                                        new ResourceNotFoundException(
                                                 "User not found with id: " + userId
                                         )
                                 );
@@ -179,16 +192,18 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         @Transactional
         public CustomerOrderResponse updateOrderStatus(Integer id, OrderStatus newStatus) {
                 CustomerOrder order = customerOrderRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException(
-                                                "Order not found with id: "
-                                                                + id));
+                                .orElseThrow(() ->
+                                        new ResourceNotFoundException(
+                                                "Order not found with id: " + id
+                                        )
+                                );
 
                 OrderStatus currentStatus = order.getOrderStatus();
 
                 if (!isValidStatusTransition(currentStatus, newStatus)) {
-                        throw new RuntimeException(
-                                        "Invalid order status transition: "
-                                                        + currentStatus + " -> " + newStatus);
+                    throw new BusinessRuleException(
+                            "Invalid order status transition: " + currentStatus + " -> " + newStatus
+                    );
                 }
 
                 order.setOrderStatus(newStatus);
@@ -203,12 +218,16 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         @Transactional
         public CustomerOrderResponse cancelOrder(Integer id) {
                 CustomerOrder order = customerOrderRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException(
-                                                "Order not found with id: "
-                                                                + id));
+                                .orElseThrow(() ->
+                                        new ResourceNotFoundException(
+                                                "Order not found with id: " + id
+                                        )
+                                );
 
                 if (order.getOrderStatus() != OrderStatus.PLACED) {
-                        throw new RuntimeException("Only placed orders can be cancelled");
+                    throw new BusinessRuleException(
+                            "Only placed orders can be cancelled"
+                    );
                 }
 
                 inventoryReservationService.releaseByOrderId(id);

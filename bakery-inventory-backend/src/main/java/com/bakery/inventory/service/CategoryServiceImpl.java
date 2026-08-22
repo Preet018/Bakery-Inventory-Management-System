@@ -3,6 +3,8 @@ package com.bakery.inventory.service;
 import com.bakery.inventory.dto.category.CategoryRequest;
 import com.bakery.inventory.dto.category.CategoryResponse;
 import com.bakery.inventory.entity.Category;
+import com.bakery.inventory.exception.BusinessRuleException;
+import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.CategoryRepository;
 import com.bakery.inventory.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,8 +44,10 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryResponse getCategoryById(Integer id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
-                                "Category not found with id: " + id));
+                        new ResourceNotFoundException(
+                                "Category not found with id: " + id
+                        )
+                );
 
         return new CategoryResponse(
                 category.getId(),
@@ -54,8 +58,10 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryResponse updateCategory(Integer id, CategoryRequest request) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
-                                "Category not found with id: " + id));
+                        new ResourceNotFoundException(
+                                "Category not found with id: " + id
+                        )
+                );
 
         category.setName(request.getName());
 
@@ -70,12 +76,15 @@ public class CategoryServiceImpl implements CategoryService {
     public void deleteCategory(Integer id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
-                                "Category not found with id: " + id));
+                        new ResourceNotFoundException(
+                                "Category not found with id: " + id
+                        )
+                );
 
         if (productRepository.existsByCategoryId(id)) {
-            throw new RuntimeException(
-                    "Category cannot be deleted because products are associated with it");
+            throw new BusinessRuleException(
+                    "Category cannot be deleted because products are associated with it"
+            );
         }
 
         categoryRepository.delete(category);

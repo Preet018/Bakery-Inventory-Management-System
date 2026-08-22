@@ -2,6 +2,7 @@ package com.bakery.inventory.service;
 
 import com.bakery.inventory.dto.inventoryreservation.InventoryReservationResponse;
 import com.bakery.inventory.entity.*;
+import com.bakery.inventory.exception.*;
 import com.bakery.inventory.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,37 +26,36 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
     @Transactional
     public InventoryReservationResponse reserve(Integer orderId, Integer productId, Integer quantity) {
         if (quantity == null || quantity <= 0) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Reservation quantity must be greater than zero"
             );
         }
 
         CustomerOrder order = customerOrderRepository.findById(orderId)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Order not found with id: " + orderId
                         )
                 );
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Product not found with id: " + productId
                         )
                 );
 
         Inventory inventory = inventoryRepository.findByProductIdForUpdate(productId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Inventory not found for product id: "
-                                                + productId
+                                new ResourceNotFoundException(
+                                        "Inventory not found for product id: " + productId
                                 )
                         );
 
         int availableQuantity = inventory.getQuantity() - inventory.getReservedQuantity();
 
         if (quantity > availableQuantity) {
-            throw new RuntimeException(
+            throw new InsufficientStockException(
                     "Insufficient available stock for product id: "
                             + productId
             );
@@ -63,7 +63,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
 
         inventoryReservationRepository.findByOrderIdAndProductId(orderId, productId)
                 .ifPresent(existingReservation -> {
-                    throw new RuntimeException(
+                    throw new BusinessRuleException(
                             "Reservation already exists for order id: "
                                     + orderId
                                     + " and product id: "
@@ -98,7 +98,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
         InventoryReservation reservation = getReservation(reservationId);
 
         if (reservation.getStatus() != ReservationStatus.ACTIVE) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Only active reservations can be released"
             );
         }
@@ -107,7 +107,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
 
         Inventory inventory = inventoryRepository.findByProductIdForUpdate(productId)
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new ResourceNotFoundException(
                                         "Inventory not found for product id: "
                                                 + productId
                                 )
@@ -116,7 +116,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
         int newReservedQuantity = inventory.getReservedQuantity() - reservation.getQuantity();
 
         if (newReservedQuantity < 0) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Reserved inventory cannot become negative"
             );
         }
@@ -152,13 +152,13 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
         InventoryReservation reservation = getReservation(reservationId);
 
         if (reservation.getStatus() != ReservationStatus.ACTIVE) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Only active reservations can be converted"
             );
         }
 
         if (reservation.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Reservation has expired"
             );
         }
@@ -167,7 +167,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
 
         Inventory inventory = inventoryRepository.findByProductIdForUpdate(productId)
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new ResourceNotFoundException(
                                         "Inventory not found for product id: "
                                                 + productId
                                 )
@@ -176,14 +176,14 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
         int reservedQuantity = reservation.getQuantity();
 
         if (inventory.getReservedQuantity() < reservedQuantity) {
-            throw new RuntimeException(
+            throw new InsufficientStockException(
                     "Reserved inventory is insufficient for reservation id: "
                             + reservationId
             );
         }
 
         if (inventory.getQuantity() < reservedQuantity) {
-            throw new RuntimeException(
+            throw new InsufficientStockException(
                     "Physical inventory is insufficient for reservation id: "
                             + reservationId
             );
@@ -224,7 +224,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
                         );
 
         if (reservations.isEmpty()) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No active reservations found for order id: "
                             + orderId
             );
@@ -262,7 +262,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
     private InventoryReservation getReservation(Integer reservationId) {
         return inventoryReservationRepository.findById(reservationId)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Reservation not found with id: "
                                         + reservationId
                         )

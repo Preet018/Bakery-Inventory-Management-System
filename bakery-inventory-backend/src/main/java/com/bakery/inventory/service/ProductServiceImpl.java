@@ -5,6 +5,9 @@ import com.bakery.inventory.dto.product.ProductResponse;
 import com.bakery.inventory.dto.product.ProductUpdateRequest;
 import com.bakery.inventory.dto.productimage.ProductImageResponse;
 import com.bakery.inventory.entity.*;
+import com.bakery.inventory.exception.BadRequestException;
+import com.bakery.inventory.exception.BusinessRuleException;
+import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +35,7 @@ public class ProductServiceImpl implements ProductService {
 
         Category category = categoryRepository.findById(request.getCategoryId())
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new ResourceNotFoundException(
                                         "Category not found with id: "
                                                 + request.getCategoryId()
                                 )
@@ -40,14 +43,14 @@ public class ProductServiceImpl implements ProductService {
 
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new ResourceNotFoundException(
                                         "Supplier not found with id: "
                                                 + request.getSupplierId()
                                 )
                         );
 
         if (!Boolean.TRUE.equals(supplier.getIsActive())) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Cannot create product with inactive supplier"
             );
         }
@@ -100,7 +103,7 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse getProductById(Integer id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Product not found with id: " + id
                         )
                 );
@@ -113,7 +116,7 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse updateProduct(Integer id, ProductUpdateRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Product not found with id: " + id
                         )
                 );
@@ -122,7 +125,7 @@ public class ProductServiceImpl implements ProductService {
                         request.getCategoryId()
                 )
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Category not found with id: "
                                         + request.getCategoryId()
                         )
@@ -134,14 +137,14 @@ public class ProductServiceImpl implements ProductService {
         if (!currentSupplierId.equals(requestedSupplierId)) {
             Supplier newSupplier = supplierRepository.findById(requestedSupplierId)
                     .orElseThrow(() ->
-                        new RuntimeException(
-                                "Supplier not found with id: "
-                                        + requestedSupplierId
-                        )
+                            new ResourceNotFoundException(
+                                    "Supplier not found with id: "
+                                            + requestedSupplierId
+                            )
                     );
 
             if (!Boolean.TRUE.equals(newSupplier.getIsActive())) {
-                throw new RuntimeException(
+                throw new BusinessRuleException(
                         "Cannot change product to an inactive supplier"
                 );
             }
@@ -164,7 +167,7 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse deactivateProduct(Integer id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Product not found with id: " + id
                         )
                 );
@@ -189,7 +192,7 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse activateProduct(Integer id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Product not found with id: " + id
                         )
                 );
@@ -214,14 +217,13 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductImageResponse> addProductImages(Integer productId, List<MultipartFile> images) throws IOException {
         Product product = productRepository.findById(productId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Product not found with id: "
-                                                + productId
+                                new ResourceNotFoundException(
+                                        "Product not found with id: " + productId
                                 )
                         );
 
         if (!Boolean.TRUE.equals(product.getIsActive())) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Cannot upload images for an inactive product"
             );
         }
@@ -253,7 +255,7 @@ public class ProductServiceImpl implements ProductService {
     public void removeProductImage(Integer productId, Integer imageId) throws IOException {
         Product product = productRepository.findById(productId)
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new ResourceNotFoundException(
                                         "Product not found with id: "
                                                 + productId
                                 )
@@ -261,14 +263,14 @@ public class ProductServiceImpl implements ProductService {
 
         ProductImage productImage = productImageRepository.findById(imageId)
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new ResourceNotFoundException(
                                         "Product image not found with id: "
                                                 + imageId
                                 )
                         );
 
         if (!productImage.getProduct().getId().equals(product.getId())) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Product image does not belong to product: "
                             + productId
             );
@@ -277,7 +279,7 @@ public class ProductServiceImpl implements ProductService {
         List<ProductImage> productImages = productImageRepository.findByProductId(productId);
 
         if (productImages.size() == 1) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Cannot delete the only image of a product"
             );
         }
@@ -319,7 +321,7 @@ public class ProductServiceImpl implements ProductService {
 
     private void validateImagesPresent(List<MultipartFile> images) {
         if (images == null || images.isEmpty()) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "At least one product image is required"
             );
         }
