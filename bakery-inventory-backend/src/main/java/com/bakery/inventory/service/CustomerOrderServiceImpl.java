@@ -1,15 +1,12 @@
 package com.bakery.inventory.service;
 
-import com.bakery.inventory.dto.customerorder.CustomerOrderRequest;
+import com.bakery.inventory.dto.customerorder.CustomerOrderCreateRequest;
 import com.bakery.inventory.dto.customerorder.CustomerOrderResponse;
 import com.bakery.inventory.dto.orderitem.OrderItemRequest;
 import com.bakery.inventory.dto.orderitem.OrderItemResponse;
 import com.bakery.inventory.dto.payment.PaymentResponse;
 import com.bakery.inventory.entity.*;
-import com.bakery.inventory.repository.CustomerOrderRepository;
-import com.bakery.inventory.repository.OrderItemRepository;
-import com.bakery.inventory.repository.ProductRepository;
-import com.bakery.inventory.repository.UserAccountRepository;
+import com.bakery.inventory.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,13 +23,14 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         private final OrderItemRepository orderItemRepository;
         private final UserAccountRepository userAccountRepository;
         private final ProductRepository productRepository;
+        private final SavedAddressRepository savedAddressRepository;
 
         private final InventoryReservationService inventoryReservationService;
         private final PaymentService paymentService;
 
         @Override
         @Transactional
-        public CustomerOrderResponse createOrder(CustomerOrderRequest request) {
+        public CustomerOrderResponse createOrder(CustomerOrderCreateRequest request) {
                 UserAccount user = userAccountRepository.findById(request.getUserId())
                                 .orElseThrow(() -> new RuntimeException(
                                                 "User not found with id: "
@@ -48,7 +46,28 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                 order.setUser(user);
                 order.setContact(request.getContact());
-                order.setDeliveryAddress(request.getDeliveryAddress());
+
+                SavedAddress savedAddress = savedAddressRepository
+                        .findByIdAndUserId(
+                                request.getSavedAddressId(),
+                                request.getUserId()
+                        ).orElseThrow(() -> new RuntimeException(
+                                "Saved address not found for user with id: "
+                                        + request.getUserId()
+                        ));
+
+                order.setSavedAddress(savedAddress);
+
+                order.setDeliveryAddress(savedAddress.getAddressLine());
+                order.setDeliveryLandmark(savedAddress.getLandmark());
+                order.setDeliveryCity(savedAddress.getCity());
+                order.setDeliveryState(savedAddress.getState());
+                order.setDeliveryPostalCode(savedAddress.getPostalCode());
+
+                order.setDeliveryLatitude(savedAddress.getLatitude());
+                order.setDeliveryLongitude(savedAddress.getLongitude());
+                order.setDeliveryPlaceId(savedAddress.getPlaceId());
+
                 order.setOrderStatus(OrderStatus.PLACED);
 
                 LocalDateTime now = LocalDateTime.now();
@@ -117,13 +136,11 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                 totalAmount
                         );
 
-                return mapToResponse(
-                        updatedOrder,
-                        paymentResponse
-                );
+                return mapToResponse(updatedOrder);
         }
 
         @Override
+        @Transactional(readOnly = true)
         public List<CustomerOrderResponse> getAllOrders() {
                 return customerOrderRepository.findAll()
                                 .stream()
@@ -132,6 +149,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         }
 
         @Override
+        @Transactional(readOnly = true)
         public CustomerOrderResponse getOrderById(Integer id) {
                 CustomerOrder order = customerOrderRepository.findById(id)
                                 .orElseThrow(() -> new RuntimeException(
@@ -143,6 +161,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         }
 
         @Override
+        @Transactional(readOnly = true)
         public List<CustomerOrderResponse> getOrdersByUserId(Integer userId) {
                 userAccountRepository.findById(userId)
                                 .orElseThrow(() -> new RuntimeException(
@@ -157,6 +176,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         }
 
         @Override
+        @Transactional
         public CustomerOrderResponse updateOrderStatus(Integer id, OrderStatus newStatus) {
                 CustomerOrder order = customerOrderRepository.findById(id)
                                 .orElseThrow(() -> new RuntimeException(
@@ -203,7 +223,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
         private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
                 if (currentStatus == OrderStatus.PLACED) {
-                        return newStatus == OrderStatus.CANCELLED;
+                        return newStatus == OrderStatus.CONFIRMED;
                 }
 
                 if (currentStatus == OrderStatus.CONFIRMED) {
@@ -230,40 +250,29 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                 .toList();
 
                 return new CustomerOrderResponse(
-                                order.getId(),
-                                order.getUser().getId(),
-                                order.getContact(),
-                                order.getDeliveryAddress(),
-                                order.getTotalAmount(),
-                                payment != null ? payment.getPaymentMethod() : null,
-                                payment != null ? payment.getPaymentStatus() : null,
-                                order.getOrderStatus(),
-                                order.getCreatedAt(),
-                                order.getUpdatedAt(),
-                                itemResponses
+                        order.getId(),
+                        order.getUser().getId(),
+                        order.getContact(),
+                        order.getTotalAmount(),
+
+                        order.getSavedAddress() != null ? order.getSavedAddress().getId() : null,
+
+                        order.getDeliveryAddress(),
+                        order.getDeliveryLandmark(),
+                        order.getDeliveryCity(),
+                        order.getDeliveryState(),
+                        order.getDeliveryPostalCode(),
+                        order.getDeliveryLatitude(),
+                        order.getDeliveryLongitude(),
+
+                        order.getDeliveryPlaceId(),
+
+                        order.getOrderStatus(),
+                        order.getCreatedAt(),
+                        order.getUpdatedAt(),
+                        itemResponses
                 );
         }
-
-    private CustomerOrderResponse mapToResponse(CustomerOrder order, PaymentResponse payment) {
-        List<OrderItemResponse> itemResponses = orderItemRepository.findByOrderId(order.getId())
-                        .stream()
-                        .map(this::mapOrderItemToResponse)
-                        .toList();
-
-        return new CustomerOrderResponse(
-                order.getId(),
-                order.getUser().getId(),
-                order.getContact(),
-                order.getDeliveryAddress(),
-                order.getTotalAmount(),
-                payment.getPaymentMethod(),
-                payment.getPaymentStatus(),
-                order.getOrderStatus(),
-                order.getCreatedAt(),
-                order.getUpdatedAt(),
-                itemResponses
-        );
-    }
 
         private OrderItemResponse mapOrderItemToResponse(OrderItem orderItem) {
                 return new OrderItemResponse(

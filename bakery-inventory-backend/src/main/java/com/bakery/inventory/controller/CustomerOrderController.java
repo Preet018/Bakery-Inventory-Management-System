@@ -1,8 +1,8 @@
 package com.bakery.inventory.controller;
 
-import com.bakery.inventory.dto.customerorder.CustomerOrderRequest;
+import com.bakery.inventory.dto.customerorder.CustomerOrderCreateRequest;
 import com.bakery.inventory.dto.customerorder.CustomerOrderResponse;
-import com.bakery.inventory.entity.OrderStatus;
+import com.bakery.inventory.dto.customerorder.CustomerOrderStatusUpdateRequest;
 import com.bakery.inventory.service.CustomerOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,7 +18,7 @@ public class CustomerOrderController {
     private final CustomerOrderService customerOrderService;
 
     @PostMapping
-    public ResponseEntity<CustomerOrderResponse> createOrder(@RequestBody CustomerOrderRequest request) {
+    public ResponseEntity<CustomerOrderResponse> createOrder(@RequestBody CustomerOrderCreateRequest request) {
         CustomerOrderResponse response = customerOrderService.createOrder(request);
 
         return ResponseEntity
@@ -48,11 +48,11 @@ public class CustomerOrderController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<CustomerOrderResponse> updateOrderStatus(@PathVariable Integer id, @RequestParam OrderStatus status) {
+    public ResponseEntity<CustomerOrderResponse> updateOrderStatus(@PathVariable Integer id, @RequestBody CustomerOrderStatusUpdateRequest request) {
         return ResponseEntity.ok(
                 customerOrderService.updateOrderStatus(
                         id,
-                        status
+                        request.getStatus()
                 )
         );
     }

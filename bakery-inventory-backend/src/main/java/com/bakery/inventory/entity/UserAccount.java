@@ -23,9 +23,6 @@ public class UserAccount {
     @Column(name = "email", nullable = false, unique = true, length = 150)
     private String email;
 
-    @Column(length = 255)
-    private String address;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_role"))
     private Role role;

@@ -10,10 +10,10 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CustomerOrderRequest {
+public class CustomerOrderCreateRequest {
     private Integer userId;
     private String contact;
-    private String deliveryAddress;
+    private Integer savedAddressId;
     private PaymentMethod paymentMethod;
     private List<OrderItemRequest> items;
 }

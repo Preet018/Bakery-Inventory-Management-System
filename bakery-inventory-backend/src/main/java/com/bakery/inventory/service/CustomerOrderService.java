@@ -1,13 +1,13 @@
 package com.bakery.inventory.service;
 
-import com.bakery.inventory.dto.customerorder.CustomerOrderRequest;
+import com.bakery.inventory.dto.customerorder.CustomerOrderCreateRequest;
 import com.bakery.inventory.dto.customerorder.CustomerOrderResponse;
 import com.bakery.inventory.entity.OrderStatus;
 
 import java.util.List;
 
 public interface CustomerOrderService {
-    CustomerOrderResponse createOrder(CustomerOrderRequest request);
+    CustomerOrderResponse createOrder(CustomerOrderCreateRequest request);
 
     List<CustomerOrderResponse> getAllOrders();
 

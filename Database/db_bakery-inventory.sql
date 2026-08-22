@@ -26,7 +26,6 @@ CREATE TABLE user_account (
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
-    address VARCHAR(255),
     role_id INT NOT NULL,
 
     CONSTRAINT fk_user_role
@@ -38,7 +37,46 @@ CREATE TABLE user_account (
 
 
 -- =========================================================
--- 3. CATEGORY
+-- 3. SAVED ADDRESS
+-- =========================================================
+
+CREATE TABLE saved_address (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+
+    label VARCHAR(30) NOT NULL,
+    address_line VARCHAR(255) NOT NULL,
+    landmark VARCHAR(255),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    postal_code VARCHAR(20) NOT NULL,
+
+    latitude DECIMAL(10,8) NOT NULL,
+    longitude DECIMAL(11,8) NOT NULL,
+
+    place_id VARCHAR(255),
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_saved_address_user
+        FOREIGN KEY (user_id)
+        REFERENCES user_account(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT chk_saved_address_latitude
+        CHECK (latitude >= -90 AND latitude <= 90),
+
+    CONSTRAINT chk_saved_address_longitude
+        CHECK (longitude >= -180 AND longitude <= 180)
+);
+
+
+-- =========================================================
+-- 4. CATEGORY
 -- =========================================================
 
 CREATE TABLE category (
@@ -48,7 +86,7 @@ CREATE TABLE category (
 
 
 -- =========================================================
--- 4. SUPPLIER
+-- 5. SUPPLIER
 -- =========================================================
 
 CREATE TABLE supplier (
@@ -62,7 +100,7 @@ CREATE TABLE supplier (
 
 
 -- =========================================================
--- 5. PRODUCT
+-- 6. PRODUCT
 -- =========================================================
 
 CREATE TABLE product (
@@ -92,7 +130,7 @@ CREATE TABLE product (
 
 
 -- =========================================================
--- 6. INVENTORY
+-- 7. INVENTORY
 -- =========================================================
 
 CREATE TABLE inventory (
@@ -123,24 +161,57 @@ CREATE TABLE inventory (
 
 
 -- =========================================================
--- 7. CUSTOMER ORDER
+-- 8. CUSTOMER ORDER
 -- =========================================================
 
 CREATE TABLE customer_order (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+
+    saved_address_id INT,
+
     contact VARCHAR(20) NOT NULL,
+
     delivery_address VARCHAR(255) NOT NULL,
+    delivery_landmark VARCHAR(255),
+    delivery_city VARCHAR(100) NOT NULL,
+    delivery_state VARCHAR(100) NOT NULL,
+    delivery_postal_code VARCHAR(20) NOT NULL,
+
+    delivery_latitude DECIMAL(10,8) NOT NULL,
+    delivery_longitude DECIMAL(11,8) NOT NULL,
+    delivery_place_id VARCHAR(255),
+
     total_amount DECIMAL(10,2) NOT NULL,
     order_status VARCHAR(30) NOT NULL,
+
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_order_user
         FOREIGN KEY (user_id)
         REFERENCES user_account(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
+
+    CONSTRAINT fk_order_saved_address
+        FOREIGN KEY (saved_address_id)
+        REFERENCES saved_address(id)
+        ON DELETE SET NULL
+        ON UPDATE RESTRICT,
+
+    CONSTRAINT chk_order_delivery_latitude
+        CHECK (
+            delivery_latitude >= -90
+            AND delivery_latitude <= 90
+        ),
+
+    CONSTRAINT chk_order_delivery_longitude
+        CHECK (
+            delivery_longitude >= -180
+            AND delivery_longitude <= 180
+        ),
 
     CONSTRAINT chk_order_total
         CHECK (total_amount >= 0),
@@ -160,7 +231,7 @@ CREATE TABLE customer_order (
 
 
 -- =========================================================
--- 8. ORDER ITEM
+-- 9. ORDER ITEM
 -- =========================================================
 
 CREATE TABLE order_item (
@@ -195,7 +266,7 @@ CREATE TABLE order_item (
 
 
 -- =========================================================
--- 9. PAYMENT
+-- 10. PAYMENT
 -- =========================================================
 
 CREATE TABLE payment (
@@ -227,8 +298,8 @@ CREATE TABLE payment (
     CONSTRAINT chk_payment_method
         CHECK (
             payment_method IN (
-                'UPI', 
-                'CREDIT_CARD', 
+                'UPI',
+                'CREDIT_CARD',
                 'DEBIT_CARD'
             )
         ),
@@ -245,7 +316,7 @@ CREATE TABLE payment (
 
 
 -- =========================================================
--- 10. INVENTORY RESERVATION
+-- 11. INVENTORY RESERVATION
 -- =========================================================
 
 CREATE TABLE inventory_reservation (
@@ -287,7 +358,7 @@ CREATE TABLE inventory_reservation (
 
 
 -- =========================================================
--- 11. STOCK TRANSACTION
+-- 12. STOCK TRANSACTION
 -- =========================================================
 
 CREATE TABLE stock_transaction (
@@ -304,7 +375,7 @@ CREATE TABLE stock_transaction (
         REFERENCES inventory(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
-    
+
     CONSTRAINT fk_stock_transaction_order
         FOREIGN KEY (order_id)
         REFERENCES customer_order(id)
@@ -329,7 +400,7 @@ CREATE TABLE stock_transaction (
 
 
 -- =========================================================
--- 12. PRODUCT IMAGE
+-- 13. PRODUCT IMAGE
 -- =========================================================
 
 CREATE TABLE product_image (
@@ -344,7 +415,6 @@ CREATE TABLE product_image (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
-
 
 
 -- =========================================================

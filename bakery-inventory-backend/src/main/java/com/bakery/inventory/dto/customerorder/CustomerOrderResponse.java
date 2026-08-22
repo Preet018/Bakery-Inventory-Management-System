@@ -18,12 +18,24 @@ public class CustomerOrderResponse {
     private Integer id;
     private Integer userId;
     private String contact;
-    private String deliveryAddress;
     private BigDecimal totalAmount;
-    private PaymentMethod paymentMethod;
-    private PaymentStatus paymentStatus;
+    private Integer savedAddressId;
+
+    private String deliveryAddress;
+    private String deliveryLandmark;
+    private String deliveryCity;
+    private String deliveryState;
+    private String deliveryPostalCode;
+
+    private BigDecimal deliveryLatitude;
+    private BigDecimal deliveryLongitude;
+
+    private String deliveryPlaceId;
+
     private OrderStatus orderStatus;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
     private List<OrderItemResponse> items;
 }
