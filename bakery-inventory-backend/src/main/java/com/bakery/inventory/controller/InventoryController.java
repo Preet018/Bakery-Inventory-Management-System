@@ -1,10 +1,12 @@
 package com.bakery.inventory.controller;
 
-import com.bakery.inventory.dto.inventory.InventoryResponse;
-import com.bakery.inventory.dto.stocktransaction.StockTransactionRequest;
+import com.bakery.inventory.dto.inventory.*;
 import com.bakery.inventory.service.InventoryService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/inventory")
 @RequiredArgsConstructor
+@Validated
 public class InventoryController {
     private final InventoryService inventoryService;
 
@@ -23,7 +26,7 @@ public class InventoryController {
     }
 
     @GetMapping("/{productId}")
-    public ResponseEntity<InventoryResponse> getInventoryByProductId(@PathVariable Integer productId) {
+    public ResponseEntity<InventoryResponse> getInventoryByProductId(@Positive(message = "Product ID must be positive") @PathVariable Integer productId) {
         return ResponseEntity.ok(
                 inventoryService.getInventoryByProductId(productId)
         );
@@ -44,7 +47,7 @@ public class InventoryController {
     }
 
     @PostMapping("/{productId}/purchase")
-    public ResponseEntity<InventoryResponse> purchaseStock(@PathVariable Integer productId, @RequestBody StockTransactionRequest request) {
+    public ResponseEntity<InventoryResponse> purchaseStock(@Positive(message = "Product ID must be positive") @PathVariable Integer productId, @Valid @RequestBody StockPurchaseRequest request) {
         return ResponseEntity.ok(
                 inventoryService.purchaseStock(
                         productId,
@@ -54,7 +57,7 @@ public class InventoryController {
     }
 
     @PostMapping("/{productId}/return")
-    public ResponseEntity<InventoryResponse> returnStock(@PathVariable Integer productId, @RequestBody StockTransactionRequest request) {
+    public ResponseEntity<InventoryResponse> returnStock(@Positive(message = "Product ID must be positive") @PathVariable Integer productId, @Valid @RequestBody SupplierReturnRequest request) {
         return ResponseEntity.ok(
                 inventoryService.returnStock(
                         productId,
@@ -64,7 +67,7 @@ public class InventoryController {
     }
 
     @PostMapping("/{productId}/adjust")
-    public ResponseEntity<InventoryResponse> adjustStock(@PathVariable Integer productId, @RequestBody StockTransactionRequest request) {
+    public ResponseEntity<InventoryResponse> adjustStock(@Positive(message = "Product ID must be positive") @PathVariable Integer productId, @Valid @RequestBody StockAdjustmentRequest request) {
         return ResponseEntity.ok(
                 inventoryService.adjustStock(
                         productId,
@@ -74,7 +77,7 @@ public class InventoryController {
     }
 
     @PostMapping("/{productId}/damage")
-    public ResponseEntity<InventoryResponse> recordDamage(@PathVariable Integer productId, @RequestBody StockTransactionRequest request) {
+    public ResponseEntity<InventoryResponse> recordDamage(@Positive(message = "Product ID must be positive") @PathVariable Integer productId, @Valid @RequestBody StockDamageRequest request) {
         return ResponseEntity.ok(
                 inventoryService.recordDamage(
                         productId,
@@ -84,11 +87,11 @@ public class InventoryController {
     }
 
     @PatchMapping("/{productId}/minimum-stock")
-    public ResponseEntity<InventoryResponse> updateMinimumStock(@PathVariable Integer productId, @RequestParam Integer minimumStock) {
+    public ResponseEntity<InventoryResponse> updateMinimumStock(@Positive(message = "Product ID must be positive") @PathVariable Integer productId, @Valid @RequestParam MinimumStockUpdateRequest request) {
         return ResponseEntity.ok(
                 inventoryService.updateMinimumStock(
                         productId,
-                        minimumStock
+                        request
                 )
         );
     }

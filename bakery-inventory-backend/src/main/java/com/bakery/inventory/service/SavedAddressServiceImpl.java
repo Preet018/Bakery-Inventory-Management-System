@@ -1,7 +1,6 @@
 package com.bakery.inventory.service;
 
-import com.bakery.inventory.dto.savedaddress.SavedAddressRequest;
-import com.bakery.inventory.dto.savedaddress.SavedAddressResponse;
+import com.bakery.inventory.dto.savedaddress.*;
 import com.bakery.inventory.entity.SavedAddress;
 import com.bakery.inventory.entity.UserAccount;
 import com.bakery.inventory.repository.SavedAddressRepository;
@@ -20,7 +19,7 @@ public class SavedAddressServiceImpl implements SavedAddressService {
 
     @Override
     @Transactional
-    public SavedAddressResponse createAddress(Integer userId, SavedAddressRequest request) {
+    public SavedAddressResponse createAddress(Integer userId, SavedAddressCreateRequest request) {
         UserAccount user = userAccountRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException(
                         "User not found with id: " + userId
@@ -83,7 +82,7 @@ public class SavedAddressServiceImpl implements SavedAddressService {
 
     @Override
     @Transactional
-    public SavedAddressResponse updateAddress(Integer userId, Integer addressId, SavedAddressRequest request) {
+    public SavedAddressResponse updateAddress(Integer userId, Integer addressId, SavedAddressUpdateRequest request) {
         SavedAddress address = savedAddressRepository
                 .findByIdAndUserId(addressId, userId)
                 .orElseThrow(() -> new RuntimeException(
@@ -101,10 +100,7 @@ public class SavedAddressServiceImpl implements SavedAddressService {
         address.setLongitude(request.getLongitude());
         address.setPlaceId(request.getPlaceId());
 
-        if (Boolean.TRUE.equals(request.getIsDefault())) {
-            clearDefaultAddress(userId);
-            address.setIsDefault(true);
-        }
+        SavedAddress updatedAddress = savedAddressRepository.save(address);
 
         return mapToResponse(address);
     }
@@ -135,6 +131,8 @@ public class SavedAddressServiceImpl implements SavedAddressService {
         clearDefaultAddress(userId);
 
         address.setIsDefault(true);
+
+        SavedAddress updatedAddress = savedAddressRepository.save(address);
 
         return mapToResponse(address);
     }

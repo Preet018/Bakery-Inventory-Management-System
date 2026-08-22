@@ -3,9 +3,12 @@ package com.bakery.inventory.controller;
 import com.bakery.inventory.dto.supplier.SupplierRequest;
 import com.bakery.inventory.dto.supplier.SupplierResponse;
 import com.bakery.inventory.service.SupplierService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,11 +16,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/suppliers")
 @RequiredArgsConstructor
+@Validated
 public class SupplierController {
     private final SupplierService supplierService;
 
     @PostMapping
-    public ResponseEntity<SupplierResponse> createSupplier(@RequestBody SupplierRequest request) {
+    public ResponseEntity<SupplierResponse> createSupplier(@Valid @RequestBody SupplierRequest request) {
         SupplierResponse response = supplierService.createSupplier(request);
 
         return ResponseEntity
@@ -33,28 +37,28 @@ public class SupplierController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SupplierResponse> getSupplierById(@PathVariable Integer id) {
+    public ResponseEntity<SupplierResponse> getSupplierById(@Positive(message = "Supplier ID must be positive") @PathVariable Integer id) {
         return ResponseEntity.ok(
                 supplierService.getSupplierById(id)
         );
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SupplierResponse> updateSupplier(@PathVariable Integer id, @RequestBody SupplierRequest request) {
+    public ResponseEntity<SupplierResponse> updateSupplier(@Positive(message = "Supplier ID must be positive") @PathVariable Integer id, @Valid @RequestBody SupplierRequest request) {
         return ResponseEntity.ok(
                 supplierService.updateSupplier(id, request)
         );
     }
 
     @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<Void> deactivateSupplier(@PathVariable Integer id) {
+    public ResponseEntity<Void> deactivateSupplier(@Positive(message = "Supplier ID must be positive") @PathVariable Integer id) {
         supplierService.deactivateSupplier(id);
 
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/activate")
-    public ResponseEntity<Void> activateSupplier(@PathVariable Integer id) {
+    public ResponseEntity<Void> activateSupplier(@Positive(message = "Supplier ID must be positive") @PathVariable Integer id) {
         supplierService.activateSupplier(id);
 
         return ResponseEntity.noContent().build();

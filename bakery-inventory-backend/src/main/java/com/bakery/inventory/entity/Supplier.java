@@ -20,7 +20,7 @@ public class Supplier {
     @Column(name = "email", length = 150)
     private String email;
 
-    @Column(name = "phone", length = 20)
+    @Column(name = "phone", length = 10)
     private String phone;
 
     @Column(name = "address", length = 255)

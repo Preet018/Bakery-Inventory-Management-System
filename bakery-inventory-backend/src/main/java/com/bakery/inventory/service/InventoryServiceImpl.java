@@ -1,7 +1,6 @@
 package com.bakery.inventory.service;
 
-import com.bakery.inventory.dto.inventory.InventoryResponse;
-import com.bakery.inventory.dto.stocktransaction.StockTransactionRequest;
+import com.bakery.inventory.dto.inventory.*;
 import com.bakery.inventory.entity.Inventory;
 import com.bakery.inventory.entity.StockTransaction;
 import com.bakery.inventory.entity.StockTransactionType;
@@ -38,9 +37,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public InventoryResponse purchaseStock(Integer productId, StockTransactionRequest request) {
-        validatePositiveQuantity(request.getQuantity());
-
+    public InventoryResponse purchaseStock(Integer productId, StockPurchaseRequest request) {
         return updateInventory(
                 productId,
                 request.getQuantity(),
@@ -51,9 +48,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public InventoryResponse returnStock(Integer productId, StockTransactionRequest request) {
-        validatePositiveQuantity(request.getQuantity());
-
+    public InventoryResponse returnStock(Integer productId, SupplierReturnRequest request) {
         return updateInventory(
                 productId,
                 -request.getQuantity(),
@@ -64,14 +59,8 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public InventoryResponse adjustStock(Integer productId, StockTransactionRequest request) {
-        Integer targetQuantity = request.getQuantity();
-
-        if (targetQuantity == null || targetQuantity < 0) {
-            throw new RuntimeException(
-                    "Adjusted stock quantity cannot be negative"
-            );
-        }
+    public InventoryResponse adjustStock(Integer productId, StockAdjustmentRequest request) {
+        Integer targetQuantity = request.getTargetQuantity();
 
         Inventory inventory = getInventory(productId);
 
@@ -93,16 +82,10 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public InventoryResponse updateMinimumStock(Integer productId, Integer minimumStock) {
-        if (minimumStock == null || minimumStock < 0) {
-            throw new RuntimeException(
-                    "Minimum stock cannot be negative"
-            );
-        }
-
+    public InventoryResponse updateMinimumStock(Integer productId, MinimumStockUpdateRequest request) {
         Inventory inventory = getInventory(productId);
 
-        inventory.setMinimumStock(minimumStock);
+        inventory.setMinimumStock(request.getMinimumStock());
 
         Inventory updatedInventory = inventoryRepository.save(inventory);
 
@@ -133,9 +116,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public InventoryResponse recordDamage(Integer productId, StockTransactionRequest request) {
-        validatePositiveQuantity(request.getQuantity());
-
+    public InventoryResponse recordDamage(Integer productId, StockDamageRequest request) {
         return updateInventory(
                 productId,
                 -request.getQuantity(),
@@ -190,14 +171,6 @@ public class InventoryServiceImpl implements InventoryService {
                                         + productId
                         )
                 );
-    }
-
-    private void validatePositiveQuantity(Integer quantity) {
-        if (quantity == null || quantity <= 0) {
-            throw new RuntimeException(
-                    "Quantity must be greater than zero"
-            );
-        }
     }
 
     private int getAvailableQuantity(Inventory inventory) {

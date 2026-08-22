@@ -128,29 +128,25 @@ public class ProductServiceImpl implements ProductService {
                         )
                 );
 
-        if (request.getSupplierId() != null) {
-            Integer currentSupplierId = product.getSupplier().getId();
-            Integer requestedSupplierId = request.getSupplierId();
+        Integer currentSupplierId = product.getSupplier().getId();
+        Integer requestedSupplierId = request.getSupplierId();
 
-            if (!currentSupplierId.equals(requestedSupplierId)) {
-                Supplier newSupplier = supplierRepository.findById(
-                            requestedSupplierId
-                        )
-                        .orElseThrow(() ->
+        if (!currentSupplierId.equals(requestedSupplierId)) {
+            Supplier newSupplier = supplierRepository.findById(requestedSupplierId)
+                    .orElseThrow(() ->
                         new RuntimeException(
                                 "Supplier not found with id: "
                                         + requestedSupplierId
                         )
                     );
 
-                if (!Boolean.TRUE.equals(newSupplier.getIsActive())) {
-                    throw new RuntimeException(
-                            "Cannot change product to an inactive supplier"
-                    );
-                }
-
-                product.setSupplier(newSupplier);
+            if (!Boolean.TRUE.equals(newSupplier.getIsActive())) {
+                throw new RuntimeException(
+                        "Cannot change product to an inactive supplier"
+                );
             }
+
+            product.setSupplier(newSupplier);
         }
 
         product.setName(request.getName());

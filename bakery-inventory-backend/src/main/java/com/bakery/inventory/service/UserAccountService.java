@@ -1,19 +1,17 @@
 package com.bakery.inventory.service;
 
-import com.bakery.inventory.dto.useraccount.UserAccountRequest;
-import com.bakery.inventory.dto.useraccount.UserAccountResponse;
+import com.bakery.inventory.dto.useraccount.*;
 
 import java.util.List;
 
 public interface UserAccountService {
-
-    UserAccountResponse createUser(UserAccountRequest request);
+    UserAccountResponse createUser(UserAccountCreateRequest request);
 
     List<UserAccountResponse> getAllUsers();
 
     UserAccountResponse getUserById(Integer id);
 
-    UserAccountResponse updateUser(Integer id, UserAccountRequest request);
+    UserAccountResponse updateUser(Integer id, UserAccountUpdateRequest request);
 
     void deleteUser(Integer id);
 }

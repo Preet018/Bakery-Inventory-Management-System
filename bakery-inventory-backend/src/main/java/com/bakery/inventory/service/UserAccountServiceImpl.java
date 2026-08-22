@@ -1,7 +1,6 @@
 package com.bakery.inventory.service;
 
-import com.bakery.inventory.dto.useraccount.UserAccountRequest;
-import com.bakery.inventory.dto.useraccount.UserAccountResponse;
+import com.bakery.inventory.dto.useraccount.*;
 import com.bakery.inventory.entity.Role;
 import com.bakery.inventory.entity.UserAccount;
 import com.bakery.inventory.repository.RoleRepository;
@@ -14,13 +13,11 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UserAccountServiceImpl implements UserAccountService {
-
     private final UserAccountRepository userAccountRepository;
     private final RoleRepository roleRepository;
 
     @Override
-    public UserAccountResponse createUser(UserAccountRequest request) {
-
+    public UserAccountResponse createUser(UserAccountCreateRequest request) {
         Role role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -33,7 +30,6 @@ public class UserAccountServiceImpl implements UserAccountService {
         user.setUsername(request.getUsername());
         user.setPasswordHash(request.getPassword());
         user.setEmail(request.getEmail());
-        user.setAddress(request.getAddress());
         user.setRole(role);
 
         UserAccount savedUser = userAccountRepository.save(user);
@@ -43,7 +39,6 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     @Override
     public List<UserAccountResponse> getAllUsers() {
-
         return userAccountRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
@@ -52,7 +47,6 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     @Override
     public UserAccountResponse getUserById(Integer id) {
-
         UserAccount user = userAccountRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -64,11 +58,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     @Override
-    public UserAccountResponse updateUser(
-            Integer id,
-            UserAccountRequest request
-    ) {
-
+    public UserAccountResponse updateUser(Integer id, UserAccountUpdateRequest request) {
         UserAccount user = userAccountRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -76,18 +66,8 @@ public class UserAccountServiceImpl implements UserAccountService {
                         )
                 );
 
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Role not found with id: " + request.getRoleId()
-                        )
-                );
-
         user.setUsername(request.getUsername());
-        user.setPasswordHash(request.getPassword());
         user.setEmail(request.getEmail());
-        user.setAddress(request.getAddress());
-        user.setRole(role);
 
         UserAccount updatedUser = userAccountRepository.save(user);
 
@@ -96,7 +76,6 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     @Override
     public void deleteUser(Integer id) {
-
         UserAccount user = userAccountRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -108,12 +87,10 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     private UserAccountResponse mapToResponse(UserAccount user) {
-
         return new UserAccountResponse(
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getAddress(),
                 user.getRole().getId()
         );
     }

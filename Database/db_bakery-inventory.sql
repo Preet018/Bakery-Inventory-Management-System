@@ -93,7 +93,7 @@ CREATE TABLE supplier (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150),
-    phone VARCHAR(20),
+    phone VARCHAR(10),
     address VARCHAR(255),
     is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
