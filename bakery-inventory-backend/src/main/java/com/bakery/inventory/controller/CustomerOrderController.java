@@ -4,9 +4,12 @@ import com.bakery.inventory.dto.customerorder.CustomerOrderCreateRequest;
 import com.bakery.inventory.dto.customerorder.CustomerOrderResponse;
 import com.bakery.inventory.dto.customerorder.CustomerOrderStatusUpdateRequest;
 import com.bakery.inventory.service.CustomerOrderService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,11 +17,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
+@Validated
 public class CustomerOrderController {
     private final CustomerOrderService customerOrderService;
 
     @PostMapping
-    public ResponseEntity<CustomerOrderResponse> createOrder(@RequestBody CustomerOrderCreateRequest request) {
+    public ResponseEntity<CustomerOrderResponse> createOrder(@Valid @RequestBody CustomerOrderCreateRequest request) {
         CustomerOrderResponse response = customerOrderService.createOrder(request);
 
         return ResponseEntity
@@ -34,21 +38,21 @@ public class CustomerOrderController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CustomerOrderResponse> getOrderById(@PathVariable Integer id) {
+    public ResponseEntity<CustomerOrderResponse> getOrderById(@Positive(message = "Order ID must be positive") @PathVariable Integer id) {
         return ResponseEntity.ok(
                 customerOrderService.getOrderById(id)
         );
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<CustomerOrderResponse>> getOrdersByUserId(@PathVariable Integer userId) {
+    public ResponseEntity<List<CustomerOrderResponse>> getOrdersByUserId(@Positive(message = "User ID must be positive") @PathVariable Integer userId) {
         return ResponseEntity.ok(
                 customerOrderService.getOrdersByUserId(userId)
         );
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<CustomerOrderResponse> updateOrderStatus(@PathVariable Integer id, @RequestBody CustomerOrderStatusUpdateRequest request) {
+    public ResponseEntity<CustomerOrderResponse> updateOrderStatus(@Positive(message = "Order ID must be positive") @PathVariable Integer id, @Valid @RequestBody CustomerOrderStatusUpdateRequest request) {
         return ResponseEntity.ok(
                 customerOrderService.updateOrderStatus(
                         id,
@@ -58,7 +62,7 @@ public class CustomerOrderController {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<CustomerOrderResponse> cancelOrder(@PathVariable Integer id) {
+    public ResponseEntity<CustomerOrderResponse> cancelOrder(@Positive(message = "Order ID must be positive") @PathVariable Integer id) {
         return ResponseEntity.ok(
                 customerOrderService.cancelOrder(id)
         );

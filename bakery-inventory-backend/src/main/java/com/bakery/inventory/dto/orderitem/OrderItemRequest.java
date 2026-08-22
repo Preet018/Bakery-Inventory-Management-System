@@ -1,5 +1,7 @@
 package com.bakery.inventory.dto.orderitem;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.*;
 
 @Getter
@@ -7,6 +9,11 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderItemRequest {
+    @NotNull(message = "Product ID is required")
+    @Positive(message = "Product ID must be positive")
     private Integer productId;
+
+    @NotNull(message = "Quantity is required")
+    @Positive(message = "Quantity must be positive")
     private Integer quantity;
 }

@@ -1,6 +1,7 @@
 package com.bakery.inventory.dto.customerorder;
 
 import com.bakery.inventory.entity.OrderStatus;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -9,5 +10,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class CustomerOrderStatusUpdateRequest {
+    @NotNull(message = "Order status is required")
     private OrderStatus status;
 }
