@@ -39,17 +39,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(DuplicateResourceException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateResource(DuplicateResourceException exception, HttpServletRequest request) {
-        return buildResponse(
-                HttpStatus.CONFLICT,
-                "DUPLICATE_RESOURCE",
-                exception.getMessage(),
-                null,
-                request
-        );
-    }
-
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRule(BusinessRuleException exception, HttpServletRequest request) {
         return buildResponse(
@@ -160,21 +149,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String error, String message, Map<String, String> fieldErrors, HttpServletRequest request) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                status.value(),
-                error,
-                message,
-                request.getRequestURI(),
-                fieldErrors
-        );
-
-        return ResponseEntity
-                .status(status)
-                .body(response);
-    }
-
     @ExceptionHandler(StorageException.class)
     public ResponseEntity<ErrorResponse> handleStorageException(StorageException exception, HttpServletRequest request) {
         return buildResponse(
@@ -195,5 +169,20 @@ public class GlobalExceptionHandler {
                 null,
                 request
         );
+    }
+
+    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String error, String message, Map<String, String> fieldErrors, HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                status.value(),
+                error,
+                message,
+                request.getRequestURI(),
+                fieldErrors
+        );
+
+        return ResponseEntity
+                .status(status)
+                .body(response);
     }
 }
