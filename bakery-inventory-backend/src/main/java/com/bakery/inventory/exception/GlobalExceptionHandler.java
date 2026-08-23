@@ -10,6 +10,7 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.security.core.AuthenticationException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -184,5 +185,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(status)
                 .body(response);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException exception, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                "AUTHENTICATION_FAILED",
+                "Invalid credentials or account is not eligible for authentication.",
+                null,
+                request
+        );
     }
 }

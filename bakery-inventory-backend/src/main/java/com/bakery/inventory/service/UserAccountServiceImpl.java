@@ -7,6 +7,7 @@ import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.RoleRepository;
 import com.bakery.inventory.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
 public class UserAccountServiceImpl implements UserAccountService {
     private final UserAccountRepository userAccountRepository;
     private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserAccountResponse createUser(UserAccountCreateRequest request) {
@@ -29,7 +31,8 @@ public class UserAccountServiceImpl implements UserAccountService {
         UserAccount user = new UserAccount();
 
         user.setUsername(request.getUsername());
-        user.setPasswordHash(request.getPassword());
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+
         user.setEmail(request.getEmail());
         user.setRole(role);
 
@@ -84,7 +87,10 @@ public class UserAccountServiceImpl implements UserAccountService {
                         )
                 );
 
-        userAccountRepository.delete(user);
+        user.setActive(false);
+        user.setEmail(null);
+
+        userAccountRepository.save(user);
     }
 
     private UserAccountResponse mapToResponse(UserAccount user) {
@@ -92,6 +98,8 @@ public class UserAccountServiceImpl implements UserAccountService {
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
+                user.isEmailVerified(),
+                user.isActive(),
                 user.getRole().getId()
         );
     }

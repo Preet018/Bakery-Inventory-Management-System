@@ -20,8 +20,14 @@ public class UserAccount {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
-    @Column(name = "email", nullable = false, unique = true, length = 150)
+    @Column(name = "email", unique = true, length = 150)
     private String email;
+
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_role"))

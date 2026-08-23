@@ -26,6 +26,8 @@ CREATE TABLE user_account (
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     role_id INT NOT NULL,
 
     CONSTRAINT fk_user_role
@@ -37,7 +39,29 @@ CREATE TABLE user_account (
 
 
 -- =========================================================
--- 3. SAVED ADDRESS
+-- 3. OTP VERIFICATION
+-- =========================================================
+
+CREATE TABLE otp_verification (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    code_hash VARCHAR(100) NOT NULL,
+    purpose VARCHAR(30) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    attempts INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+
+    CONSTRAINT fk_otp_verification_user
+        FOREIGN KEY (user_id)
+        REFERENCES user_account(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+
+-- =========================================================
+-- 4. SAVED ADDRESS
 -- =========================================================
 
 CREATE TABLE saved_address (
@@ -76,7 +100,7 @@ CREATE TABLE saved_address (
 
 
 -- =========================================================
--- 4. CATEGORY
+-- 5. CATEGORY
 -- =========================================================
 
 CREATE TABLE category (
@@ -85,8 +109,7 @@ CREATE TABLE category (
 );
 
 
--- =========================================================
--- 5. SUPPLIER
+-- 6. SUPPLIER
 -- =========================================================
 
 CREATE TABLE supplier (
@@ -100,7 +123,7 @@ CREATE TABLE supplier (
 
 
 -- =========================================================
--- 6. PRODUCT
+-- 7. PRODUCT
 -- =========================================================
 
 CREATE TABLE product (
@@ -130,7 +153,7 @@ CREATE TABLE product (
 
 
 -- =========================================================
--- 7. INVENTORY
+-- 8. INVENTORY
 -- =========================================================
 
 CREATE TABLE inventory (
@@ -161,7 +184,7 @@ CREATE TABLE inventory (
 
 
 -- =========================================================
--- 8. CUSTOMER ORDER
+-- 9. CUSTOMER ORDER
 -- =========================================================
 
 CREATE TABLE customer_order (
@@ -231,7 +254,7 @@ CREATE TABLE customer_order (
 
 
 -- =========================================================
--- 9. ORDER ITEM
+-- 10. ORDER ITEM
 -- =========================================================
 
 CREATE TABLE order_item (
@@ -266,7 +289,7 @@ CREATE TABLE order_item (
 
 
 -- =========================================================
--- 10. PAYMENT
+-- 11. PAYMENT
 -- =========================================================
 
 CREATE TABLE payment (
@@ -316,7 +339,7 @@ CREATE TABLE payment (
 
 
 -- =========================================================
--- 11. INVENTORY RESERVATION
+-- 12. INVENTORY RESERVATION
 -- =========================================================
 
 CREATE TABLE inventory_reservation (
@@ -358,7 +381,7 @@ CREATE TABLE inventory_reservation (
 
 
 -- =========================================================
--- 12. STOCK TRANSACTION
+-- 13. STOCK TRANSACTION
 -- =========================================================
 
 CREATE TABLE stock_transaction (
@@ -400,7 +423,7 @@ CREATE TABLE stock_transaction (
 
 
 -- =========================================================
--- 13. PRODUCT IMAGE
+-- 14. PRODUCT IMAGE
 -- =========================================================
 
 CREATE TABLE product_image (
