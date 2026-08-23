@@ -170,12 +170,12 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.PATCH,
-                                "/api/orders/**/status"
+                                "/api/orders/*/status"
                         ).hasRole("ADMIN")
 
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/orders/**/cancel"
+                                "/api/orders/*/cancel"
                         ).hasAnyRole(
                                 "CUSTOMER",
                                 "ADMIN"
