@@ -68,7 +68,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/verify-email",
-                                "/api/auth/resend-verification",
+                                "/api/auth/request-verification",
                                 "/api/auth/login"
                         ).permitAll()
 
@@ -153,8 +153,29 @@ public class SecurityConfig {
                         // Orders:
                         // CUSTOMER can work with orders.
                         // ADMIN can inspect/manage orders.
+                        // Order creation and customer order operations.
                         .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/orders"
+                        ).hasRole("CUSTOMER")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/orders",
                                 "/api/orders/**"
+                        ).hasAnyRole(
+                                "CUSTOMER",
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/orders/**/status"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/orders/**/cancel"
                         ).hasAnyRole(
                                 "CUSTOMER",
                                 "ADMIN"

@@ -15,7 +15,7 @@ public interface AuthService {
 
     void verifyEmail(EmailVerificationRequest request);
 
-    void resendVerificationOtp(String email);
+    void requestVerificationOtp(String email);
 
     void sendAccountDeletionOtp(Integer userId);
 

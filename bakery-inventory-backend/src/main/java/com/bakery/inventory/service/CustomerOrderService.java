@@ -7,15 +7,15 @@ import com.bakery.inventory.entity.OrderStatus;
 import java.util.List;
 
 public interface CustomerOrderService {
-    CustomerOrderResponse createOrder(CustomerOrderCreateRequest request);
+    CustomerOrderResponse createOrder(Integer userId, CustomerOrderCreateRequest request);
 
     List<CustomerOrderResponse> getAllOrders();
 
-    CustomerOrderResponse getOrderById(Integer id);
+    CustomerOrderResponse getOrderById(Integer id, Integer requestingUserId, String requestingRole);
 
-    List<CustomerOrderResponse> getOrdersByUserId(Integer userId);
+    List<CustomerOrderResponse> getOrdersByUserId(Integer userId, Integer requestingUserId, String requestingRole);
 
     CustomerOrderResponse updateOrderStatus(Integer id, OrderStatus status);
 
-    CustomerOrderResponse cancelOrder(Integer id);
+    CustomerOrderResponse cancelOrder(Integer id, Integer requestingUserId, String requestingRole);
 }

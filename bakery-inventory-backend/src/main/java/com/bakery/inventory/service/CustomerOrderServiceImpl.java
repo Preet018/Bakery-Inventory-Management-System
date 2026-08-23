@@ -33,13 +33,19 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
         @Override
         @Transactional
-        public CustomerOrderResponse createOrder(CustomerOrderCreateRequest request) {
-                UserAccount user = userAccountRepository.findById(request.getUserId())
+        public CustomerOrderResponse createOrder(Integer userId, CustomerOrderCreateRequest request) {
+                UserAccount user = userAccountRepository.findById(userId)
                                 .orElseThrow(() ->
                                         new ResourceNotFoundException(
-                                                "User not found with id: " + request.getUserId()
+                                                "User not found with id: " + userId
                                         )
                                 );
+
+                if (!"CUSTOMER".equals(user.getRole().getName())) {
+                    throw new BusinessRuleException(
+                            "Only customers can create orders."
+                    );
+                }
 
                 if (request.getItems() == null || request.getItems().isEmpty()) {
                         throw new BadRequestException(
@@ -55,11 +61,11 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                 SavedAddress savedAddress = savedAddressRepository
                         .findByIdAndUserId(
                                 request.getSavedAddressId(),
-                                request.getUserId()
+                                userId
                         )
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "Saved address not found for user with id: " + request.getUserId()
+                                        "Saved address not found for user with id: " + userId
                                 )
                         );
 
@@ -161,7 +167,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
         @Override
         @Transactional(readOnly = true)
-        public CustomerOrderResponse getOrderById(Integer id) {
+        public CustomerOrderResponse getOrderById(Integer id, Integer requestingUserId, String requestingRole) {
                 CustomerOrder order = customerOrderRepository.findById(id)
                                 .orElseThrow(() ->
                                         new ResourceNotFoundException(
@@ -169,12 +175,26 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                         )
                                 );
 
+                if (!"ADMIN".equals(requestingRole) && !order.getUser().getId().equals(requestingUserId)) {
+                    throw new BusinessRuleException(
+                            "You are not authorized to access this order."
+                    );
+                }
+
                 return mapToResponse(order);
         }
 
         @Override
         @Transactional(readOnly = true)
-        public List<CustomerOrderResponse> getOrdersByUserId(Integer userId) {
+        public List<CustomerOrderResponse> getOrdersByUserId(Integer userId, Integer requestingUserId, String requestingRole) {
+                if (!"ADMIN".equals(requestingRole)
+                        && !userId.equals(requestingUserId)) {
+
+                    throw new BusinessRuleException(
+                            "You are not authorized to access these orders."
+                    );
+                }
+
                 userAccountRepository.findById(userId)
                                 .orElseThrow(() ->
                                         new ResourceNotFoundException(
@@ -216,13 +236,19 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
         @Override
         @Transactional
-        public CustomerOrderResponse cancelOrder(Integer id) {
+        public CustomerOrderResponse cancelOrder(Integer id, Integer requestingUserId, String requestingRole) {
                 CustomerOrder order = customerOrderRepository.findById(id)
                                 .orElseThrow(() ->
                                         new ResourceNotFoundException(
                                                 "Order not found with id: " + id
                                         )
                                 );
+
+                if (!"ADMIN".equals(requestingRole) && !order.getUser().getId().equals(requestingUserId)) {
+                    throw new BusinessRuleException(
+                            "You are not authorized to cancel this order."
+                    );
+                }
 
                 if (order.getOrderStatus() != OrderStatus.PLACED) {
                     throw new BusinessRuleException(

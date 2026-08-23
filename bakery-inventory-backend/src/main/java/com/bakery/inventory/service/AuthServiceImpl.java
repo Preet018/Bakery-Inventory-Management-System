@@ -116,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
         user.setActive(true);
         user.setRole(inventoryManagerRole);
 
-        UserAccount savedUser = userAccountRepository.save(user);
+        userAccountRepository.save(user);
     }
 
     @Override
@@ -194,7 +194,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void resendVerificationOtp(String email) {
+    public void requestVerificationOtp(String email) {
         String normalizedEmail = email.trim().toLowerCase();
 
         UserAccount user = userAccountRepository

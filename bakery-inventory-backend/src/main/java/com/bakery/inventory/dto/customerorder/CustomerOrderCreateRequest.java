@@ -16,10 +16,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CustomerOrderCreateRequest {
-    @NotNull(message = "User ID is required")
-    @Positive(message = "User ID must be positive")
-    private Integer userId;
-
     @NotBlank(message = "Contact is required")
     private String contact;
 
