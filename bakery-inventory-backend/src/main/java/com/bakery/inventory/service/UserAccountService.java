@@ -11,5 +11,9 @@ public interface UserAccountService {
 
     UserAccountResponse updateUser(Integer id, UserAccountUpdateRequest request);
 
-    void deleteUser(Integer id);
+    void deleteInventoryManager(Integer id);
+
+    void deactivateInventoryManager(Integer id);
+
+    void reactivateInventoryManager(Integer id);
 }

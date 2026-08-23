@@ -3,6 +3,7 @@ package com.bakery.inventory.service;
 import com.bakery.inventory.dto.auth.EmailVerificationRequest;
 import com.bakery.inventory.dto.auth.LoginRequest;
 import com.bakery.inventory.dto.auth.LoginResponse;
+import com.bakery.inventory.dto.useraccount.AccountDeleteRequest;
 import com.bakery.inventory.dto.useraccount.AccountRegistrationRequest;
 
 public interface AuthService {
@@ -15,4 +16,8 @@ public interface AuthService {
     void verifyEmail(EmailVerificationRequest request);
 
     void resendVerificationOtp(String email);
+
+    void sendAccountDeletionOtp(Integer userId);
+
+    void deleteOwnAccount(Integer userId, AccountDeleteRequest request);
 }

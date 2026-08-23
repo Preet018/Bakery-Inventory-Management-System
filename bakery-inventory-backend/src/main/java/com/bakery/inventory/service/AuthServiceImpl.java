@@ -3,6 +3,7 @@ package com.bakery.inventory.service;
 import com.bakery.inventory.dto.auth.EmailVerificationRequest;
 import com.bakery.inventory.dto.auth.LoginRequest;
 import com.bakery.inventory.dto.auth.LoginResponse;
+import com.bakery.inventory.dto.useraccount.AccountDeleteRequest;
 import com.bakery.inventory.dto.useraccount.AccountRegistrationRequest;
 import com.bakery.inventory.entity.OtpPurpose;
 import com.bakery.inventory.entity.Role;
@@ -26,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+    private static final String ADMIN_ROLE = "ADMIN";
     private static final String CUSTOMER_ROLE = "CUSTOMER";
+    private static final String INVENTORY_MANAGER_ROLE = "INVENTORY_MANAGER";
 
     private final UserAccountRepository userAccountRepository;
     private final RoleRepository roleRepository;
@@ -215,5 +218,105 @@ public class AuthServiceImpl implements AuthService {
         }
 
         otpService.generateAndSendOtp(user, OtpPurpose.EMAIL_VERIFICATION);
+    }
+
+    @Override
+    @Transactional
+    public void sendAccountDeletionOtp(Integer userId) {
+        UserAccount user = userAccountRepository
+                .findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User account not found."
+                        )
+                );
+
+        String roleName = user.getRole().getName();
+
+        if (ADMIN_ROLE.equals(roleName)) {
+            throw new BusinessRuleException(
+                    "The ADMIN account cannot be deleted."
+            );
+        }
+
+        if (!CUSTOMER_ROLE.equals(roleName) && !"INVENTORY_MANAGER".equals(roleName)) {
+            throw new BusinessRuleException(
+                    "This account cannot be deleted."
+            );
+        }
+
+        if (!user.isActive()) {
+            throw new BusinessRuleException(
+                    "This account is already inactive."
+            );
+        }
+
+        if (!user.isEmailVerified()) {
+            throw new BusinessRuleException(
+                    "Email must be verified before requesting account deletion."
+            );
+        }
+
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new BusinessRuleException(
+                    "This account does not have a valid email address."
+            );
+        }
+
+        otpService.generateAndSendOtp(
+                user,
+                OtpPurpose.ACCOUNT_DELETION
+        );
+    }
+
+    @Override
+    @Transactional
+    public void deleteOwnAccount(Integer userId, AccountDeleteRequest request) {
+        UserAccount user = userAccountRepository
+                .findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User account not found."
+                        )
+                );
+
+        String roleName = user.getRole().getName();
+
+        if (ADMIN_ROLE.equals(roleName)) {
+            throw new BusinessRuleException(
+                    "The ADMIN account cannot be deleted."
+            );
+        }
+
+        if (!CUSTOMER_ROLE.equals(roleName) && !"INVENTORY_MANAGER".equals(roleName)) {
+            throw new BusinessRuleException(
+                    "This account cannot be deleted."
+            );
+        }
+
+        if (!user.isActive()) {
+            throw new BusinessRuleException(
+                    "This account is already inactive."
+            );
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new BadRequestException(
+                    "Incorrect password."
+            );
+        }
+
+        boolean otpValid = otpService.verifyOtp(user, OtpPurpose.ACCOUNT_DELETION, request.getOtp());
+
+        if (!otpValid) {
+            throw new BadRequestException(
+                    "Invalid or expired account deletion OTP."
+            );
+        }
+
+        user.setActive(false);
+        user.setEmail(null);
+
+        userAccountRepository.save(user);
     }
 }
