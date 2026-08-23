@@ -11,6 +11,7 @@ import com.bakery.inventory.exception.BusinessRuleException;
 import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -176,7 +177,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                 );
 
                 if (!"ADMIN".equals(requestingRole) && !order.getUser().getId().equals(requestingUserId)) {
-                    throw new BusinessRuleException(
+                    throw new AccessDeniedException(
                             "You are not authorized to access this order."
                     );
                 }
@@ -187,10 +188,8 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         @Override
         @Transactional(readOnly = true)
         public List<CustomerOrderResponse> getOrdersByUserId(Integer userId, Integer requestingUserId, String requestingRole) {
-                if (!"ADMIN".equals(requestingRole)
-                        && !userId.equals(requestingUserId)) {
-
-                    throw new BusinessRuleException(
+                if (!"ADMIN".equals(requestingRole) && !userId.equals(requestingUserId)) {
+                    throw new AccessDeniedException(
                             "You are not authorized to access these orders."
                     );
                 }
@@ -245,7 +244,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                 );
 
                 if (!"ADMIN".equals(requestingRole) && !order.getUser().getId().equals(requestingUserId)) {
-                    throw new BusinessRuleException(
+                    throw new AccessDeniedException( // CHANGE
                             "You are not authorized to cancel this order."
                     );
                 }

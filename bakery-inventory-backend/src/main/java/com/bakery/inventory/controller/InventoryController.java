@@ -87,7 +87,7 @@ public class InventoryController {
     }
 
     @PatchMapping("/{productId}/minimum-stock")
-    public ResponseEntity<InventoryResponse> updateMinimumStock(@Positive(message = "Product ID must be positive") @PathVariable Integer productId, @Valid @RequestParam MinimumStockUpdateRequest request) {
+    public ResponseEntity<InventoryResponse> updateMinimumStock(@Positive(message = "Product ID must be positive") @PathVariable Integer productId, @Valid @RequestBody MinimumStockUpdateRequest request) {
         return ResponseEntity.ok(
                 inventoryService.updateMinimumStock(
                         productId,
