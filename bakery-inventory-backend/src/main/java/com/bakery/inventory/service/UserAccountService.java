@@ -5,8 +5,6 @@ import com.bakery.inventory.dto.useraccount.*;
 import java.util.List;
 
 public interface UserAccountService {
-    UserAccountResponse createUser(UserAccountCreateRequest request);
-
     List<UserAccountResponse> getAllUsers();
 
     UserAccountResponse getUserById(Integer id);

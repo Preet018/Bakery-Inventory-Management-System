@@ -197,4 +197,18 @@ public class GlobalExceptionHandler {
                 request
         );
     }
+
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ErrorResponse> handleEmailNotVerified(
+            EmailNotVerifiedException exception,
+            HttpServletRequest request) {
+
+        return buildResponse(
+                HttpStatus.FORBIDDEN,
+                "EMAIL_NOT_VERIFIED",
+                exception.getMessage(),
+                null,
+                request
+        );
+    }
 }

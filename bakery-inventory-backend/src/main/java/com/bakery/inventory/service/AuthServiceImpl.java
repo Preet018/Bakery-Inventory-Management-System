@@ -1,14 +1,15 @@
 package com.bakery.inventory.service;
 
-import com.bakery.inventory.dto.auth.CustomerRegistrationRequest;
 import com.bakery.inventory.dto.auth.EmailVerificationRequest;
 import com.bakery.inventory.dto.auth.LoginRequest;
 import com.bakery.inventory.dto.auth.LoginResponse;
+import com.bakery.inventory.dto.useraccount.AccountRegistrationRequest;
 import com.bakery.inventory.entity.OtpPurpose;
 import com.bakery.inventory.entity.Role;
 import com.bakery.inventory.entity.UserAccount;
 import com.bakery.inventory.exception.BadRequestException;
 import com.bakery.inventory.exception.BusinessRuleException;
+import com.bakery.inventory.exception.EmailNotVerifiedException;
 import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.RoleRepository;
 import com.bakery.inventory.repository.UserAccountRepository;
@@ -37,7 +38,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void registerCustomer(CustomerRegistrationRequest request) {
+    public void registerCustomer(AccountRegistrationRequest request) {
         String username = request.getUsername().trim();
         String email = request.getEmail().trim().toLowerCase();
 
@@ -75,6 +76,47 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
+    public void registerInventoryManager(AccountRegistrationRequest request) {
+        String username = request.getUsername().trim();
+
+        String email = request.getEmail().trim().toLowerCase();
+
+        if (userAccountRepository.findByUsername(username).isPresent()) {
+            throw new BusinessRuleException(
+                    "Username is already registered."
+            );
+        }
+
+        if (userAccountRepository.findByEmail(email).isPresent()) {
+            throw new BusinessRuleException(
+                    "Email is already registered."
+            );
+        }
+
+        Role inventoryManagerRole = roleRepository
+                .findByName("INVENTORY_MANAGER")
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Inventory Manager role is not configured."
+                        )
+                );
+
+        UserAccount user = new UserAccount();
+
+        user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+
+        user.setEmail(email);
+        user.setEmailVerified(false);
+
+        user.setActive(true);
+        user.setRole(inventoryManagerRole);
+
+        UserAccount savedUser = userAccountRepository.save(user);
+    }
+
+    @Override
     public LoginResponse login(LoginRequest request) {
         String identifier = request.getUsernameOrEmail().trim();
 
@@ -92,6 +134,12 @@ public class AuthServiceImpl implements AuthService {
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
+        if (!userDetails.isEmailVerified()) {
+            throw new EmailNotVerifiedException(
+                    "Your email is not verified. Please verify your email before logging in."
+            );
+        }
+
         String accessToken = jwtService.generateToken(userDetails);
 
         return new LoginResponse(
@@ -105,7 +153,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void verifyCustomerEmail(EmailVerificationRequest request) {
+    public void verifyEmail(EmailVerificationRequest request) {
         String email = request.getEmail().trim().toLowerCase();
 
         UserAccount user = userAccountRepository
@@ -143,10 +191,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void resendCustomerVerificationOtp(String email) {
-        String normalizedEmail = email
-                .trim()
-                .toLowerCase();
+    public void resendVerificationOtp(String email) {
+        String normalizedEmail = email.trim().toLowerCase();
 
         UserAccount user = userAccountRepository
                 .findByEmail(normalizedEmail)

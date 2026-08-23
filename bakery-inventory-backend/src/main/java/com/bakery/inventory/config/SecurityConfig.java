@@ -5,6 +5,7 @@ import com.bakery.inventory.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -45,27 +46,137 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http)
+            throws Exception {
+
         http
                 .csrf(csrf -> csrf.disable())
+
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
+
                 .authenticationProvider(
                         authenticationProvider()
                 )
+
                 .authorizeHttpRequests(auth -> auth
+                        // Authentication endpoints remain public.
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/verify-email",
                                 "/api/auth/resend-verification",
                                 "/api/auth/login"
+                        ).permitAll()
+
+                        // Product/category browsing is public.
+                        // Customers should be able to browse the bakery
+                        // without logging in.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/products",
+                                "/api/products/**",
+                                "/api/categories",
+                                "/api/categories/**"
+                        ).permitAll()
+
+                        // Category management belongs ONLY to ADMIN.
+                        .requestMatchers(
+                                "/api/categories/**"
+                        ).hasRole("ADMIN")
+
+                        // Product creation/modification is available to
+                        // ADMIN and INVENTORY_MANAGER.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/products/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "INVENTORY_MANAGER"
                         )
-                        .permitAll()
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/products/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "INVENTORY_MANAGER"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/products/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "INVENTORY_MANAGER"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/products/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "INVENTORY_MANAGER"
+                        )
+
+                        // Inventory operations:
+                        // ADMIN + INVENTORY_MANAGER
+                        .requestMatchers(
+                                "/api/inventory/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "INVENTORY_MANAGER"
+                        )
+
+                        // Suppliers are part of inventory management.
+                        // ADMIN + INVENTORY_MANAGER
+                        .requestMatchers(
+                                "/api/suppliers/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "INVENTORY_MANAGER"
+                        )
+
+                        // Stock transaction/history is an internal
+                        // inventory operation.
+                        // ADMIN + INVENTORY_MANAGER
+                        .requestMatchers(
+                                "/api/stock-transactions/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "INVENTORY_MANAGER"
+                        )
+
+                        // Orders:
+                        // CUSTOMER can work with orders.
+                        // ADMIN can inspect/manage orders.
+                        .requestMatchers(
+                                "/api/orders/**"
+                        ).hasAnyRole(
+                                "CUSTOMER",
+                                "ADMIN"
+                        )
+
+                        // Payments:
+                        // CUSTOMER + ADMIN.
+                        // Inventory managers do not handle payments.
+                        .requestMatchers(
+                                "/api/payments/**"
+                        ).hasAnyRole(
+                                "CUSTOMER",
+                                "ADMIN"
+                        )
+
+                        // All administrative endpoints require ADMIN.
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
+
                         .anyRequest().authenticated()
                 )
+
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class

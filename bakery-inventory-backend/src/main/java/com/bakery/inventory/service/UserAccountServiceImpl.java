@@ -1,8 +1,10 @@
 package com.bakery.inventory.service;
 
 import com.bakery.inventory.dto.useraccount.*;
+import com.bakery.inventory.entity.OtpPurpose;
 import com.bakery.inventory.entity.Role;
 import com.bakery.inventory.entity.UserAccount;
+import com.bakery.inventory.exception.BusinessRuleException;
 import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.RoleRepository;
 import com.bakery.inventory.repository.UserAccountRepository;
@@ -18,28 +20,6 @@ public class UserAccountServiceImpl implements UserAccountService {
     private final UserAccountRepository userAccountRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-
-    @Override
-    public UserAccountResponse createUser(UserAccountCreateRequest request) {
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Role not found with id: " + request.getRoleId()
-                        )
-                );
-
-        UserAccount user = new UserAccount();
-
-        user.setUsername(request.getUsername());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-
-        user.setEmail(request.getEmail());
-        user.setRole(role);
-
-        UserAccount savedUser = userAccountRepository.save(user);
-
-        return mapToResponse(savedUser);
-    }
 
     @Override
     public List<UserAccountResponse> getAllUsers() {
@@ -86,6 +66,12 @@ public class UserAccountServiceImpl implements UserAccountService {
                                 "User not found with id: " + id
                         )
                 );
+
+        if ("ADMIN".equals(user.getRole().getName())) {
+            throw new BusinessRuleException(
+                    "The ADMIN account cannot be deleted or deactivated."
+            );
+        }
 
         user.setActive(false);
         user.setEmail(null);

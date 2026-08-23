@@ -57,6 +57,10 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return userAccount.isActive() && userAccount.isEmailVerified();
+        return userAccount.isActive();
+    }
+
+    public boolean isEmailVerified() {
+        return userAccount.isEmailVerified();
     }
 }
