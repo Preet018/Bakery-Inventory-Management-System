@@ -11,8 +11,8 @@
 	<groupId>com.bakery</groupId>
 	<artifactId>bakery-inventory-management</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
+    <name>Bakery Inventory Management System</name>
+    <description>Spring Boot REST API for bakery inventory, orders, payments and authentication.</description>
 	<url/>
 	<licenses>
 		<license/>

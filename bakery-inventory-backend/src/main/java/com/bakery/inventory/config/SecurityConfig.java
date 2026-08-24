@@ -78,14 +78,6 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        .requestMatchers(
-                                "/api/auth/register",
-                                "/api/auth/verify-email",
-                                "/api/auth/request-verification",
-                                "/api/auth/login"
-                        ).permitAll()
-
-
                         // Authentication endpoints remain public.
                         .requestMatchers(
                                 "/api/auth/register",

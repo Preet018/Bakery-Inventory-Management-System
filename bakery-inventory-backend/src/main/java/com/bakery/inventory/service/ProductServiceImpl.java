@@ -10,6 +10,8 @@ import com.bakery.inventory.exception.BusinessRuleException;
 import com.bakery.inventory.exception.ResourceNotFoundException;
 import com.bakery.inventory.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +23,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
+    private static final Logger log = LoggerFactory.getLogger(ProductServiceImpl.class);
+
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final SupplierRepository supplierRepository;
@@ -75,20 +79,28 @@ public class ProductServiceImpl implements ProductService {
 
         inventoryRepository.save(inventory);
 
-        for (MultipartFile image : images) {
-            String imagePath = imageStorageService.storeImage(image);
+        List<String> storedImagePaths = new ArrayList<>();
 
-            ProductImage productImage = new ProductImage();
+        try {
+            for (MultipartFile image : images) {
+                String imagePath = imageStorageService.storeImage(image);
 
-            productImage.setProduct(savedProduct);
-            productImage.setImagePath(imagePath);
+                storedImagePaths.add(imagePath);
 
-            productImage.setIsActive(true);
+                ProductImage productImage = new ProductImage();
 
-            productImageRepository.save(productImage);
+                productImage.setProduct(savedProduct);
+                productImage.setImagePath(imagePath);
+                productImage.setIsActive(true);
+
+                productImageRepository.save(productImage);
+            }
+
+            return mapToResponse(savedProduct);
+        } catch (IOException | RuntimeException exception) {
+            cleanupStoredImages(storedImagePaths);
+            throw exception;
         }
-
-        return mapToResponse(savedProduct);
     }
 
     @Override
@@ -232,22 +244,30 @@ public class ProductServiceImpl implements ProductService {
 
         List<ProductImageResponse> responses = new ArrayList<>();
 
-        for (MultipartFile image : images) {
-            String imagePath = imageStorageService.storeImage(image);
+        List<String> storedImagePaths = new ArrayList<>();
 
-            ProductImage productImage = new ProductImage();
+        try {
+            for (MultipartFile image : images) {
+                String imagePath = imageStorageService.storeImage(image);
 
-            productImage.setProduct(product);
-            productImage.setImagePath(imagePath);
+                storedImagePaths.add(imagePath);
 
-            productImage.setIsActive(true);
+                ProductImage productImage = new ProductImage();
 
-            ProductImage savedImage = productImageRepository.save(productImage);
+                productImage.setProduct(product);
+                productImage.setImagePath(imagePath);
+                productImage.setIsActive(true);
 
-            responses.add(mapToImageResponse(savedImage));
+                ProductImage savedImage = productImageRepository.save(productImage);
+
+                responses.add(mapToImageResponse(savedImage));
+            }
+
+            return responses;
+        } catch (IOException | RuntimeException exception) {
+            cleanupStoredImages(storedImagePaths);
+            throw exception;
         }
-
-        return responses;
     }
 
     @Override
@@ -284,9 +304,13 @@ public class ProductServiceImpl implements ProductService {
             );
         }
 
-        imageStorageService.deleteImage(productImage.getImagePath());
+        String imagePath = productImage.getImagePath();
 
         productImageRepository.delete(productImage);
+
+        productImageRepository.flush();
+
+        imageStorageService.deleteImage(imagePath);
     }
 
     private ProductResponse mapToResponse(Product product) {
@@ -308,6 +332,16 @@ public class ProductServiceImpl implements ProductService {
                 product.getIsActive(),
                 images
         );
+    }
+
+    private void cleanupStoredImages(List<String> imagePaths) {
+        for (String imagePath : imagePaths) {
+            try {
+                imageStorageService.deleteImage(imagePath);
+            } catch (IOException | RuntimeException cleanupException) {
+                log.error("Failed to clean up stored product image: {}", imagePath, cleanupException);
+            }
+        }
     }
 
     private ProductImageResponse mapToImageResponse(ProductImage productImage) {
