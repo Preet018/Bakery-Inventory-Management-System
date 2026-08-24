@@ -293,7 +293,27 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                 .map(this::mapOrderItemToResponse)
                                 .toList();
 
-                return new CustomerOrderResponse(
+            PaymentResponse paymentResponse = null;
+
+            if (payment != null) {
+                paymentResponse = new PaymentResponse(
+                        payment.getId(),
+                        payment.getOrder().getId(),
+                        payment.getPaymentMethod(),
+                        payment.getPaymentStatus(),
+                        payment.getProvider(),
+                        payment.getProviderOrderId(),
+                        payment.getProviderPaymentId(),
+                        null,
+                        payment.getAmount(),
+                        payment.getCurrency(),
+                        payment.getCreatedAt(),
+                        payment.getUpdatedAt()
+                );
+            }
+
+
+            return new CustomerOrderResponse(
                         order.getId(),
                         order.getUser().getId(),
                         order.getContact(),
@@ -314,8 +334,45 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                         order.getOrderStatus(),
                         order.getCreatedAt(),
                         order.getUpdatedAt(),
-                        itemResponses
+                        itemResponses,
+                        paymentResponse
                 );
+        }
+
+        private CustomerOrderResponse mapToResponse(CustomerOrder order, PaymentResponse paymentResponse) {
+            List<OrderItemResponse> itemResponses =
+                    orderItemRepository.findByOrderId(order.getId())
+                            .stream()
+                            .map(this::mapOrderItemToResponse)
+                            .toList();
+
+            return new CustomerOrderResponse(
+                    order.getId(),
+                    order.getUser().getId(),
+                    order.getContact(),
+                    order.getTotalAmount(),
+
+                    order.getSavedAddress() != null ? order.getSavedAddress().getId() : null,
+
+                    order.getDeliveryAddress(),
+                    order.getDeliveryLandmark(),
+                    order.getDeliveryCity(),
+                    order.getDeliveryState(),
+                    order.getDeliveryPostalCode(),
+
+                    order.getDeliveryLatitude(),
+                    order.getDeliveryLongitude(),
+
+                    order.getDeliveryPlaceId(),
+
+                    order.getOrderStatus(),
+                    order.getCreatedAt(),
+                    order.getUpdatedAt(),
+
+                    itemResponses,
+
+                    paymentResponse
+            );
         }
 
         private OrderItemResponse mapOrderItemToResponse(OrderItem orderItem) {

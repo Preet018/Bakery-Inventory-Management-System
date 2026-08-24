@@ -1,6 +1,7 @@
 package com.bakery.inventory.dto.customerorder;
 
 import com.bakery.inventory.dto.orderitem.OrderItemResponse;
+import com.bakery.inventory.dto.payment.PaymentResponse;
 import com.bakery.inventory.entity.OrderStatus;
 import com.bakery.inventory.entity.PaymentMethod;
 import com.bakery.inventory.entity.PaymentStatus;
@@ -38,4 +39,6 @@ public class CustomerOrderResponse {
     private LocalDateTime updatedAt;
 
     private List<OrderItemResponse> items;
+
+    private PaymentResponse payment;
 }
