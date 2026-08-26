@@ -319,4 +319,65 @@ public class AuthServiceImpl implements AuthService {
 
         userAccountRepository.save(user);
     }
+
+    // CHANGE: Send OTP to user's registered email for password reset
+    @Override
+    @Transactional
+    public void sendPasswordResetOtp(String usernameOrEmail) {
+        String identifier = usernameOrEmail.trim();
+        if (identifier.contains("@")) {
+            identifier = identifier.toLowerCase();
+        }
+
+        UserAccount user;
+        if (identifier.contains("@")) {
+            user = userAccountRepository.findByEmail(identifier)
+                    .orElseThrow(() -> new BadRequestException("No registered account found with provided email."));
+        } else {
+            user = userAccountRepository.findByUsername(identifier)
+                    .orElseThrow(() -> new BadRequestException("No registered account found with provided username."));
+        }
+
+        if (!user.isActive()) {
+            throw new BadRequestException("This account is inactive.");
+        }
+
+        otpService.generateAndSendOtp(user, OtpPurpose.PASSWORD_RESET);
+    }
+
+    // CHANGE: Implemented changePassword via OTP verification
+    @Override
+    @Transactional
+    public void changePassword(com.bakery.inventory.dto.auth.PasswordChangeRequest request) {
+        String identifier = request.getUsernameOrEmail().trim();
+        if (identifier.contains("@")) {
+            identifier = identifier.toLowerCase();
+        }
+
+        UserAccount user;
+        if (identifier.contains("@")) {
+            user = userAccountRepository.findByEmail(identifier)
+                    .orElseThrow(() -> new BadRequestException("No registered account found with provided email."));
+        } else {
+            user = userAccountRepository.findByUsername(identifier)
+                    .orElseThrow(() -> new BadRequestException("No registered account found with provided username."));
+        }
+
+        if (!user.isActive()) {
+            throw new BadRequestException("This account is inactive.");
+        }
+
+        // Verify OTP code with OtpPurpose.PASSWORD_RESET
+        boolean otpValid = otpService.verifyOtp(user, OtpPurpose.PASSWORD_RESET, request.getOtp());
+        if (!otpValid) {
+            throw new BadRequestException("Invalid or expired password reset OTP code.");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
+            throw new BadRequestException("New password cannot be the same as the current password.");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userAccountRepository.save(user);
+    }
 }

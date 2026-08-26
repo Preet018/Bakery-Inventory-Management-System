@@ -83,4 +83,24 @@ public class AuthController {
                 "Account deleted successfully."
         );
     }
+
+    // CHANGE: Request OTP for password reset
+    @PostMapping("/password-reset/otp")
+    public ResponseEntity<String> requestPasswordResetOtp(@NotBlank(message = "Username or email is required") @RequestParam String usernameOrEmail) {
+        authService.sendPasswordResetOtp(usernameOrEmail);
+
+        return ResponseEntity.ok(
+                "A password reset OTP has been sent to your registered email."
+        );
+    }
+
+    // CHANGE: Added POST /api/auth/change-password endpoint with OTP verification
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(@Valid @RequestBody com.bakery.inventory.dto.auth.PasswordChangeRequest request) {
+        authService.changePassword(request);
+
+        return ResponseEntity.ok(
+                "Password changed successfully. Please log in with your new password."
+        );
+    }
 }

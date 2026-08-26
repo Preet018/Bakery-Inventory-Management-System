@@ -57,6 +57,15 @@ CREATE TABLE otp_verification (
         REFERENCES user_account(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
+    
+    CONSTRAINT chk_otp_verification_purpose
+        CHECK (
+            purpose IN (
+                'EMAIL_VERIFICATION',
+                'ACCOUNT_DELETION',
+                'PASSWORD_RESET'
+            )
+        )
 );
 
 

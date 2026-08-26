@@ -1,6 +1,7 @@
 package com.bakery.inventory.repository;
 
 import com.bakery.inventory.entity.UserAccount;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -9,8 +10,10 @@ import java.util.Optional;
 
 @Repository
 public interface UserAccountRepository extends JpaRepository<UserAccount, Integer> {
+    @EntityGraph(attributePaths = {"role"})
     Optional<UserAccount> findByUsername(String username);
 
+    @EntityGraph(attributePaths = {"role"})
     Optional<UserAccount> findByEmail(String email);
 
     List<UserAccount> findAllByRole_Name(String roleName);
