@@ -16,7 +16,9 @@ export const CheckoutPage = () => {
 
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [contactPhoneNumber, setContactPhoneNumber] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('COD');
+  // CHANGE: The system supports ONLY UPI, CREDIT_CARD, and DEBIT_CARD (no COD)
+  const [paymentMethod, setPaymentMethod] = useState('UPI');
+  const [savedAddressId, setSavedAddressId] = useState(1);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,11 +40,11 @@ export const CheckoutPage = () => {
     setSubmitting(true);
 
     try {
-      // Build order payload matching backend CustomerOrderCreateRequest
+      // CHANGE: Build order payload matching backend CustomerOrderCreateRequest
       const orderPayload = {
-        deliveryAddress: deliveryAddress.trim(),
-        contactPhoneNumber: contactPhoneNumber.trim(),
-        paymentMethod: paymentMethod, // "COD" or "RAZORPAY"
+        contact: contactPhoneNumber.trim(),
+        savedAddressId: Number(savedAddressId) || 1,
+        paymentMethod: paymentMethod, // 'UPI' | 'CREDIT_CARD' | 'DEBIT_CARD'
         items: cartItems.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
@@ -117,31 +119,46 @@ export const CheckoutPage = () => {
 
             <h3>2. Payment Method</h3>
             <div className="payment-options">
-              <label className={`payment-option-card ${paymentMethod === 'COD' ? 'selected' : ''}`}>
+              {/* CHANGE: Only UPI, CREDIT_CARD, and DEBIT_CARD are supported */}
+              <label className={`payment-option-card ${paymentMethod === 'UPI' ? 'selected' : ''}`}>
                 <input
                   type="radio"
                   name="paymentMethod"
-                  value="COD"
-                  checked={paymentMethod === 'COD'}
+                  value="UPI"
+                  checked={paymentMethod === 'UPI'}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 />
                 <div className="option-details">
-                  <div className="option-title">Cash on Delivery (COD)</div>
-                  <div className="option-desc">Pay with cash when bakery items are delivered to your doorstep</div>
+                  <div className="option-title">UPI Payment</div>
+                  <div className="option-desc">Pay directly using any UPI app (GPay, PhonePe, Paytm)</div>
                 </div>
               </label>
 
-              <label className={`payment-option-card ${paymentMethod === 'RAZORPAY' ? 'selected' : ''}`}>
+              <label className={`payment-option-card ${paymentMethod === 'CREDIT_CARD' ? 'selected' : ''}`}>
                 <input
                   type="radio"
                   name="paymentMethod"
-                  value="RAZORPAY"
-                  checked={paymentMethod === 'RAZORPAY'}
+                  value="CREDIT_CARD"
+                  checked={paymentMethod === 'CREDIT_CARD'}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 />
                 <div className="option-details">
-                  <div className="option-title">Online Payment (Razorpay)</div>
-                  <div className="option-desc">Pay securely using UPI, Credit/Debit Cards, or Netbanking</div>
+                  <div className="option-title">Credit Card</div>
+                  <div className="option-desc">Visa, MasterCard, Rupay, and Amex credit cards</div>
+                </div>
+              </label>
+
+              <label className={`payment-option-card ${paymentMethod === 'DEBIT_CARD' ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="DEBIT_CARD"
+                  checked={paymentMethod === 'DEBIT_CARD'}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                />
+                <div className="option-details">
+                  <div className="option-title">Debit Card</div>
+                  <div className="option-desc">Instant payment via your bank debit card</div>
                 </div>
               </label>
             </div>

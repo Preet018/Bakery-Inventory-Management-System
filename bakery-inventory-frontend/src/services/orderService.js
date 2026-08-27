@@ -8,7 +8,7 @@ import axiosInstance from '../api/axiosInstance';
 export const orderService = {
   // Create order (CUSTOMER)
   createOrder: async (orderData) => {
-    // orderData = { deliveryAddress, contactPhoneNumber, paymentMethod, items: [{ productId, quantity }] }
+    // CHANGE: Backend CustomerOrderCreateRequest expects { contact, savedAddressId, paymentMethod, items: [{ productId, quantity }] }
     const response = await axiosInstance.post('/api/orders', orderData);
     return response.data; // CustomerOrderResponse
   },
@@ -37,7 +37,7 @@ export const orderService = {
 
   // Update order status (ADMIN)
   updateOrderStatus: async (id, status) => {
-    // status = PENDING | CONFIRMED | PROCESSING | SHIPPED | DELIVERED | CANCELLED
+    // CHANGE: Backend OrderStatus enum: PLACED | CONFIRMED | PROCESSING | READY | DELIVERED | CANCELLED
     const response = await axiosInstance.patch(`/api/orders/${id}/status`, { status });
     return response.data;
   },

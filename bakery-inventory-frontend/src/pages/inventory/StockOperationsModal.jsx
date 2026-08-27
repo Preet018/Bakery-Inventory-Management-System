@@ -1,34 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { inventoryService } from '../../services/inventoryService';
-import { supplierService } from '../../services/supplierService';
-import { X, PackagePlus, Sliders, AlertTriangle, RotateCcw, ShieldCheck } from 'lucide-react';
+import { X } from 'lucide-react';
 
 /**
- * NEW FILE: StockOperationsModal
- * Interactive Modal handling Stock Purchase, Adjustment, Damage Record, Supplier Return, and Minimum Stock limit updates.
+ * StockOperationsModal
+ * Refactored to match backend DTO contracts (StockPurchaseRequest, StockAdjustmentRequest, StockDamageRequest, SupplierReturnRequest, MinimumStockUpdateRequest)
+ * and database schema (quantity/targetQuantity and reason).
  */
 
 export const StockOperationsModal = ({ product, operationType, onClose, onSuccess }) => {
-  const [suppliers, setSuppliers] = useState([]);
   const [quantity, setQuantity] = useState('');
-  const [unitCostPrice, setUnitCostPrice] = useState('');
-  const [supplierId, setSupplierId] = useState('');
-  const [batchNumber, setBatchNumber] = useState('');
   const [reason, setReason] = useState('');
-  const [remarks, setRemarks] = useState('');
-  const [minimumStockLevel, setMinimumStockLevel] = useState(product?.minimumStockLevel || 5);
+  const [minimumStock, setMinimumStock] = useState(product?.minimumStock ?? product?.minimumStockLevel ?? 5);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (operationType === 'PURCHASE' || operationType === 'RETURN') {
-      supplierService.getAllSuppliers().then((data) => {
-        setSuppliers(data || []);
-        if (data && data.length > 0) setSupplierId(data[0].id);
-      }).catch(console.error);
-    }
-  }, [operationType]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,35 +22,36 @@ export const StockOperationsModal = ({ product, operationType, onClose, onSucces
     setSubmitting(true);
 
     try {
+      const targetId = product.productId || product.id;
+      const trimmedReason = reason.trim() || undefined;
+
       if (operationType === 'PURCHASE') {
-        await inventoryService.purchaseStock(product.productId || product.id, {
+        // CHANGE: Backend StockPurchaseRequest expects { quantity, reason }
+        await inventoryService.purchaseStock(targetId, {
           quantity: Number(quantity),
-          unitCostPrice: Number(unitCostPrice),
-          supplierId: Number(supplierId),
-          batchNumber: batchNumber || `BATCH-${Date.now().toString().slice(-6)}`,
-          remarks: remarks,
+          reason: trimmedReason,
         });
       } else if (operationType === 'ADJUST') {
-        await inventoryService.adjustStock(product.productId || product.id, {
-          adjustmentQuantity: Number(quantity),
-          reason: reason || 'Manual Audit Adjustment',
-          remarks: remarks,
+        // CHANGE: Backend StockAdjustmentRequest expects { targetQuantity, reason }
+        await inventoryService.adjustStock(targetId, {
+          targetQuantity: Number(quantity),
+          reason: trimmedReason,
         });
       } else if (operationType === 'DAMAGE') {
-        await inventoryService.recordDamage(product.productId || product.id, {
+        // CHANGE: Backend StockDamageRequest expects { quantity, reason }
+        await inventoryService.recordDamage(targetId, {
           quantity: Number(quantity),
-          damageReason: reason || 'EXPIRED',
-          remarks: remarks,
+          reason: trimmedReason,
         });
       } else if (operationType === 'RETURN') {
-        await inventoryService.returnStock(product.productId || product.id, {
+        // CHANGE: Backend SupplierReturnRequest expects { quantity, reason }
+        await inventoryService.returnStock(targetId, {
           quantity: Number(quantity),
-          supplierId: Number(supplierId),
-          reason: reason || 'Defective quality',
-          remarks: remarks,
+          reason: trimmedReason,
         });
       } else if (operationType === 'MINIMUM') {
-        await inventoryService.updateMinimumStock(product.productId || product.id, Number(minimumStockLevel));
+        // CHANGE: Backend MinimumStockUpdateRequest expects { minimumStock }
+        await inventoryService.updateMinimumStock(targetId, Number(minimumStock));
       }
 
       onSuccess();
@@ -88,11 +75,23 @@ export const StockOperationsModal = ({ product, operationType, onClose, onSucces
     }
   };
 
+  const getReasonPlaceholder = () => {
+    switch (operationType) {
+      case 'PURCHASE': return 'e.g. Initial chocolate cake stock, Morning bakery delivery';
+      case 'ADJUST': return 'e.g. Physical stock count correction, Quantity mismatch';
+      case 'DAMAGE': return 'e.g. Damaged during storage, Expired shelf life';
+      case 'RETURN': return 'e.g. Returned excess stock to supplier';
+      default: return 'Reason for stock operation...';
+    }
+  };
+
+  const productName = product?.productName || product?.name || (product?.productId ? `Product #${product.productId}` : '');
+
   return (
     <div className="modal-overlay">
       <div className="modal-container card">
         <div className="modal-header">
-          <h3>{getModalTitle()} - {product?.productName || product?.name}</h3>
+          <h3>{getModalTitle()}{productName ? ` - ${productName}` : ''}</h3>
           <button onClick={onClose} className="modal-close-btn">
             <X size={20} />
           </button>
@@ -111,89 +110,42 @@ export const StockOperationsModal = ({ product, operationType, onClose, onSucces
               <input
                 type="number"
                 required
-                min={1}
-                value={minimumStockLevel}
-                onChange={(e) => setMinimumStockLevel(e.target.value)}
+                min={0}
+                value={minimumStock}
+                onChange={(e) => setMinimumStock(e.target.value)}
               />
             </div>
           ) : (
             <>
               <div className="form-group">
                 <label>
-                  {operationType === 'ADJUST' ? 'Adjustment Quantity (+ or -)' : 'Quantity'}
+                  {operationType === 'ADJUST'
+                    ? 'Target Stock Quantity (Count after adjustment)'
+                    : operationType === 'DAMAGE'
+                    ? 'Damaged Quantity'
+                    : operationType === 'RETURN'
+                    ? 'Return Quantity'
+                    : 'Quantity'}
                 </label>
                 <input
                   type="number"
                   required
-                  placeholder={operationType === 'ADJUST' ? 'e.g. 10 or -5' : 'e.g. 50'}
+                  min={operationType === 'ADJUST' ? 0 : 1}
+                  placeholder={operationType === 'ADJUST' ? 'e.g. 50' : 'e.g. 10'}
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
                 />
               </div>
 
-              {operationType === 'PURCHASE' && (
-                <>
-                  <div className="form-group">
-                    <label>Unit Cost Price (₹)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      placeholder="e.g. 45.00"
-                      value={unitCostPrice}
-                      onChange={(e) => setUnitCostPrice(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Batch Number</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. BATCH-2026-08"
-                      value={batchNumber}
-                      onChange={(e) => setBatchNumber(e.target.value)}
-                    />
-                  </div>
-                </>
-              )}
-
-              {(operationType === 'PURCHASE' || operationType === 'RETURN') && (
-                <div className="form-group">
-                  <label>Supplier</label>
-                  <select
-                    required
-                    value={supplierId}
-                    onChange={(e) => setSupplierId(e.target.value)}
-                  >
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.contactPerson})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {(operationType === 'ADJUST' || operationType === 'DAMAGE' || operationType === 'RETURN') && (
-                <div className="form-group">
-                  <label>Reason</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Broken packaging, expired shelf life"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                  />
-                </div>
-              )}
-
+              {/* CHANGE: Backend DTOs (StockPurchaseRequest, StockAdjustmentRequest, StockDamageRequest, SupplierReturnRequest) accept optional reason */}
               <div className="form-group">
-                <label>Remarks / Notes</label>
-                <textarea
-                  rows={2}
-                  placeholder="Optional additional notes..."
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
+                <label>Reason (Optional)</label>
+                <input
+                  type="text"
+                  maxLength={255}
+                  placeholder={getReasonPlaceholder()}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
                 />
               </div>
             </>

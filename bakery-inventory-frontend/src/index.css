@@ -2356,4 +2356,240 @@ a:hover {
   }
 }
 
+/* =========================================================
+   CHANGE: Issue #24 — Responsive Design Media Queries
+   ========================================================= */
 
+/* CHANGE: Mobile menu toggle button — hidden on desktop */
+.mobile-menu-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem;
+  cursor: pointer;
+  color: var(--color-dark);
+  transition: all var(--transition-fast);
+}
+
+.mobile-menu-toggle:hover {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* CHANGE: On desktop, navbar-collapsible is a transparent flex wrapper */
+.navbar-collapsible {
+  display: contents;
+}
+
+/* CHANGE: Responsive breakpoint — tablets and below (≤768px) */
+@media (max-width: 768px) {
+
+  /* CHANGE: Show hamburger button on mobile */
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* CHANGE: Navbar container wraps to allow collapsible content below brand row */
+  .navbar-container {
+    flex-wrap: wrap;
+  }
+
+  /* CHANGE: Collapsible wrapper — hidden by default on mobile */
+  .navbar-collapsible {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+    margin-top: 0.75rem;
+  }
+
+  /* CHANGE: When mobile menu is open, show the collapsible wrapper */
+  .navbar-collapsible.mobile-menu-open {
+    display: flex;
+  }
+
+  /* CHANGE: Nav links stack vertically on mobile */
+  .navbar-links {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  /* CHANGE: Nav link pills become full-width on mobile */
+  .navbar-links .nav-link {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0.6rem 1rem;
+  }
+
+  /* CHANGE: Navbar actions stack vertically on mobile */
+  .navbar-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  /* CHANGE: User profile menu flows vertically on mobile */
+  .user-profile-menu {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* CHANGE: Guest auth buttons wrap on mobile */
+  .auth-buttons {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .auth-buttons .btn-secondary,
+  .auth-buttons .btn-primary {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    font-size: 0.88rem;
+    padding: 0.55rem 0.75rem;
+  }
+
+  /* CHANGE: Hero section responsive adjustments */
+  .hero-title {
+    font-size: 2.2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .hero-buttons {
+    flex-wrap: wrap;
+  }
+
+  .btn-hero-primary,
+  .btn-hero-secondary {
+    font-size: 0.95rem;
+    padding: 0.75rem 1.3rem;
+  }
+
+  /* CHANGE: Page header responsive */
+  .page-header h1 {
+    font-size: 1.6rem;
+  }
+
+  /* CHANGE: Login page padding on mobile */
+  .role-split-page {
+    padding: 1rem;
+  }
+
+  /* CHANGE: Portal selector column loses fixed width on mobile */
+  .portal-selector-column {
+    width: 100%;
+  }
+
+  /* CHANGE: Compact auth card padding on mobile */
+  .compact-auth-card {
+    padding: 1.25rem 1rem;
+  }
+
+  /* CHANGE: Modal container mobile margin */
+  .modal-container {
+    margin: 1rem;
+    max-width: calc(100% - 2rem);
+  }
+
+  /* CHANGE: Delete account modal mobile margin */
+  .delete-account-modal {
+    margin: 1rem;
+    max-width: calc(100% - 2rem);
+  }
+
+  /* CHANGE: Password management content stacks on mobile */
+  .password-management-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* CHANGE: Extra small screens (≤480px) — further refinements */
+@media (max-width: 480px) {
+
+  /* CHANGE: Hero title even smaller on very narrow screens */
+  .hero-title {
+    font-size: 1.75rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.92rem;
+  }
+
+  .btn-hero-primary,
+  .btn-hero-secondary {
+    font-size: 0.88rem;
+    padding: 0.65rem 1rem;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* CHANGE: Section header smaller on mobile */
+  .section-header h2 {
+    font-size: 1.6rem;
+  }
+
+  /* CHANGE: Page container less padding on narrow screens */
+  .page-container {
+    padding: 1.25rem 1rem;
+  }
+
+  /* CHANGE: Product grid allows single column on very narrow screens */
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.25rem;
+  }
+
+  /* CHANGE: Features strip single column on narrow screens */
+  .features-strip {
+    grid-template-columns: 1fr;
+  }
+
+  /* CHANGE: Metrics grid single column on very narrow screens */
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* CHANGE: Form row stacks to single column */
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* CHANGE: Cart item layout adjustments */
+  .cart-item {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  /* CHANGE: Account detail items stack on very narrow screens */
+  .account-detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  /* CHANGE: Danger zone content stacks */
+  .danger-zone-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* CHANGE: Footer padding adjustments */
+  .bakery-footer {
+    padding: 2rem 1rem 1rem 1rem;
+  }
+}

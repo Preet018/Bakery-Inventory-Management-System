@@ -36,20 +36,23 @@ export const OrderHistoryPage = () => {
     }
   }, [user, isAdmin]);
 
+  // CHANGE: Backend OrderStatus enum: PLACED, CONFIRMED, PROCESSING, READY, DELIVERED, CANCELLED
   const getStatusBadge = (status) => {
     switch (status) {
       case 'DELIVERED':
         return <span className="status-badge status-badge-success">Delivered</span>;
-      case 'SHIPPED':
-        return <span className="status-badge status-badge-info">Shipped</span>;
+      case 'READY':
+        return <span className="status-badge status-badge-info">Ready for Pickup/Delivery</span>;
       case 'PROCESSING':
         return <span className="status-badge status-badge-warning">Processing</span>;
       case 'CONFIRMED':
         return <span className="status-badge status-badge-primary">Confirmed</span>;
+      case 'PLACED':
+        return <span className="status-badge status-badge-secondary">Placed</span>;
       case 'CANCELLED':
         return <span className="status-badge status-badge-danger">Cancelled</span>;
       default:
-        return <span className="status-badge status-badge-secondary">{status || 'Pending'}</span>;
+        return <span className="status-badge status-badge-secondary">{status || 'Placed'}</span>;
     }
   };
 
@@ -90,7 +93,8 @@ export const OrderHistoryPage = () => {
                 </div>
 
                 <div className="order-status">
-                  {getStatusBadge(order.status)}
+                  {/* CHANGE: Backend CustomerOrderResponse field is orderStatus */}
+                  {getStatusBadge(order.orderStatus || order.status)}
                 </div>
               </div>
 
@@ -100,7 +104,7 @@ export const OrderHistoryPage = () => {
                   {order.items && order.items.length > 0 ? (
                     order.items.map((item, idx) => (
                       <span key={idx} className="item-tag">
-                        {item.productName} (x{item.quantity})
+                        {item.productName || `Product #${item.productId}`} (x{item.quantity})
                         {idx < order.items.length - 1 ? ', ' : ''}
                       </span>
                     ))
@@ -114,7 +118,8 @@ export const OrderHistoryPage = () => {
                     Total: <strong>₹{Number(order.totalAmount || 0).toFixed(2)}</strong>
                   </span>
                   <span className="order-payment">
-                    Payment: <strong>{order.paymentMethod || 'COD'}</strong>
+                    {/* CHANGE: Payment method is on order.payment.paymentMethod */}
+                    Payment: <strong>{order.payment?.paymentMethod || order.paymentMethod || 'UPI'}</strong>
                   </span>
                 </div>
               </div>

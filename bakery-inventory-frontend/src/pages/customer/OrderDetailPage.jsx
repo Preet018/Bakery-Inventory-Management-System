@@ -69,7 +69,8 @@ export const OrderDetailPage = () => {
     );
   }
 
-  const canCancel = order.status === 'PENDING' || order.status === 'CONFIRMED';
+  // CHANGE: Backend CustomerOrderResponse uses orderStatus (PLACED, CONFIRMED)
+  const canCancel = (order.orderStatus || order.status) === 'PLACED' || (order.orderStatus || order.status) === 'CONFIRMED';
 
   return (
     <div className="order-detail-page page-container">
@@ -101,7 +102,8 @@ export const OrderDetailPage = () => {
           </div>
 
           <div className="order-status-pill">
-            Status: <strong>{order.status}</strong>
+            {/* CHANGE: Backend CustomerOrderResponse field is orderStatus */}
+            Status: <strong>{order.orderStatus || order.status}</strong>
           </div>
         </div>
 
@@ -121,11 +123,12 @@ export const OrderDetailPage = () => {
               <tbody>
                 {order.items && order.items.map((item, idx) => (
                   <tr key={idx}>
-                    <td>{item.productName}</td>
+                    {/* CHANGE: OrderItemResponse contains productId, unitPrice, quantity, subtotal */}
+                    <td>{item.productName || `Product #${item.productId}`}</td>
                     <td>₹{Number(item.unitPrice).toFixed(2)}</td>
                     <td>x{item.quantity}</td>
                     <td className="text-right font-bold">
-                      ₹{(Number(item.unitPrice) * item.quantity).toFixed(2)}
+                      ₹{(Number(item.subtotal || item.unitPrice * item.quantity)).toFixed(2)}
                     </td>
                   </tr>
                 ))}
@@ -142,12 +145,14 @@ export const OrderDetailPage = () => {
 
             <div className="info-block">
               <div className="info-title"><Phone size={16} /> Contact Phone</div>
-              <p className="info-text">{order.contactPhoneNumber}</p>
+              {/* CHANGE: Backend CustomerOrderResponse field is contact */}
+              <p className="info-text">{order.contact || order.contactPhoneNumber}</p>
             </div>
 
             <div className="info-block">
               <div className="info-title"><Package size={16} /> Payment Summary</div>
-              <p className="info-text">Method: <strong>{order.paymentMethod}</strong></p>
+              {/* CHANGE: Payment method is nested in order.payment.paymentMethod */}
+              <p className="info-text">Method: <strong>{order.payment?.paymentMethod || order.paymentMethod || 'UPI'}</strong></p>
               <p className="info-text">Total: <strong className="price-large">₹{Number(order.totalAmount).toFixed(2)}</strong></p>
             </div>
 

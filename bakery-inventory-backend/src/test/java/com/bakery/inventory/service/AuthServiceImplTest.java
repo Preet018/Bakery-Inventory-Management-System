@@ -7,6 +7,8 @@ import com.bakery.inventory.entity.UserAccount;
 import com.bakery.inventory.exception.EmailNotVerifiedException;
 import com.bakery.inventory.security.CustomUserDetails;
 import com.bakery.inventory.security.JwtService;
+import com.bakery.inventory.entity.OtpPurpose;
+import com.bakery.inventory.repository.UserAccountRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,6 +35,12 @@ class AuthServiceImplTest {
 
     @Mock
     private Authentication authentication;
+
+    @Mock
+    private UserAccountRepository userAccountRepository;
+
+    @Mock
+    private OtpService otpService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -171,5 +181,34 @@ class AuthServiceImplTest {
 
         verify(jwtService, never())
                 .generateToken(any());
+    }
+
+    @Test
+    void sendPasswordResetOtp_shouldGenerateOtp_whenUserExistsAndIsActive() {
+        UserAccount user = createUser(1, "customer", "CUSTOMER", true, true);
+        when(userAccountRepository.findByUsername("customer")).thenReturn(Optional.of(user));
+
+        authService.sendPasswordResetOtp("customer");
+
+        verify(otpService).generateAndSendOtp(user, OtpPurpose.PASSWORD_RESET);
+    }
+
+    @Test
+    void sendPasswordResetOtp_shouldReturnGracefully_whenUserDoesNotExist() {
+        when(userAccountRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
+
+        assertDoesNotThrow(() -> authService.sendPasswordResetOtp("nonexistent"));
+
+        verify(otpService, never()).generateAndSendOtp(any(), any());
+    }
+
+    @Test
+    void sendPasswordResetOtp_shouldReturnGracefully_whenUserIsInactive() {
+        UserAccount user = createUser(1, "inactive_user", "CUSTOMER", false, true);
+        when(userAccountRepository.findByUsername("inactive_user")).thenReturn(Optional.of(user));
+
+        assertDoesNotThrow(() -> authService.sendPasswordResetOtp("inactive_user"));
+
+        verify(otpService, never()).generateAndSendOtp(any(), any());
     }
 }

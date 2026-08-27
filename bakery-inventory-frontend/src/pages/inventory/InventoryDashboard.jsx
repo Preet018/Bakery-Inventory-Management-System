@@ -21,17 +21,11 @@ export const InventoryDashboard = () => {
   const [activeModalProduct, setActiveModalProduct] = useState(null);
   const [operationType, setOperationType] = useState(null);
 
+  // CHANGE: Always fetch the complete inventory dataset once so summary metrics remain global
   const fetchInventory = async () => {
     try {
       setLoading(true);
-      let data = [];
-      if (filterMode === 'LOW') {
-        data = await inventoryService.getLowStockProducts();
-      } else if (filterMode === 'OUT') {
-        data = await inventoryService.getOutOfStockProducts();
-      } else {
-        data = await inventoryService.getAllInventory();
-      }
+      const data = await inventoryService.getAllInventory();
       setInventory(data || []);
     } catch (err) {
       console.error('Failed to fetch inventory:', err);
@@ -42,21 +36,38 @@ export const InventoryDashboard = () => {
 
   useEffect(() => {
     fetchInventory();
-  }, [filterMode]);
+  }, []);
 
   const openOperationModal = (item, type) => {
     setActiveModalProduct(item);
     setOperationType(type);
   };
 
-  const filteredInventory = inventory.filter((item) => {
-    const name = item.productName || item.name || '';
-    return name.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  // CHANGE: Helper definitions for low-stock and out-of-stock evaluation
+  const isLowStock = (item) => Boolean(item.lowStock ?? ((item.availableQuantity ?? item.quantity ?? 0) <= (item.minimumStock ?? 5)));
+  const isOutOfStock = (item) => (item.availableQuantity ?? item.quantity ?? 0) <= 0;
 
+  // CHANGE: Global summary metrics are calculated strictly from the complete inventory dataset
   const totalItemsCount = inventory.length;
-  const lowStockCount = inventory.filter(i => (i.availableStock || i.quantity || 0) <= (i.minimumStockLevel || 5)).length;
-  const outOfStockCount = inventory.filter(i => (i.availableStock || i.quantity || 0) <= 0).length;
+  const lowStockCount = inventory.filter(isLowStock).length;
+  const outOfStockCount = inventory.filter(isOutOfStock).length;
+
+  // CHANGE: Table rows are filtered independently without affecting the global summary counts
+  const filteredInventory = inventory.filter((item) => {
+    if (filterMode === 'LOW' && !isLowStock(item)) {
+      return false;
+    }
+    if (filterMode === 'OUT' && !isOutOfStock(item)) {
+      return false;
+    }
+    if (searchQuery) {
+      const name = item.productName || item.name || `Product #${item.productId || item.id}`;
+      if (!name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   return (
     <div className="inventory-dashboard page-container">
@@ -156,14 +167,15 @@ export const InventoryDashboard = () => {
             </thead>
             <tbody>
               {filteredInventory.map((item) => {
-                const stock = item.availableStock ?? item.quantity ?? 0;
-                const minThreshold = item.minimumStockLevel ?? 5;
+                // CHANGE: Map backend InventoryResponse fields: availableQuantity, minimumStock, lowStock
+                const stock = item.availableQuantity ?? item.quantity ?? 0;
+                const minThreshold = item.minimumStock ?? 5;
                 const isOut = stock <= 0;
-                const isLow = stock <= minThreshold;
+                const isLow = item.lowStock ?? (stock <= minThreshold);
 
                 return (
                   <tr key={item.id || item.productId}>
-                    <td className="font-bold">{item.productName || item.name}</td>
+                    <td className="font-bold">{item.productName || item.name || `Product #${item.productId}`}</td>
                     <td>{item.categoryName || 'Bakery'}</td>
                     <td className="font-bold text-large">{stock}</td>
                     <td>{item.reservedQuantity || 0}</td>

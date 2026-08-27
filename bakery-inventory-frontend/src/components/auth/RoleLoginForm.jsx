@@ -168,6 +168,13 @@ export const RoleLoginForm = ({
     e.preventDefault();
 
     setError(null);
+
+    // CHANGE: Validate password length before calling backend
+    if (password.length < 8) {
+      setError("Password can't be less than 8 characters.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -209,13 +216,7 @@ export const RoleLoginForm = ({
       // =====================================================
 
       if (authenticatedRole !== selectedRole) {
-        setError(
-          `This account is ${authenticatedRole || 'not authorized'
-          }. Please use the ${selectedRole
-            .replace('_', ' ')
-            .toLowerCase()
-          } sign-in portal.`
-        );
+        setError('Unable to sign in. Invalid username/email or password.');
 
         return;
       }
@@ -261,10 +262,19 @@ export const RoleLoginForm = ({
     } catch (err) {
       console.error('Login error:', err);
 
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Login failed. Please verify your credentials.';
+      let msg = 'Login failed. Please check your credentials.';
+
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        msg = 'The login request timed out. Please try again.';
+      } else if (err.response?.status === 401) {
+        msg = 'Unable to sign in. Invalid username/email or password.';
+      } else if (err.response?.data?.error === 'EMAIL_NOT_VERIFIED' || err.response?.data?.message?.includes('verified')) {
+        msg = err.response.data.message || 'Your email is not verified. Please verify your email before logging in.';
+      } else if (err.response?.data?.message) {
+        msg = err.response.data.message;
+      } else if (typeof err.response?.data === 'string' && err.response.data.trim()) {
+        msg = err.response.data;
+      }
 
       setError(msg);
     } finally {
@@ -313,8 +323,8 @@ export const RoleLoginForm = ({
                   key={portal.key}
                   to={portal.path}
                   className={`portal-role-card ${isActive
-                      ? `active-${portal.key}`
-                      : ''
+                    ? `active-${portal.key}`
+                    : ''
                     }`}
                 >
                   <div
@@ -421,8 +431,8 @@ export const RoleLoginForm = ({
                 <button
                   type="button"
                   className={`toggle-tab ${loginMethod === 'username'
-                      ? 'active'
-                      : ''
+                    ? 'active'
+                    : ''
                     }`}
                   onClick={() => {
                     setLoginMethod('username');
@@ -436,8 +446,8 @@ export const RoleLoginForm = ({
                 <button
                   type="button"
                   className={`toggle-tab ${loginMethod === 'email'
-                      ? 'active'
-                      : ''
+                    ? 'active'
+                    : ''
                     }`}
                   onClick={() => {
                     setLoginMethod('email');
@@ -665,15 +675,15 @@ export const RoleLoginForm = ({
       </div>
 
       {/* =====================================================
-          CHANGE: Renamed PASSWORD RESET MODAL (was PASSWORD CHANGE MODAL)
+          PASSWORD RESET MODAL
           ===================================================== */}
 
+      {/* CHANGE: Removed unused defaultRole prop (Issue #05) */}
       <ResetPasswordModal
         isOpen={showPasswordModal}
         onClose={() =>
           setShowPasswordModal(false)
         }
-        defaultRole={roleBadge}
       />
     </div>
   );

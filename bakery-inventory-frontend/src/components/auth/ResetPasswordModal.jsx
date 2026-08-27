@@ -1,24 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { authService } from '../../services/authService';
-import { KeyRound, Lock, User, Mail, X, CheckCircle2, AlertCircle, Send, ArrowRight } from 'lucide-react';
+import { KeyRound, Lock, User, Mail, X, CheckCircle2, AlertCircle, Send } from 'lucide-react';
 
 /**
- * CHANGE: Renamed from ChangePasswordModal → ResetPasswordModal
- *
  * ResetPasswordModal Component
  *
  * Provides a 2-step OTP-verified password reset workflow for users who
- * have forgotten their password or want to reset it:
+ * have forgotten their password or want to reset/change it:
  *
  * Step 1: User enters their Username or Email to request a 6-digit OTP
  *         sent to their registered email.
  * Step 2: User enters the received OTP and sets their new password.
  *
- * This is NOT an authenticated "change password" flow — it uses the
- * public /api/auth/password-reset/otp and /api/auth/change-password
- * backend endpoints and does not require a current session.
+ * This is an OTP-based password reset using the public /api/auth/password-reset/otp
+ * and /api/auth/change-password backend endpoints and does not require a current session.
  */
-export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', prefillIdentifier = '' }) => {
+// CHANGE: Removed unused defaultRole prop (Issue #05)
+export const ResetPasswordModal = ({ isOpen, onClose, prefillIdentifier = '' }) => {
   const [loginMethod, setLoginMethod] = useState('username');
   const [identifier, setIdentifier] = useState(prefillIdentifier);
   const [otp, setOtp] = useState('');
@@ -33,14 +31,39 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
+  // CHANGE: OTP resend countdown state & timer refs (Issue #05)
+  const [resendCountdown, setResendCountdown] = useState(0);
   const closeTimerRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
 
-  // CHANGE: Reset ALL state when modal opens/closes so reopening always
-  // shows a clean initial form (fixes problem #3).
+  // CHANGE: Helper to manage the 60s resend cooldown countdown
+  const startResendCountdown = (seconds = 60) => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+    setResendCountdown(seconds);
+    countdownIntervalRef.current = setInterval(() => {
+      setResendCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // CHANGE: Reset ALL state and clear all timers when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
       }
       setLoginMethod('username');
       setIdentifier(prefillIdentifier);
@@ -52,21 +75,25 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
       setSubmitting(false);
       setError(null);
       setSuccessMsg(null);
+      setResendCountdown(0);
     }
 
     return () => {
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
       }
     };
   }, [isOpen, prefillIdentifier]);
 
   if (!isOpen) return null;
 
-  // CHANGE: Consistent email regex pattern
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  // CHANGE: Validation helpers with exact required user-facing messages (Problem #1)
   const validateIdentifier = () => {
     const value = identifier.trim();
 
@@ -76,7 +103,6 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
     }
 
     if (loginMethod === 'username') {
-      // CHANGE: By Username — if user enters an email address, show explicit error and do NOT send OTP
       if (value.includes('@') || EMAIL_REGEX.test(value)) {
         setError('Invalid username. Please enter a valid username.');
         return false;
@@ -84,7 +110,6 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
     }
 
     if (loginMethod === 'email') {
-      // CHANGE: By Email — if user enters an invalid email, show explicit error and do NOT send OTP
       if (!EMAIL_REGEX.test(value)) {
         setError('Invalid email address. Please enter a valid email address.');
         return false;
@@ -100,7 +125,6 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
     setError(null);
     setSuccessMsg(null);
 
-    // CHANGE: Run frontend validation BEFORE calling the API (fixes Problem #1)
     if (!validateIdentifier()) {
       return;
     }
@@ -108,13 +132,14 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
     setSendingOtp(true);
     try {
       const msg = await authService.requestPasswordResetOtp(identifier.trim());
-      setSuccessMsg(typeof msg === 'string' ? msg : 'A 6-digit password reset OTP has been sent to your registered email.');
+      setSuccessMsg(typeof msg === 'string' ? msg : 'If an account exists for the provided information, a password reset OTP has been sent to the registered email.');
       setStep(2);
+      // CHANGE: Start 60s cooldown countdown on successful OTP request / resend
+      startResendCountdown(60);
     } catch (err) {
       console.error('OTP Request error:', err);
       let msg = 'Failed to send OTP. Please check your username/email.';
 
-      // CHANGE: Detect Axios timeout and network errors gracefully (Problem #2 UX)
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         msg = 'The request timed out while sending the OTP email. Please try again.';
       } else if (err.response) {
@@ -129,13 +154,17 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
         msg = 'Unable to reach the server. Please verify the backend is running.';
       }
       setError(msg);
+
+      // CHANGE: If backend returned a cooldown error, start/maintain the cooldown countdown
+      if (typeof msg === 'string' && msg.toLowerCase().includes('wait before')) {
+        startResendCountdown(60);
+      }
     } finally {
-      // CHANGE: Always ensure loading state stops so the button is never stuck (Problem #2)
       setSendingOtp(false);
     }
   };
 
-  // CHANGE: Step 2 — Submit OTP & New Password
+  // Step 2 — Submit OTP & New Password
   const handleConfirmPasswordReset = async (e) => {
     e.preventDefault();
     setError(null);
@@ -146,13 +175,14 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      setError('New password and confirmation password do not match.');
+    // CHANGE: Enforce strict 8–100 character password length matching backend (Issue #05)
+    if (newPassword.length < 8 || newPassword.length > 100) {
+      setError('New password must be between 8 and 100 characters.');
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters long.');
+    if (newPassword !== confirmPassword) {
+      setError('New password and confirmation password do not match.');
       return;
     }
 
@@ -169,7 +199,6 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
       setNewPassword('');
       setConfirmPassword('');
 
-      // CHANGE: Consistent 5-second display duration before auto-closing the modal
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current);
       }
@@ -196,11 +225,14 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
     }
   };
 
-  // CHANGE: Handle navigating back from Step 2 to Step 1 cleanly
-  // Clears successMsg, error, entered OTP, new password, and confirm password so initial form is clean
   const handleBackToStep1 = () => {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
     }
     setStep(1);
     setOtp('');
@@ -210,13 +242,18 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
     setSuccessMsg(null);
     setSendingOtp(false);
     setSubmitting(false);
+    setResendCountdown(0);
   };
 
   const resetModal = () => {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
     }
-    // CHANGE: Reset ALL state including identifier and loginMethod (Problem #3)
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
     setStep(1);
     setLoginMethod('username');
     setIdentifier(prefillIdentifier);
@@ -227,6 +264,7 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
     setSubmitting(false);
     setError(null);
     setSuccessMsg(null);
+    setResendCountdown(0);
     onClose();
   };
 
@@ -236,7 +274,6 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
         <div className="modal-header">
           <div className="modal-header-title">
             <KeyRound size={22} className="text-amber" />
-            {/* CHANGE: Clear "Reset Password" title */}
             <h3>Reset Password</h3>
           </div>
           <button onClick={resetModal} className="modal-close-btn" aria-label="Close">
@@ -260,9 +297,7 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
 
         {step === 1 ? (
           /* STEP 1: Enter Username/Email to receive OTP */
-          /* CHANGE: noValidate added so custom styled validation messages display consistently without native browser popup interference */
           <form onSubmit={handleRequestOtp} className="auth-form" noValidate>
-            {/* CHANGE: Clear "Forgot Password" instructional text */}
             <p className="modal-instruction">
               Enter your account username or registered email below. A verification code will be sent to your registered email to reset your password.
             </p>
@@ -356,7 +391,8 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
-              <span className="field-hint">Must be at least 8 characters.</span>
+              {/* CHANGE: Updated hint text to reflect exact 8-100 character requirement */}
+              <span className="field-hint">Must be between 8 and 100 characters.</span>
             </div>
 
             <div className="form-group">
@@ -375,21 +411,24 @@ export const ResetPasswordModal = ({ isOpen, onClose, defaultRole = 'CUSTOMER', 
             </div>
 
             <div className="modal-actions-between">
+              {/* CHANGE: OTP Resend button with active 60s countdown and disabled state during cooldown */}
               <button
                 type="button"
                 onClick={handleRequestOtp}
-                disabled={sendingOtp}
+                disabled={sendingOtp || resendCountdown > 0}
                 className="link-button"
               >
-                {sendingOtp ? 'Resending...' : 'Resend OTP'}
+                {sendingOtp
+                  ? 'Resending...'
+                  : resendCountdown > 0
+                    ? `Resend OTP in ${resendCountdown}s`
+                    : 'Resend OTP'}
               </button>
 
               <div className="modal-actions">
-                {/* CHANGE: Back button now calls handleBackToStep1 to completely clean step 2 state & success message */}
                 <button type="button" onClick={handleBackToStep1} className="btn-secondary">
                   Back
                 </button>
-                {/* CHANGE: Button text clearly says "Reset Password" */}
                 <button type="submit" disabled={submitting} className="btn-primary">
                   {submitting ? 'Resetting...' : 'Verify OTP & Reset Password'}
                 </button>

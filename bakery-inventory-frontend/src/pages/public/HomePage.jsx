@@ -149,8 +149,9 @@ export const HomePage = () => {
         <div className="feature-item">
           <Truck size={24} className="feature-icon" />
           <div>
-            <h4>Fast Delivery & COD</h4>
-            <p>Support for Cash on Delivery and online payment</p>
+            {/* CHANGE: System uses online payment (UPI, Credit/Debit card); removed COD reference */}
+            <h4>Fast & Reliable Delivery</h4>
+            <p>Quick doorstep delivery with secure digital payments</p>
           </div>
         </div>
         <div className="feature-item">

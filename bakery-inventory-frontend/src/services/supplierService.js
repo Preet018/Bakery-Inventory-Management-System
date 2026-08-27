@@ -17,7 +17,7 @@ export const supplierService = {
   },
 
   createSupplier: async (supplierData) => {
-    // supplierData = { name, contactPerson, email, phone, address }
+    // CHANGE: Backend SupplierRequest expects { name, email, phone, address }
     const response = await axiosInstance.post('/api/suppliers', supplierData);
     return response.data;
   },

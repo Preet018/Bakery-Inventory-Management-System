@@ -320,7 +320,7 @@ public class AuthServiceImpl implements AuthService {
         userAccountRepository.save(user);
     }
 
-    // CHANGE: Send OTP to user's registered email for password reset
+    // CHANGE: Send OTP to user's registered email for password reset (handles non-existent/inactive accounts gracefully to prevent enumeration)
     @Override
     @Transactional
     public void sendPasswordResetOtp(String usernameOrEmail) {
@@ -329,17 +329,19 @@ public class AuthServiceImpl implements AuthService {
             identifier = identifier.toLowerCase();
         }
 
-        UserAccount user;
-        if (identifier.contains("@")) {
-            user = userAccountRepository.findByEmail(identifier)
-                    .orElseThrow(() -> new BadRequestException("No registered account found with provided email."));
-        } else {
-            user = userAccountRepository.findByUsername(identifier)
-                    .orElseThrow(() -> new BadRequestException("No registered account found with provided username."));
+        java.util.Optional<UserAccount> userOpt = identifier.contains("@")
+                ? userAccountRepository.findByEmail(identifier)
+                : userAccountRepository.findByUsername(identifier);
+
+        if (userOpt.isEmpty()) {
+            // Return gracefully to prevent account enumeration
+            return;
         }
 
+        UserAccount user = userOpt.get();
         if (!user.isActive()) {
-            throw new BadRequestException("This account is inactive.");
+            // Return gracefully for inactive accounts
+            return;
         }
 
         otpService.generateAndSendOtp(user, OtpPurpose.PASSWORD_RESET);

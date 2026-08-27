@@ -118,8 +118,8 @@ export const AccountPage = () => {
   const rolePillClass = isAdmin
     ? 'role-admin'
     : isInventoryManager
-    ? 'role-inventory_manager'
-    : 'role-customer';
+      ? 'role-inventory_manager'
+      : 'role-customer';
 
   return (
     <div className="account-page page-container">
@@ -183,8 +183,8 @@ export const AccountPage = () => {
                 {isCustomer
                   ? 'Browse catalog and track orders'
                   : isInventoryManager
-                  ? 'Access your inventory workspace'
-                  : 'Manage your admin workspace'}
+                    ? 'Access your inventory workspace'
+                    : 'Manage your admin workspace'}
               </p>
             </div>
           </div>
@@ -267,15 +267,15 @@ export const AccountPage = () => {
           </div>
           <div>
             <h3>Password Management</h3>
-            <p className="account-card-subtitle">Reset your account password via OTP verification</p>
+            <p className="account-card-subtitle">Change your account password via OTP verification</p>
           </div>
         </div>
 
         <div className="password-management-content">
           <div>
-            <strong>Reset Password</strong>
+            <strong>Change Password</strong>
             <p>
-              Reset your password using a 6-digit OTP sent to your registered email.
+              Change your password using a 6-digit OTP sent to your registered email.
               You will need to log in again with your new password after the reset.
             </p>
           </div>
@@ -284,7 +284,7 @@ export const AccountPage = () => {
             className="btn-primary"
           >
             <KeyRound size={16} />
-            <span>Reset Password</span>
+            <span>Change Password</span>
           </button>
         </div>
       </div>
@@ -321,11 +321,10 @@ export const AccountPage = () => {
       )}
 
       {/* CHANGE: Password Reset Modal — available to all roles from /account.
-          Pre-fills the authenticated user's username for convenience. */}
+          Pre-fills the authenticated user's username for convenience. (Removed unused defaultRole per Issue #05) */}
       <ResetPasswordModal
         isOpen={showResetPasswordModal}
         onClose={() => setShowResetPasswordModal(false)}
-        defaultRole={user?.role || 'CUSTOMER'}
         prefillIdentifier={user?.username || ''}
       />
 

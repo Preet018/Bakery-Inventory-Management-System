@@ -13,9 +13,9 @@ export const SupplierManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
+  // CHANGE: Backend SupplierRequest expects: { name, email, phone, address } (no contactPerson)
   const [formData, setFormData] = useState({
     name: '',
-    contactPerson: '',
     email: '',
     phone: '',
     address: '',
@@ -48,7 +48,7 @@ export const SupplierManagementPage = () => {
     try {
       await supplierService.createSupplier(formData);
       setShowModal(false);
-      setFormData({ name: '', contactPerson: '', email: '', phone: '', address: '' });
+      setFormData({ name: '', email: '', phone: '', address: '' });
       fetchSuppliers();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create supplier.');
@@ -91,13 +91,13 @@ export const SupplierManagementPage = () => {
             <div key={sup.id} className="supplier-card card">
               <div className="supplier-header">
                 <h3>{sup.name}</h3>
-                <span className={`status-pill ${sup.active !== false ? 'pill-active' : 'pill-inactive'}`}>
-                  {sup.active !== false ? 'Active' : 'Inactive'}
+                {/* CHANGE: Backend SupplierResponse field is isActive (not active) */}
+                <span className={`status-pill ${sup.isActive !== false ? 'pill-active' : 'pill-inactive'}`}>
+                  {sup.isActive !== false ? 'Active' : 'Inactive'}
                 </span>
               </div>
 
               <div className="supplier-details">
-                <p><strong>Contact Person:</strong> {sup.contactPerson || 'N/A'}</p>
                 <p><Mail size={14} /> {sup.email || 'N/A'}</p>
                 <p><Phone size={14} /> {sup.phone || 'N/A'}</p>
                 <p><MapPin size={14} /> {sup.address || 'N/A'}</p>
@@ -129,17 +129,6 @@ export const SupplierManagementPage = () => {
                   placeholder="e.g. Royal Mills & Dairy Products"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Contact Person Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Robert Smith"
-                  value={formData.contactPerson}
-                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
                 />
               </div>
 

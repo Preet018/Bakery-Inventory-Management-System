@@ -84,13 +84,13 @@ public class AuthController {
         );
     }
 
-    // CHANGE: Request OTP for password reset
+    // CHANGE: Request OTP for password reset (generic response to prevent account enumeration)
     @PostMapping("/password-reset/otp")
     public ResponseEntity<String> requestPasswordResetOtp(@NotBlank(message = "Username or email is required") @RequestParam String usernameOrEmail) {
         authService.sendPasswordResetOtp(usernameOrEmail);
 
         return ResponseEntity.ok(
-                "A password reset OTP has been sent to your registered email."
+                "If an account exists for the provided information, a password reset OTP has been sent to the registered email."
         );
     }
 

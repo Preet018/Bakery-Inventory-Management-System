@@ -12,7 +12,6 @@ export const CategoryManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -38,10 +37,10 @@ export const CategoryManagementPage = () => {
     setSubmitting(true);
 
     try {
-      await categoryService.createCategory({ name, description });
+      // CHANGE: Backend CategoryRequest has only { name }
+      await categoryService.createCategory({ name: name.trim() });
       setShowModal(false);
       setName('');
-      setDescription('');
       fetchCategories();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create category.');
@@ -91,7 +90,6 @@ export const CategoryManagementPage = () => {
               <tr>
                 <th>Cat ID</th>
                 <th>Category Name</th>
-                <th>Description</th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
@@ -100,7 +98,6 @@ export const CategoryManagementPage = () => {
                 <tr key={cat.id}>
                   <td>#{cat.id}</td>
                   <td className="font-bold">{cat.name}</td>
-                  <td>{cat.description || 'No description'}</td>
                   <td className="text-right">
                     <button
                       onClick={() => handleDeleteCategory(cat.id)}
@@ -139,16 +136,6 @@ export const CategoryManagementPage = () => {
                   placeholder="e.g. Sourdough Breads"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  rows={3}
-                  placeholder="Short description of products in this category..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
 

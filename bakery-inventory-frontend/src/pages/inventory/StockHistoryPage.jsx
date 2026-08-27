@@ -63,22 +63,28 @@ export const StockHistoryPage = () => {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((tx) => (
-                <tr key={tx.id}>
-                  <td>#{tx.id}</td>
-                  <td>{new Date(tx.createdAt || tx.transactionDate || Date.now()).toLocaleString()}</td>
-                  <td className="font-bold">{tx.productName || `Product #${tx.productId}`}</td>
-                  <td>
-                    <span className={`transaction-type-badge type-${tx.transactionType?.toLowerCase()}`}>
-                      {tx.transactionType}
-                    </span>
-                  </td>
-                  <td className={`font-bold ${tx.quantityChange >= 0 || tx.transactionType === 'PURCHASE' ? 'text-success' : 'text-danger'}`}>
-                    {tx.quantityChange > 0 ? `+${tx.quantityChange}` : tx.quantityChange || tx.quantity}
-                  </td>
-                  <td>{tx.remarks || tx.reason || 'N/A'}</td>
-                </tr>
-              ))}
+              {transactions.map((tx) => {
+                // CHANGE: Backend StockTransactionResponse uses type, quantity, reason, createdAt, inventoryId
+                const isPositive = tx.type === 'PURCHASE' || tx.type === 'CANCEL';
+                const formattedType = tx.type || 'TRANSACTION';
+
+                return (
+                  <tr key={tx.id}>
+                    <td>#{tx.id}</td>
+                    <td>{tx.createdAt ? new Date(tx.createdAt).toLocaleString() : 'N/A'}</td>
+                    <td className="font-bold">{tx.inventoryId ? `Inventory #${tx.inventoryId}` : `Tx #${tx.id}`}</td>
+                    <td>
+                      <span className={`transaction-type-badge type-${formattedType.toLowerCase().replace('_', '-')}`}>
+                        {formattedType}
+                      </span>
+                    </td>
+                    <td className={`font-bold ${isPositive ? 'text-success' : 'text-danger'}`}>
+                      {isPositive ? `+${tx.quantity}` : (tx.type === 'ADJUSTMENT' ? `${tx.quantity}` : `-${tx.quantity}`)}
+                    </td>
+                    <td>{tx.reason || 'N/A'}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

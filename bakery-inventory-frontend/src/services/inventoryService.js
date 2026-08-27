@@ -32,35 +32,36 @@ export const inventoryService = {
 
   // Purchase new stock from supplier
   purchaseStock: async (productId, purchaseData) => {
-    // purchaseData = { quantity, unitCostPrice, supplierId, batchNumber, remarks }
+    // CHANGE: Backend StockPurchaseRequest expects: { quantity, reason }
     const response = await axiosInstance.post(`/api/inventory/${productId}/purchase`, purchaseData);
     return response.data;
   },
 
   // Return stock to supplier
   returnStock: async (productId, returnData) => {
-    // returnData = { quantity, supplierId, reason, remarks }
+    // CHANGE: Backend SupplierReturnRequest expects: { quantity, reason }
     const response = await axiosInstance.post(`/api/inventory/${productId}/return`, returnData);
     return response.data;
   },
 
   // Adjust stock count manually
   adjustStock: async (productId, adjustData) => {
-    // adjustData = { adjustmentQuantity, reason, remarks }
+    // CHANGE: Backend StockAdjustmentRequest expects: { targetQuantity, reason }
     const response = await axiosInstance.post(`/api/inventory/${productId}/adjust`, adjustData);
     return response.data;
   },
 
   // Record damaged / expired stock
   recordDamage: async (productId, damageData) => {
-    // damageData = { quantity, damageReason, remarks }
+    // CHANGE: Backend StockDamageRequest expects: { quantity, reason }
     const response = await axiosInstance.post(`/api/inventory/${productId}/damage`, damageData);
     return response.data;
   },
 
   // Update minimum stock alert threshold
-  updateMinimumStock: async (productId, minimumStockLevel) => {
-    const response = await axiosInstance.patch(`/api/inventory/${productId}/minimum-stock`, { minimumStockLevel });
+  updateMinimumStock: async (productId, minimumStock) => {
+    // CHANGE: Backend MinimumStockUpdateRequest expects field { minimumStock }
+    const response = await axiosInstance.patch(`/api/inventory/${productId}/minimum-stock`, { minimumStock });
     return response.data;
   }
 };
