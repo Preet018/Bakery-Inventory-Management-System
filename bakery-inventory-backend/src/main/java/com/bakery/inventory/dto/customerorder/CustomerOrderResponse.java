@@ -3,8 +3,6 @@ package com.bakery.inventory.dto.customerorder;
 import com.bakery.inventory.dto.orderitem.OrderItemResponse;
 import com.bakery.inventory.dto.payment.PaymentResponse;
 import com.bakery.inventory.entity.OrderStatus;
-import com.bakery.inventory.entity.PaymentMethod;
-import com.bakery.inventory.entity.PaymentStatus;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -18,6 +16,7 @@ import java.util.List;
 public class CustomerOrderResponse {
     private Integer id;
     private Integer userId;
+    private String username;
     private String contact;
     private BigDecimal totalAmount;
     private Integer savedAddressId;

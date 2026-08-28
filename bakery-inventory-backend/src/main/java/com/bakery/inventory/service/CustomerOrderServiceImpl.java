@@ -176,7 +176,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                         )
                                 );
 
-                if (!"ADMIN".equals(requestingRole) && !order.getUser().getId().equals(requestingUserId)) {
+                if (!"ADMIN".equals(requestingRole) && !"INVENTORY_MANAGER".equals(requestingRole) && !order.getUser().getId().equals(requestingUserId)) {
                     throw new AccessDeniedException(
                             "You are not authorized to access this order."
                     );
@@ -188,7 +188,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         @Override
         @Transactional(readOnly = true)
         public List<CustomerOrderResponse> getOrdersByUserId(Integer userId, Integer requestingUserId, String requestingRole) {
-                if (!"ADMIN".equals(requestingRole) && !userId.equals(requestingUserId)) {
+                if (!"ADMIN".equals(requestingRole) && !"INVENTORY_MANAGER".equals(requestingRole) && !userId.equals(requestingUserId)) {
                     throw new AccessDeniedException(
                             "You are not authorized to access these orders."
                     );
@@ -243,7 +243,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                         )
                                 );
 
-                if (!"ADMIN".equals(requestingRole) && !order.getUser().getId().equals(requestingUserId)) {
+                if (!"ADMIN".equals(requestingRole) && !"INVENTORY_MANAGER".equals(requestingRole) && !order.getUser().getId().equals(requestingUserId)) {
                     throw new AccessDeniedException( // CHANGE
                             "You are not authorized to cancel this order."
                     );
@@ -316,6 +316,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
             return new CustomerOrderResponse(
                         order.getId(),
                         order.getUser().getId(),
+                        order.getUser() != null ? order.getUser().getUsername() : null,
                         order.getContact(),
                         order.getTotalAmount(),
 
@@ -349,6 +350,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
             return new CustomerOrderResponse(
                     order.getId(),
                     order.getUser().getId(),
+                    order.getUser() != null ? order.getUser().getUsername() : null,
                     order.getContact(),
                     order.getTotalAmount(),
 

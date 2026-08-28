@@ -191,32 +191,37 @@ public class SecurityConfig {
 
                         // Orders:
                         // CUSTOMER can work with orders.
-                        // ADMIN can inspect/manage orders.
+                        // ADMIN + INVENTORY_MANAGER can inspect/manage orders.
                         // Order creation and customer order operations.
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/orders"
-                        ).hasRole("ADMIN")
+                        ).hasAnyRole("ADMIN", "INVENTORY_MANAGER")
 
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/orders/**")
                         .hasAnyRole(
                                 "CUSTOMER",
-                                "ADMIN"
+                                "ADMIN",
+                                "INVENTORY_MANAGER"
                         )
 
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/orders/*/status"
-                        ).hasRole("ADMIN")
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "INVENTORY_MANAGER"
+                        )
 
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/orders/*/cancel"
                         ).hasAnyRole(
                                 "CUSTOMER",
-                                "ADMIN"
+                                "ADMIN",
+                                "INVENTORY_MANAGER"
                         )
 
                         // Payments:

@@ -10,10 +10,8 @@ import {
   Package,
   Shield,
   Layers,
-  Truck,
-  History,
-  Store,
   User,
+  LayoutDashboard,
   Menu,  // CHANGE: hamburger icon for mobile menu
   X,     // CHANGE: close icon for mobile menu
 } from 'lucide-react';
@@ -160,21 +158,12 @@ export const Navbar = () => {
             {isInventoryManager && (
               <>
                 <Link
-                  to="/inventory/suppliers"
+                  to="/admin/orders"
                   className="nav-link"
                   onClick={handleNavClick}
                 >
-                  <Truck size={16} />
-                  <span>Suppliers</span>
-                </Link>
-
-                <Link
-                  to="/inventory/history"
-                  className="nav-link"
-                  onClick={handleNavClick}
-                >
-                  <History size={16} />
-                  <span>Stock History</span>
+                  <ShoppingBag size={16} />
+                  <span>Orders</span>
                 </Link>
 
                 <Link
@@ -186,7 +175,6 @@ export const Navbar = () => {
                   <span>Manage Inventory</span>
                 </Link>
 
-                {/* CHANGE: Universal My Account link for Inventory Manager */}
                 <Link
                   to="/account"
                   className="nav-link"
@@ -202,21 +190,30 @@ export const Navbar = () => {
             {isAdmin && (
               <>
                 <Link
+                  to="/admin"
+                  className="nav-link"
+                  onClick={handleNavClick}
+                >
+                  <LayoutDashboard size={16} />
+                  <span>Dashboard</span>
+                </Link>
+
+                <Link
+                  to="/admin/orders"
+                  className="nav-link"
+                  onClick={handleNavClick}
+                >
+                  <ShoppingBag size={16} />
+                  <span>Orders</span>
+                </Link>
+
+                <Link
                   to="/admin/categories"
                   className="nav-link"
                   onClick={handleNavClick}
                 >
                   <Layers size={16} />
                   <span>Categories</span>
-                </Link>
-
-                <Link
-                  to="/admin/users"
-                  className="nav-link"
-                  onClick={handleNavClick}
-                >
-                  <Shield size={16} />
-                  <span>User Accounts</span>
                 </Link>
 
                 <Link

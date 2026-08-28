@@ -25,9 +25,19 @@ export const normalizeRole = (role) => {
 };
 
 /**
- * CHANGE: All roles land on the public home page (/) after login.
+ * Role-aware landing destination after login.
+ * ADMIN -> /admin
+ * INVENTORY_MANAGER -> /inventory/dashboard
+ * CUSTOMER / Guest -> /
  */
-export const getRoleHome = () => {
+export const getRoleHome = (role) => {
+    const normalized = normalizeRole(role);
+    if (normalized === 'ADMIN') {
+        return '/admin';
+    }
+    if (normalized === 'INVENTORY_MANAGER') {
+        return '/inventory/dashboard';
+    }
     return '/';
 };
 

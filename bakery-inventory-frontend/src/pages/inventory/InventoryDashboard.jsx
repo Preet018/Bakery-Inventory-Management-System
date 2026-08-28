@@ -1,223 +1,726 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { inventoryService } from '../../services/inventoryService';
 import { productService } from '../../services/productService';
+import { categoryService } from '../../services/categoryService';
 import { StockOperationsModal } from './StockOperationsModal';
-import { Package, AlertTriangle, XCircle, Plus, Sliders, RefreshCw, History, Truck } from 'lucide-react';
+import {
+  Package,
+  AlertTriangle,
+  XCircle,
+  CheckCircle2,
+  Sliders,
+  RefreshCw,
+  History,
+  Truck,
+  ArrowUpRight,
+  ArrowDownRight,
+  ShieldAlert,
+  Search,
+  Filter,
+  X,
+} from 'lucide-react';
 
 /**
- * NEW FILE: InventoryDashboard Component
- * Inventory Manager Portal displaying metric counts (Total Stock, Low Stock, Out of Stock),
- * live stock table, and quick action modal triggers.
+ * InventoryDashboard Component (Back-Office)
+ * Issue #11: Comprehensive Back-Office Inventory Manager Dashboard.
+ *
+ * Provides:
+ * - Clear distinction between Total Stock (quantity) and Available Stock (quantity - reserved_quantity).
+ * - Global KPI cards: Total Tracked Products, Low Stock Alerts, Out of Stock, Optimal Stock.
+ * - Dynamic Status Tab counts calculated from search/category-filtered subset.
+ * - Parallel product and category enrichment (real product names, real category names, prices, images).
+ * - Direct Quick Operations Hub with searchable suggestive autocomplete product picker.
+ * - Dynamic Category filter and multi-filter toolbar with immediate row updates.
+ * - Unified 5-button action toolbar per row (+ Stock In, Adjust, Damage, Return, Min. Level).
  */
-
 export const InventoryDashboard = () => {
-  const [inventory, setInventory] = useState([]);
+  const [rawInventory, setRawInventory] = useState([]);
+  const [productsMap, setProductsMap] = useState({});
+  const [categoriesMap, setCategoriesMap] = useState({});
   const [loading, setLoading] = useState(true);
-  const [filterMode, setFilterMode] = useState('ALL'); // ALL | LOW | OUT
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  // Filters
+  const [filterMode, setFilterMode] = useState('ALL'); // ALL | LOW | OUT | OPTIMAL
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
 
   // Modal State
   const [activeModalProduct, setActiveModalProduct] = useState(null);
   const [operationType, setOperationType] = useState(null);
 
-  // CHANGE: Always fetch the complete inventory dataset once so summary metrics remain global
-  const fetchInventory = async () => {
+  // Parallel fetch: Inventory data + Product catalog + Category catalog
+  const fetchDashboardData = async (isManualRefresh = false) => {
     try {
-      setLoading(true);
-      const data = await inventoryService.getAllInventory();
-      setInventory(data || []);
+      if (isManualRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const [inventoryData, productsData, categoriesData] = await Promise.all([
+        inventoryService.getAllInventory(),
+        productService.getAllProducts().catch((err) => {
+          console.warn('Failed to fetch product catalog details for enrichment:', err);
+          return [];
+        }),
+        categoryService.getAllCategories().catch((err) => {
+          console.warn('Failed to fetch category catalog details for enrichment:', err);
+          return [];
+        }),
+      ]);
+
+      // Category Map: categoryId -> categoryName
+      const catMap = {};
+      if (Array.isArray(categoriesData)) {
+        categoriesData.forEach((cat) => {
+          if (cat && cat.id) {
+            catMap[cat.id] = cat.name;
+          }
+        });
+      }
+      setCategoriesMap(catMap);
+
+      // Product Map: productId -> product object
+      const prodMap = {};
+      if (Array.isArray(productsData)) {
+        productsData.forEach((prod) => {
+          if (prod && prod.id) {
+            prodMap[prod.id] = prod;
+          }
+        });
+      }
+      setProductsMap(prodMap);
+
+      setRawInventory(Array.isArray(inventoryData) ? inventoryData : []);
+      setLastUpdated(new Date());
     } catch (err) {
-      console.error('Failed to fetch inventory:', err);
+      console.error('Failed to load inventory dashboard data:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchInventory();
+    fetchDashboardData();
   }, []);
 
-  const openOperationModal = (item, type) => {
+  // Enriched inventory records with distinct Total Stock & Available Stock
+  const enrichedInventory = useMemo(() => {
+    return rawInventory.map((item) => {
+      const prodId = item.productId || item.id;
+      const productInfo = productsMap[prodId] || {};
+
+      const categoryId = productInfo.categoryId || item.categoryId;
+      const resolvedCategory =
+        (categoryId && categoriesMap[categoryId]) ||
+        productInfo.categoryName ||
+        productInfo.category?.name ||
+        item.categoryName ||
+        'Bakery';
+
+      const totalQty = item.quantity ?? 0;
+      const reservedQty = item.reservedQuantity ?? 0;
+      const availableQty =
+        item.availableQuantity ?? Math.max(totalQty - reservedQty, 0);
+      const minThreshold = item.minimumStock ?? 5;
+
+      const isOut = availableQty <= 0;
+      const isLow = !isOut && (item.lowStock ?? (availableQty <= minThreshold));
+      const isOptimal = !isOut && !isLow;
+
+      return {
+        ...item,
+        productId: prodId,
+        productName: productInfo.name || item.productName || item.name || `Product #${prodId}`,
+        categoryName: resolvedCategory,
+        price: productInfo.price ?? item.price ?? 0,
+        imageUrl: productInfo.imageUrl || productInfo.imagePath || item.imageUrl || null,
+        totalQuantity: totalQty,
+        reservedQuantity: reservedQty,
+        availableQuantity: availableQty,
+        minimumStock: minThreshold,
+        isOutOfStock: isOut,
+        isLowStock: isLow,
+        isOptimalStock: isOptimal,
+      };
+    });
+  }, [rawInventory, productsMap, categoriesMap]);
+
+  // Extract unique category options dynamically from enriched inventory and categoriesMap
+  const categoryOptions = useMemo(() => {
+    const categories = new Set();
+    Object.values(categoriesMap).forEach((name) => {
+      if (name && typeof name === 'string' && name.trim()) {
+        categories.add(name.trim());
+      }
+    });
+    enrichedInventory.forEach((item) => {
+      if (item.categoryName && typeof item.categoryName === 'string' && item.categoryName.trim()) {
+        categories.add(item.categoryName.trim());
+      }
+    });
+    return Array.from(categories).sort();
+  }, [categoriesMap, enrichedInventory]);
+
+  // GLOBAL KPI Metrics (Strictly calculated over the entire inventory dataset based on Available Stock)
+  const totalProductsCount = enrichedInventory.length;
+  const lowStockCount = enrichedInventory.filter((i) => i.isLowStock).length;
+  const outOfStockCount = enrichedInventory.filter((i) => i.isOutOfStock).length;
+  const optimalStockCount = enrichedInventory.filter((i) => i.isOptimalStock).length;
+  const totalAvailableUnits = enrichedInventory.reduce(
+    (sum, item) => sum + (item.availableQuantity || 0),
+    0
+  );
+  const totalTrackedUnits = enrichedInventory.reduce(
+    (sum, item) => sum + (item.totalQuantity || 0),
+    0
+  );
+
+  // Contextual inventory filtered by non-status filters (Search query & Category)
+  const contextuallyFilteredInventory = useMemo(() => {
+    return enrichedInventory.filter((item) => {
+      // Category Filter
+      if (selectedCategory !== 'ALL' && item.categoryName !== selectedCategory) {
+        return false;
+      }
+
+      // Search Query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const nameMatch = (item.productName || '').toLowerCase().includes(query);
+        const catMatch = (item.categoryName || '').toLowerCase().includes(query);
+        const idMatch = String(item.productId || '').includes(query);
+        if (!nameMatch && !catMatch && !idMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [enrichedInventory, selectedCategory, searchQuery]);
+
+  // Status Tab Counts (Dynamically calculated from the search/category-filtered subset)
+  const tabAllCount = contextuallyFilteredInventory.length;
+  const tabLowCount = contextuallyFilteredInventory.filter((i) => i.isLowStock).length;
+  const tabOutCount = contextuallyFilteredInventory.filter((i) => i.isOutOfStock).length;
+  const tabOptimalCount = contextuallyFilteredInventory.filter((i) => i.isOptimalStock).length;
+
+  // Final filtered inventory list for the data table (applying status filter onto contextual dataset)
+  const filteredInventory = useMemo(() => {
+    return contextuallyFilteredInventory.filter((item) => {
+      if (filterMode === 'LOW' && !item.isLowStock) return false;
+      if (filterMode === 'OUT' && !item.isOutOfStock) return false;
+      if (filterMode === 'OPTIMAL' && !item.isOptimalStock) return false;
+      return true;
+    });
+  }, [contextuallyFilteredInventory, filterMode]);
+
+  const hasActiveFilters = filterMode !== 'ALL' || selectedCategory !== 'ALL' || searchQuery.trim() !== '';
+
+  const handleResetFilters = () => {
+    setFilterMode('ALL');
+    setSelectedCategory('ALL');
+    setSearchQuery('');
+  };
+
+  // KPI card click handler: clears selected category filter and applies global status filter
+  const handleKpiCardClick = (targetMode) => {
+    setSelectedCategory('ALL');
+    setFilterMode(targetMode);
+  };
+
+  // Open modal from table row or global quick actions
+  const openOperationModal = (item = null, type = 'PURCHASE') => {
     setActiveModalProduct(item);
     setOperationType(type);
   };
 
-  // CHANGE: Helper definitions for low-stock and out-of-stock evaluation
-  const isLowStock = (item) => Boolean(item.lowStock ?? ((item.availableQuantity ?? item.quantity ?? 0) <= (item.minimumStock ?? 5)));
-  const isOutOfStock = (item) => (item.availableQuantity ?? item.quantity ?? 0) <= 0;
-
-  // CHANGE: Global summary metrics are calculated strictly from the complete inventory dataset
-  const totalItemsCount = inventory.length;
-  const lowStockCount = inventory.filter(isLowStock).length;
-  const outOfStockCount = inventory.filter(isOutOfStock).length;
-
-  // CHANGE: Table rows are filtered independently without affecting the global summary counts
-  const filteredInventory = inventory.filter((item) => {
-    if (filterMode === 'LOW' && !isLowStock(item)) {
-      return false;
-    }
-    if (filterMode === 'OUT' && !isOutOfStock(item)) {
-      return false;
-    }
-    if (searchQuery) {
-      const name = item.productName || item.name || `Product #${item.productId || item.id}`;
-      if (!name.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-    }
-    return true;
-  });
-
   return (
     <div className="inventory-dashboard page-container">
-      <div className="page-header flex-between">
-        <div>
-          <h1>Inventory Management Portal</h1>
-          <p>Monitor real-time stock, record purchases, and handle stock adjustments</p>
+      {/* ===================================================
+          1. BACK-OFFICE DASHBOARD HEADER
+          =================================================== */}
+      <div className="dashboard-header-container">
+        <div className="dashboard-title-area">
+          <div className="backoffice-badge-row">
+            <span className="backoffice-badge">
+              <Package size={14} /> Back-Office Workspace
+            </span>
+            {lastUpdated && (
+              <span className="last-updated-text">
+                Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </div>
+          <h1>Inventory Manager Dashboard</h1>
+          <p className="dashboard-subtitle">
+            Current stock overview, physical calibrations, stock audits, and supplier tracking
+          </p>
         </div>
 
-        <div className="header-actions">
-          <Link to="/inventory/history" className="btn-secondary">
-            <History size={16} /> Stock Transaction Logs
+        <div className="dashboard-header-actions">
+          <button
+            onClick={() => fetchDashboardData(true)}
+            className="btn-secondary refresh-btn"
+            disabled={refreshing || loading}
+            title="Refresh current inventory data"
+          >
+            <RefreshCw className={refreshing ? 'spinner' : ''} size={16} />
+            <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
+
+          <Link to="/inventory/history" className="btn-secondary nav-action-btn">
+            <History size={16} /> Stock History
           </Link>
-          <Link to="/inventory/suppliers" className="btn-secondary">
-            <Truck size={16} /> Manage Suppliers
+
+          <Link to="/inventory/suppliers" className="btn-secondary nav-action-btn">
+            <Truck size={16} /> Suppliers
           </Link>
         </div>
       </div>
 
-      {/* Metrics Strip */}
+      {/* ===================================================
+          2. CURRENT INVENTORY KPIS (GLOBAL SUMMARY METRICS)
+          =================================================== */}
       <div className="metrics-grid">
+        {/* Total Tracked Products */}
         <div
-          className={`metric-card card ${filterMode === 'ALL' ? 'active-metric' : ''}`}
-          onClick={() => setFilterMode('ALL')}
+          className={`metric-card card ${filterMode === 'ALL' && selectedCategory === 'ALL' ? 'active-metric metric-card-all' : ''}`}
+          onClick={() => handleKpiCardClick('ALL')}
+          role="button"
+          tabIndex={0}
+          title="Click to view all products across all categories"
         >
           <div className="metric-icon-wrapper icon-blue">
             <Package size={24} />
           </div>
-          <div>
-            <div className="metric-value">{totalItemsCount}</div>
+          <div className="metric-info">
+            <div className="metric-value">{totalProductsCount}</div>
             <div className="metric-label">Total Tracked Products</div>
+            <div className="metric-subtext">
+              {totalTrackedUnits} total units ({totalAvailableUnits} available)
+            </div>
           </div>
         </div>
 
+        {/* Low Stock Alerts */}
         <div
-          className={`metric-card card ${filterMode === 'LOW' ? 'active-metric' : ''}`}
-          onClick={() => setFilterMode('LOW')}
+          className={`metric-card card ${filterMode === 'LOW' && selectedCategory === 'ALL' ? 'active-metric metric-card-low' : ''}`}
+          onClick={() => handleKpiCardClick('LOW')}
+          role="button"
+          tabIndex={0}
+          title="Click to filter all low-stock products across all categories"
         >
           <div className="metric-icon-wrapper icon-amber">
             <AlertTriangle size={24} />
           </div>
-          <div>
+          <div className="metric-info">
             <div className="metric-value">{lowStockCount}</div>
             <div className="metric-label">Low Stock Alerts</div>
+            <div className="metric-subtext">
+              {lowStockCount > 0 ? 'Requires attention soon' : 'All levels sufficient'}
+            </div>
           </div>
         </div>
 
+        {/* Out of Stock Items */}
         <div
-          className={`metric-card card ${filterMode === 'OUT' ? 'active-metric' : ''}`}
-          onClick={() => setFilterMode('OUT')}
+          className={`metric-card card ${filterMode === 'OUT' && selectedCategory === 'ALL' ? 'active-metric metric-card-out' : ''}`}
+          onClick={() => handleKpiCardClick('OUT')}
+          role="button"
+          tabIndex={0}
+          title="Click to filter all out-of-stock products across all categories"
         >
           <div className="metric-icon-wrapper icon-red">
             <XCircle size={24} />
           </div>
-          <div>
+          <div className="metric-info">
             <div className="metric-value">{outOfStockCount}</div>
             <div className="metric-label">Out of Stock Items</div>
+            <div className="metric-subtext">
+              {outOfStockCount > 0 ? 'Immediate restock required' : 'No stockouts recorded'}
+            </div>
+          </div>
+        </div>
+
+        {/* Optimal Stock */}
+        <div
+          className={`metric-card card ${filterMode === 'OPTIMAL' && selectedCategory === 'ALL' ? 'active-metric metric-card-optimal' : ''}`}
+          onClick={() => handleKpiCardClick('OPTIMAL')}
+          role="button"
+          tabIndex={0}
+          title="Click to filter all optimal stock products across all categories"
+        >
+          <div className="metric-icon-wrapper icon-green">
+            <CheckCircle2 size={24} />
+          </div>
+          <div className="metric-info">
+            <div className="metric-value">{optimalStockCount}</div>
+            <div className="metric-label">Optimal Stock</div>
+            <div className="metric-subtext">Healthy stock levels</div>
           </div>
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="inventory-toolbar card">
-        <input
-          type="text"
-          placeholder="Filter stock by product name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="search-field"
-        />
+      {/* ===================================================
+          3. QUICK INVENTORY OPERATIONS HUB
+          =================================================== */}
+      <div className="quick-actions-panel card">
+        <div className="quick-actions-header">
+          <div className="quick-actions-title">
+            <Sliders size={18} className="text-primary" />
+            <h3>Quick Inventory Operations</h3>
+          </div>
+          <span className="quick-actions-help">
+            Execute common stock transactions directly with search autocomplete
+          </span>
+        </div>
+
+        <div className="quick-actions-grid">
+          <button
+            onClick={() => openOperationModal(null, 'PURCHASE')}
+            className="quick-action-tile tile-purchase"
+          >
+            <div className="tile-icon-box box-green">
+              <ArrowUpRight size={18} />
+            </div>
+            <div className="tile-text">
+              <span className="tile-title">Stock In</span>
+              <span className="tile-desc">Record supplier purchase</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => openOperationModal(null, 'ADJUST')}
+            className="quick-action-tile tile-adjust"
+          >
+            <div className="tile-icon-box box-blue">
+              <Sliders size={18} />
+            </div>
+            <div className="tile-text">
+              <span className="tile-title">Stock Adjustment</span>
+              <span className="tile-desc">Calibrate physical Total Stock</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => openOperationModal(null, 'DAMAGE')}
+            className="quick-action-tile tile-damage"
+          >
+            <div className="tile-icon-box box-red">
+              <ArrowDownRight size={18} />
+            </div>
+            <div className="tile-text">
+              <span className="tile-title">Stock Out (Damage)</span>
+              <span className="tile-desc">Record expired / spoiled items</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => openOperationModal(null, 'RETURN')}
+            className="quick-action-tile tile-return"
+          >
+            <div className="tile-icon-box box-amber">
+              <ArrowDownRight size={18} />
+            </div>
+            <div className="tile-text">
+              <span className="tile-title">Stock Out (Return)</span>
+              <span className="tile-desc">Return items to supplier</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => openOperationModal(null, 'MINIMUM')}
+            className="quick-action-tile tile-threshold"
+          >
+            <div className="tile-icon-box box-purple">
+              <ShieldAlert size={18} />
+            </div>
+            <div className="tile-text">
+              <span className="tile-title">Min. Threshold</span>
+              <span className="tile-desc">Set low stock warning level</span>
+            </div>
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
+      {/* ===================================================
+          4. SEARCH & FILTER TOOLBAR
+          =================================================== */}
+      <div className="inventory-toolbar card">
+        <div className="toolbar-search-wrapper">
+          <Search size={16} className="search-icon" />
+          <input
+            type="text"
+            placeholder="Search by product name, category, or ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-field"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="clear-search-btn"
+              aria-label="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <div className="toolbar-controls">
+          {/* Category Dropdown Filter */}
+          <div className="category-select-wrapper">
+            <Filter size={14} className="select-icon" />
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="category-dropdown"
+              aria-label="Filter by Category"
+            >
+              <option value="ALL">All Categories</option>
+              {categoryOptions.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter Tabs - Dynamically calculated from search/category filter */}
+          <div className="status-tabs-group">
+            <button
+              type="button"
+              className={`status-tab ${filterMode === 'ALL' ? 'active-tab' : ''}`}
+              onClick={() => setFilterMode('ALL')}
+            >
+              All ({tabAllCount})
+            </button>
+            <button
+              type="button"
+              className={`status-tab tab-low ${filterMode === 'LOW' ? 'active-tab' : ''}`}
+              onClick={() => setFilterMode('LOW')}
+            >
+              Low Stock ({tabLowCount})
+            </button>
+            <button
+              type="button"
+              className={`status-tab tab-out ${filterMode === 'OUT' ? 'active-tab' : ''}`}
+              onClick={() => setFilterMode('OUT')}
+            >
+              Out of Stock ({tabOutCount})
+            </button>
+            <button
+              type="button"
+              className={`status-tab tab-optimal ${filterMode === 'OPTIMAL' ? 'active-tab' : ''}`}
+              onClick={() => setFilterMode('OPTIMAL')}
+            >
+              Optimal ({tabOptimalCount})
+            </button>
+          </div>
+
+          {/* Reset Filters Button */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="btn-reset-filters"
+              title="Reset all filters"
+            >
+              <X size={14} /> Clear Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ===================================================
+          5. INVENTORY DATA TABLE & RESULTS
+          =================================================== */}
       {loading ? (
-        <div className="loading-state">
-          <RefreshCw className="spinner" size={32} />
-          <p>Updating stock grid...</p>
+        <div className="loading-state card">
+          <RefreshCw className="spinner" size={36} />
+          <p>Loading current inventory data...</p>
         </div>
       ) : filteredInventory.length === 0 ? (
         <div className="empty-state card">
+          <Package size={48} className="text-muted" />
           <h3>No inventory items found</h3>
-          <p>Try changing your filter settings or search query.</p>
+          <p>
+            {hasActiveFilters
+              ? 'No products matched your current filter criteria.'
+              : 'There are currently no products registered in the inventory.'}
+          </p>
+          {hasActiveFilters && (
+            <button onClick={handleResetFilters} className="btn-secondary mt-3">
+              Clear All Filters
+            </button>
+          )}
         </div>
       ) : (
-        <div className="table-responsive card">
+        <div className="table-responsive card inventory-table-card">
+          <div className="table-header-strip">
+            <span className="table-count-label">
+              Showing <strong>{filteredInventory.length}</strong> of{' '}
+              <strong>{totalProductsCount}</strong> tracked products
+            </span>
+          </div>
+
           <table className="inventory-table">
             <thead>
               <tr>
                 <th>Product</th>
                 <th>Category</th>
+                <th>Stock Status</th>
+                <th>Total Stock</th>
                 <th>Available Stock</th>
-                <th>Reserved Stock</th>
-                <th>Min. Threshold</th>
-                <th>Status</th>
-                <th className="text-right">Actions</th>
+                <th>Min. Alert Threshold</th>
+                <th className="actions-column-header">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredInventory.map((item) => {
-                // CHANGE: Map backend InventoryResponse fields: availableQuantity, minimumStock, lowStock
-                const stock = item.availableQuantity ?? item.quantity ?? 0;
-                const minThreshold = item.minimumStock ?? 5;
-                const isOut = stock <= 0;
-                const isLow = item.lowStock ?? (stock <= minThreshold);
+                const totalStock = item.totalQuantity;
+                const reservedStock = item.reservedQuantity;
+                const availableStock = item.availableQuantity;
+                const minThreshold = item.minimumStock;
+                const isOut = item.isOutOfStock;
+                const isLow = item.isLowStock;
+
+                // Relative stock ratio for meter (based on Available Stock vs Min Threshold)
+                const stockRatio =
+                  minThreshold > 0
+                    ? Math.min((availableStock / minThreshold) * 100, 100)
+                    : availableStock > 0
+                    ? 100
+                    : 0;
 
                 return (
-                  <tr key={item.id || item.productId}>
-                    <td className="font-bold">{item.productName || item.name || `Product #${item.productId}`}</td>
-                    <td>{item.categoryName || 'Bakery'}</td>
-                    <td className="font-bold text-large">{stock}</td>
-                    <td>{item.reservedQuantity || 0}</td>
-                    <td>{minThreshold}</td>
+                  <tr
+                    key={item.id || item.productId}
+                    className={`inventory-row ${
+                      isOut ? 'row-out-of-stock' : isLow ? 'row-low-stock' : 'row-optimal'
+                    }`}
+                  >
+                    {/* Product Name & ID */}
+                    <td>
+                      <div className="product-cell">
+                        <span className="product-cell-name font-bold">
+                          {item.productName}
+                        </span>
+                        <span className="product-cell-id">
+                          ID: #{item.productId}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Category */}
+                    <td>
+                      <span className="category-pill">{item.categoryName}</span>
+                    </td>
+
+                    {/* Stock Status Badge (Based on Available Stock) */}
                     <td>
                       {isOut ? (
-                        <span className="stock-badge badge-out">Out of Stock</span>
+                        <span className="stock-badge-table badge-out">
+                          <XCircle size={14} /> Out of Stock
+                        </span>
                       ) : isLow ? (
-                        <span className="stock-badge badge-low">Low Stock</span>
+                        <span className="stock-badge-table badge-low">
+                          <AlertTriangle size={14} /> Low Stock
+                        </span>
                       ) : (
-                        <span className="stock-badge badge-in">Optimal</span>
+                        <span className="stock-badge-table badge-optimal">
+                          <CheckCircle2 size={14} /> Optimal
+                        </span>
                       )}
                     </td>
-                    <td className="text-right">
+
+                    {/* Total Stock (inventory.quantity) & Reserved details */}
+                    <td>
+                      <div className="total-stock-cell">
+                        <span className="total-stock-number font-bold">
+                          {totalStock} <span className="unit-label">units</span>
+                        </span>
+                        {reservedStock > 0 && (
+                          <span
+                            className="reserved-stock-tag"
+                            title={`${reservedStock} units reserved for unfulfilled customer orders`}
+                          >
+                            ({reservedStock} reserved)
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Available Stock (quantity - reserved_quantity) & Visual Meter */}
+                    <td>
+                      <div className="stock-unit-cell">
+                        <span
+                          className={`stock-unit-number font-bold ${
+                            isOut ? 'text-danger' : isLow ? 'text-amber' : 'text-success'
+                          }`}
+                        >
+                          {availableStock} <span className="unit-label">units</span>
+                        </span>
+                        <div className="stock-meter-bar">
+                          <div
+                            className={`stock-meter-fill ${
+                              isOut ? 'fill-danger' : isLow ? 'fill-amber' : 'fill-success'
+                            }`}
+                            style={{ width: `${Math.max(stockRatio, 4)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Min Alert Threshold */}
+                    <td>
+                      <div className="threshold-cell">
+                        <span className="threshold-value">{minThreshold} units</span>
+                      </div>
+                    </td>
+
+                    {/* Action Buttons Group with 5 visually consistent buttons */}
+                    <td className="actions-cell">
                       <div className="action-buttons-group">
                         <button
                           onClick={() => openOperationModal(item, 'PURCHASE')}
                           className="btn-sm btn-success"
-                          title="Purchase Stock"
+                          title="Stock In / Purchase"
                         >
-                          + Purchase
+                          + Stock In
                         </button>
                         <button
                           onClick={() => openOperationModal(item, 'ADJUST')}
                           className="btn-sm btn-secondary"
-                          title="Adjust Stock"
+                          title="Calibrate Total Stock (Physical Audit)"
                         >
                           Adjust
                         </button>
                         <button
                           onClick={() => openOperationModal(item, 'DAMAGE')}
                           className="btn-sm btn-danger"
-                          title="Record Damage"
+                          title="Record Damaged Stock"
                         >
                           Damage
                         </button>
                         <button
+                          onClick={() => openOperationModal(item, 'RETURN')}
+                          className="btn-sm btn-warning"
+                          title="Return Stock to Supplier"
+                        >
+                          Return
+                        </button>
+                        <button
                           onClick={() => openOperationModal(item, 'MINIMUM')}
                           className="btn-sm btn-outline"
-                          title="Update Minimum Level"
+                          title="Set Minimum Alert Threshold"
                         >
-                          Min Level
+                          Min. Level
                         </button>
                       </div>
                     </td>
@@ -229,13 +732,19 @@ export const InventoryDashboard = () => {
         </div>
       )}
 
-      {/* Operation Modal */}
-      {activeModalProduct && operationType && (
+      {/* ===================================================
+          6. STOCK OPERATIONS MODAL
+          =================================================== */}
+      {operationType && (
         <StockOperationsModal
           product={activeModalProduct}
+          inventoryList={enrichedInventory}
           operationType={operationType}
-          onClose={() => { setActiveModalProduct(null); setOperationType(null); }}
-          onSuccess={fetchInventory}
+          onClose={() => {
+            setActiveModalProduct(null);
+            setOperationType(null);
+          }}
+          onSuccess={() => fetchDashboardData(false)}
         />
       )}
     </div>

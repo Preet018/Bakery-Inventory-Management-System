@@ -208,20 +208,32 @@ export const AddressModal = ({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="modal-content address-modal-content"
+        className="modal-container card backoffice-modal address-modal-container"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <div className="modal-title-row">
-            <MapPin size={22} className="text-primary" />
-            <h3>{isEdit ? 'Edit Delivery Address' : 'Add New Delivery Address'}</h3>
+          <div className="modal-header-info">
+            <div className="modal-header-icon-title">
+              <MapPin className="text-primary" size={20} />
+              <h3>{isEdit ? 'Edit Delivery Address' : 'Add New Delivery Address'}</h3>
+            </div>
+            <p className="modal-subtitle">
+              {isEdit
+                ? 'Update your saved location and delivery address details'
+                : 'Search your delivery location on the map and add address details'}
+            </p>
           </div>
-          <button className="close-btn" onClick={onClose} aria-label="Close">
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="address-modal-form">
+        <form onSubmit={handleSubmit} className="modal-form">
           {validationError && (
             <div className="error-alert">
               <AlertTriangle size={18} className="flex-shrink-0" />
@@ -355,7 +367,7 @@ export const AddressModal = ({
                   id="postalCode"
                   type="text"
                   className="form-control"
-                  placeholder="6-digit PIN"
+                  placeholder="6-digit PIN Code"
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   maxLength={6}
@@ -398,8 +410,8 @@ export const AddressModal = ({
             </label>
           </div>
 
-          {/* Modal Footer */}
-          <div className="modal-footer">
+          {/* Modal Actions */}
+          <div className="modal-actions">
             <button
               type="button"
               className="btn-secondary"

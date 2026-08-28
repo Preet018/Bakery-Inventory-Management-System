@@ -34,6 +34,23 @@ export const UserManagementPage = () => {
     try {
       const msg = await adminService.registerInventoryManager(formData);
       setSuccessMsg(msg || 'Inventory Manager registered successfully! They must verify their email before logging in.');
+      
+      // Keep local registered manager list in sync for Admin Dashboard overview
+      try {
+        const stored = localStorage.getItem('bakery_registered_managers');
+        const registered = stored ? JSON.parse(stored) : [];
+        registered.push({
+          id: Date.now(),
+          username: formData.username,
+          email: formData.email,
+          role: 'INVENTORY_MANAGER',
+          active: true,
+        });
+        localStorage.setItem('bakery_registered_managers', JSON.stringify(registered));
+      } catch (e) {
+        console.warn('Failed to cache registered manager:', e);
+      }
+
       setFormData({ username: '', email: '', password: '' }); // CHANGE: reset correct fields
     } catch (err) {
       console.error('Registration error:', err);
