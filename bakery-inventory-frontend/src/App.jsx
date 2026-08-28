@@ -12,6 +12,7 @@ import { CartProvider } from './context/CartContext';
 import { Navbar } from './components/common/Navbar';
 import { Footer } from './components/common/Footer';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { GlobalModalScrollLock } from './components/common/GlobalModalScrollLock';
 
 // Public Pages
 import { HomePage } from './pages/public/HomePage';
@@ -36,8 +37,10 @@ import { StockHistoryPage } from './pages/inventory/StockHistoryPage';
 import { SupplierManagementPage } from './pages/inventory/SupplierManagementPage';
 
 // Admin Pages
+import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { CategoryManagementPage } from './pages/admin/CategoryManagementPage';
 import { UserManagementPage } from './pages/admin/UserManagementPage';
+import { AdminOrderManagementPage } from './pages/admin/AdminOrderManagementPage';
 
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -72,6 +75,7 @@ function App() {
       <CartProvider>
         <Router>
           <ScrollToTop />
+          <GlobalModalScrollLock />
           <div className="app-layout">
             <Navbar />
 
@@ -197,6 +201,11 @@ function App() {
                 />
 
                 <Route
+                  path="/inventory-manager"
+                  element={<Navigate to="/inventory/dashboard" replace />}
+                />
+
+                <Route
                   path="/inventory/dashboard"
                   element={
                     <ProtectedRoute
@@ -242,10 +251,21 @@ function App() {
                     5. ADMIN BACK-OFFICE ROUTES (ADMIN ONLY)
                     ===================================================== */}
 
-                {/* CHANGE: Structured admin back-office route boundaries */}
+                {/* CHANGE: Dedicated Admin Dashboard route */}
                 <Route
                   path="/admin"
-                  element={<Navigate to="/inventory/dashboard" replace />}
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={['ADMIN']}
+                    >
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/admin/dashboard"
+                  element={<Navigate to="/admin" replace />}
                 />
 
                 <Route
@@ -257,6 +277,22 @@ function App() {
                       <CategoryManagementPage />
                     </ProtectedRoute>
                   }
+                />
+
+                <Route
+                  path="/admin/orders"
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={['ADMIN', 'INVENTORY_MANAGER']}
+                    >
+                      <AdminOrderManagementPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/inventory/orders"
+                  element={<Navigate to="/admin/orders" replace />}
                 />
 
                 <Route
