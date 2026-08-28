@@ -154,7 +154,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                                 totalAmount
                         );
 
-                return mapToResponse(updatedOrder);
+                return mapToResponse(updatedOrder, paymentResponse);
         }
 
         @Override

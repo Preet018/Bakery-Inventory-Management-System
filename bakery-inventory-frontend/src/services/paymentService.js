@@ -12,7 +12,7 @@ export const paymentService = {
   },
 
   verifyAndConfirmPayment: async (paymentId, verificationData) => {
-    // verificationData = { razorpayPaymentId, razorpaySignature }
+    // verificationData = { razorpayPaymentId, razorpayOrderId, razorpaySignature }
     const response = await axiosInstance.post(`/api/payments/${paymentId}/verify`, verificationData);
     return response.data;
   },
