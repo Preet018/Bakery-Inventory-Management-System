@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/authService';
-import { getRoleHome } from '../../utils/authUtils';
-// CHANGE: Import the renamed ResetPasswordModal for OTP-based password reset from /account
+import { addressService } from '../../services/addressService';
 import { ResetPasswordModal } from '../../components/auth/ResetPasswordModal';
+import { AddressModal } from '../../components/address/AddressModal';
 import {
   User,
   Shield,
@@ -17,8 +17,13 @@ import {
   ArrowRight,
   RefreshCw,
   Package,
-  Layers,
-  Truck,
+  MapPin,
+  Home,
+  Briefcase,
+  Plus,
+  Edit2,
+  Star,
+  X,
 } from 'lucide-react';
 
 /**
@@ -28,7 +33,8 @@ import {
  * Displays:
  *   - Authenticated user profile details (username, role, session status)
  *   - Role-appropriate quick actions
- *   - Password reset (all roles, via OTP — the only backend-supported flow)
+ *   - Saved Delivery Addresses (Customer-only, with Google Maps/Places picker)
+ *   - Password reset (all roles, via OTP)
  *   - Account deletion (customer-only, via 2-step OTP flow)
  */
 export const AccountPage = () => {
@@ -37,6 +43,85 @@ export const AccountPage = () => {
 
   // CHANGE: Password reset modal state (available to all roles)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+
+  // Saved Addresses state (Customer-only)
+  const [addresses, setAddresses] = useState([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [addressError, setAddressError] = useState(null);
+  const [addressSuccess, setAddressSuccess] = useState(null);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [addressToEdit, setAddressToEdit] = useState(null);
+  const [addressToDelete, setAddressToDelete] = useState(null);
+  const [deletingAddress, setDeletingAddress] = useState(false);
+
+  // Fetch saved addresses for customer
+  const fetchAddresses = useCallback(async () => {
+    if (!isCustomer) return;
+    setLoadingAddresses(true);
+    setAddressError(null);
+    try {
+      const data = await addressService.getAllAddresses();
+      setAddresses(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setAddressError(
+        err.response?.data?.message || 'Failed to load saved addresses.'
+      );
+    } finally {
+      setLoadingAddresses(false);
+    }
+  }, [isCustomer]);
+
+  useEffect(() => {
+    fetchAddresses();
+  }, [fetchAddresses]);
+
+  // Handle save address (create or update)
+  const handleSaveAddress = async (payload) => {
+    if (addressToEdit?.id) {
+      await addressService.updateAddress(addressToEdit.id, payload);
+      setAddressSuccess('Address updated successfully.');
+    } else {
+      await addressService.createAddress(payload);
+      setAddressSuccess('Address saved successfully.');
+    }
+    await fetchAddresses();
+    setTimeout(() => setAddressSuccess(null), 4000);
+  };
+
+  // Handle set default address
+  const handleSetDefaultAddress = async (addressId) => {
+    setAddressError(null);
+    try {
+      await addressService.setDefaultAddress(addressId);
+      setAddressSuccess('Default delivery address updated.');
+      await fetchAddresses();
+      setTimeout(() => setAddressSuccess(null), 4000);
+    } catch (err) {
+      setAddressError(
+        err.response?.data?.message || 'Failed to update default address.'
+      );
+    }
+  };
+
+  // Handle delete address
+  const handleConfirmDeleteAddress = async () => {
+    if (!addressToDelete) return;
+    setDeletingAddress(true);
+    setAddressError(null);
+    try {
+      await addressService.deleteAddress(addressToDelete.id);
+      setAddressSuccess('Address deleted successfully.');
+      setAddressToDelete(null);
+      await fetchAddresses();
+      setTimeout(() => setAddressSuccess(null), 4000);
+    } catch (err) {
+      setAddressError(
+        err.response?.data?.message || 'Failed to delete address.'
+      );
+    } finally {
+      setDeletingAddress(false);
+    }
+  };
 
   // Account deletion state (customer-only)
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -289,6 +374,152 @@ export const AccountPage = () => {
         </div>
       </div>
 
+      {/* CHANGE: Saved Delivery Addresses Section (Customer-only, Issue #08) */}
+      {isCustomer && (
+        <div className="card account-card saved-addresses-section">
+          <div className="account-card-header address-section-header">
+            <div className="address-header-left">
+              <div className="account-avatar-wrapper icon-emerald">
+                <MapPin size={28} />
+              </div>
+              <div>
+                <h3>Saved Delivery Addresses</h3>
+                <p className="account-card-subtitle">Manage delivery locations and Google Maps pinpoint</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setAddressToEdit(null);
+                setShowAddressModal(true);
+              }}
+              className="btn-primary btn-sm btn-add-address"
+            >
+              <Plus size={16} />
+              <span>Add New Address</span>
+            </button>
+          </div>
+
+          {addressSuccess && (
+            <div className="alert alert-success address-alert">
+              <CheckCircle2 size={16} />
+              <span>{addressSuccess}</span>
+            </div>
+          )}
+
+          {addressError && (
+            <div className="alert alert-danger address-alert">
+              <AlertTriangle size={16} />
+              <span>{addressError}</span>
+            </div>
+          )}
+
+          {loadingAddresses ? (
+            <div className="addresses-loading-state">
+              <RefreshCw size={24} className="spinner text-primary" />
+              <span>Loading saved addresses...</span>
+            </div>
+          ) : addresses.length === 0 ? (
+            <div className="empty-addresses-state">
+              <div className="empty-address-icon-circle">
+                <MapPin size={32} />
+              </div>
+              <h4>No Saved Addresses</h4>
+              <p>Add your first delivery address with Google Maps pinpoint for easy checkout.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setAddressToEdit(null);
+                  setShowAddressModal(true);
+                }}
+                className="btn-primary"
+              >
+                <Plus size={16} />
+                <span>Add First Address</span>
+              </button>
+            </div>
+          ) : (
+            <div className="saved-addresses-grid">
+              {addresses.map((addr) => (
+                <div
+                  key={addr.id}
+                  className={`saved-address-card ${addr.isDefault ? 'is-default-card' : ''}`}
+                >
+                  <div className="address-card-header-row">
+                    <div className="address-label-badge-group">
+                      <span className="address-label-badge">
+                        {addr.label === 'Home' ? (
+                          <Home size={13} />
+                        ) : addr.label === 'Work' ? (
+                          <Briefcase size={13} />
+                        ) : (
+                          <MapPin size={13} />
+                        )}
+                        <span>{addr.label}</span>
+                      </span>
+                      {addr.isDefault && (
+                        <span className="default-address-pill">
+                          <Star size={11} fill="currentColor" /> Default
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="address-card-actions">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddressToEdit(addr);
+                          setShowAddressModal(true);
+                        }}
+                        className="btn-address-action"
+                        title="Edit address"
+                        aria-label="Edit address"
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAddressToDelete(addr)}
+                        className="btn-address-action text-danger"
+                        title="Delete address"
+                        aria-label="Delete address"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="address-card-details">
+                    <p className="address-line">{addr.addressLine}</p>
+                    {addr.landmark && (
+                      <p className="address-landmark">
+                        <strong>Landmark:</strong> {addr.landmark}
+                      </p>
+                    )}
+                    <p className="address-city-state-pin">
+                      {addr.city}, {addr.state} - <span className="font-mono">{addr.postalCode}</span>
+                    </p>
+                  </div>
+
+                  {!addr.isDefault && (
+                    <div className="address-card-footer">
+                      <button
+                        type="button"
+                        onClick={() => handleSetDefaultAddress(addr.id)}
+                        className="btn-set-default"
+                      >
+                        <Star size={13} />
+                        <span>Set as Default</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* CHANGE: Danger Zone only shown for CUSTOMER (account deletion via OTP) */}
       {isCustomer && (
         <div className="card danger-zone-card">
@@ -320,13 +551,92 @@ export const AccountPage = () => {
         </div>
       )}
 
-      {/* CHANGE: Password Reset Modal — available to all roles from /account.
-          Pre-fills the authenticated user's username for convenience. (Removed unused defaultRole per Issue #05) */}
+      {/* CHANGE: Password Reset Modal — available to all roles from /account */}
       <ResetPasswordModal
         isOpen={showResetPasswordModal}
         onClose={() => setShowResetPasswordModal(false)}
         prefillIdentifier={user?.username || ''}
       />
+
+      {/* CHANGE: Saved Address Create / Edit Modal (Issue #08) */}
+      <AddressModal
+        isOpen={showAddressModal}
+        onClose={() => {
+          setShowAddressModal(false);
+          setAddressToEdit(null);
+        }}
+        onSave={handleSaveAddress}
+        address={addressToEdit}
+        isFirstAddress={addresses.length === 0}
+      />
+
+      {/* Delete Address Confirmation Modal */}
+      {addressToDelete && (
+        <div className="modal-overlay" onClick={() => setAddressToDelete(null)}>
+          <div
+            className="modal-content delete-address-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="modal-title-row">
+                <AlertTriangle size={22} className="text-danger" />
+                <h3>Delete Saved Address</h3>
+              </div>
+              <button
+                className="close-btn"
+                onClick={() => setAddressToDelete(null)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body p-3">
+              <p>
+                Are you sure you want to delete the address labeled{' '}
+                <strong>"{addressToDelete.label}"</strong>?
+              </p>
+              <p className="text-sm text-muted mt-1">
+                {addressToDelete.addressLine}, {addressToDelete.city}, {addressToDelete.postalCode}
+              </p>
+              {addressToDelete.isDefault && (
+                <p className="text-sm text-amber mt-2">
+                  <AlertTriangle size={14} className="inline-icon" /> This is currently your default delivery address.
+                </p>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setAddressToDelete(null)}
+                disabled={deletingAddress}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-danger"
+                onClick={handleConfirmDeleteAddress}
+                disabled={deletingAddress}
+              >
+                {deletingAddress ? (
+                  <>
+                    <RefreshCw size={14} className="spinner" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    <span>Confirm Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Account Deletion Modal (customer-only) */}
       {showDeleteModal && (

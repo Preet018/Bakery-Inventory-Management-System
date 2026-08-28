@@ -229,6 +229,12 @@ public class SecurityConfig {
                                 "ADMIN"
                         )
 
+                        // Saved Addresses:
+                        // CUSTOMER only.
+                        .requestMatchers(
+                                "/api/addresses/**"
+                        ).hasRole("CUSTOMER")
+
                         // All administrative endpoints require ADMIN.
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")

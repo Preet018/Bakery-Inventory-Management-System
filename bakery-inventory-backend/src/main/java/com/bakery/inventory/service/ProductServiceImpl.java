@@ -322,6 +322,11 @@ public class ProductServiceImpl implements ProductService {
                         .map(this::mapToImageResponse)
                         .toList();
 
+        // CHANGE: Calculate availableQuantity (quantity - reservedQuantity) for stock checks (Issue #07)
+        Integer availableQuantity = inventoryRepository.findByProductId(product.getId())
+                .map(inv -> Math.max(0, inv.getQuantity() - inv.getReservedQuantity()))
+                .orElse(0);
+
         return new ProductResponse(
                 product.getId(),
                 product.getName(),
@@ -330,7 +335,8 @@ public class ProductServiceImpl implements ProductService {
                 product.getCategory().getId(),
                 product.getSupplier().getId(),
                 product.getIsActive(),
-                images
+                images,
+                availableQuantity
         );
     }
 

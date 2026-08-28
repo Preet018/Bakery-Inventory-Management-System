@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { productService } from '../../services/productService';
-import { ShoppingBag, Eye } from 'lucide-react';
+import { ShoppingBag, Eye, AlertCircle } from 'lucide-react';
 
 /**
  * ProductCard Component
@@ -11,7 +11,7 @@ import { ShoppingBag, Eye } from 'lucide-react';
  * Displays individual product in the bakery storefront catalog with:
  *   - Product name & description
  *   - Price formatted in INR (₹)
- *   - Category tag
+ *   - Category tag & Out of Stock badge in the top category row
  *   - Primary image with fallback
  *   - View Details overlay
  *   - Add to Cart action (restricted to customers/guests only)
@@ -20,6 +20,12 @@ export const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
   const { isCustomer, isAuthenticated } = useAuth();
   const canPurchase = !isAuthenticated || isCustomer;
+
+  const availableStock =
+    typeof product.availableQuantity === 'number'
+      ? Math.max(0, product.availableQuantity)
+      : 0;
+  const isOutOfStock = availableStock <= 0;
 
   // Default placeholder for bakery items without an uploaded image
   const defaultPlaceholder =
@@ -49,8 +55,6 @@ export const ProductCard = ({ product }) => {
           }}
         />
 
-        {/* CHANGE: Green "Available" badge removed per storefront requirement */}
-
         <div className="product-overlay">
           <Link to={`/products/${product.id}`} className="view-details-btn">
             <Eye size={18} /> View Details
@@ -59,9 +63,18 @@ export const ProductCard = ({ product }) => {
       </div>
 
       <div className="product-info">
-        <span className="product-category">
-          {product.categoryName || 'Artisan Bakery'}
-        </span>
+        {/* Category Row with Out of Stock badge on extreme right */}
+        <div className="product-category-row">
+          <span className="product-category">
+            {product.categoryName || 'Artisan Bakery'}
+          </span>
+          {isOutOfStock && (
+            <span className="badge-out-of-stock-sm">
+              <AlertCircle size={10} /> Out of Stock
+            </span>
+          )}
+        </div>
+
         <h3 className="product-title">{product.name}</h3>
         <p className="product-description">{product.description || 'Fresh artisan bakery product.'}</p>
 
@@ -72,8 +85,9 @@ export const ProductCard = ({ product }) => {
           {canPurchase && (
             <button
               onClick={() => addToCart && addToCart(product, 1)}
-              className="btn-add-cart"
-              title="Add to Cart"
+              disabled={isOutOfStock}
+              className={`btn-add-cart ${isOutOfStock ? 'btn-out-of-stock' : ''}`}
+              title={isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
             >
               <ShoppingBag size={18} />
               <span>Add</span>

@@ -1,25 +1,50 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { productService } from '../../services/productService';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ArrowLeft, AlertTriangle, X } from 'lucide-react';
 
 /**
  * CartPage Component
  *
  * Displays shopping cart items, quantity adjusters, subtotal calculation,
- * and navigation back to the Home page bakery selection.
+ * real-time stock limits, and navigation back to the Home page bakery selection.
  *
  * CHANGE:
- *   - "Explore Bakery Items" and "Continue Shopping" navigate to /#bakery-selection (Home storefront selection)
- *     instead of obsolete /products route.
+ *   - Calls validateCart() on mount to detect live stock fluctuations (Issue #07).
+ *   - Displays clear "Out of Stock" vs "Maximum available quantity reached" indicators.
+ *   - Enforces quantity bounds (cannot become <= 0, cannot exceed available stock).
+ *   - "Explore Bakery Items" and "Continue Shopping" navigate to /#bakery-selection.
  */
 
 export const CartPage = () => {
-  const { cartItems, updateQuantity, removeFromCart, clearCart, totalAmount } = useCart();
+  const {
+    cartItems,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    totalAmount,
+    validateCart,
+    cartNotice,
+    clearCartNotice,
+  } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // CHANGE: Revalidate cart against latest product catalog on page entry (Issue #07)
+  useEffect(() => {
+    validateCart();
+  }, [validateCart]);
+
+  // CHANGE: Determine whether cart contains any item with availableQuantity <= 0 / isOutOfStock (Issue #07)
+  const hasOutOfStockItems = cartItems.some((item) => {
+    const available =
+      typeof item.availableQuantity === 'number'
+        ? item.availableQuantity
+        : 0;
+    return available <= 0 || item.isOutOfStock === true;
+  });
 
   if (cartItems.length === 0) {
     return (
@@ -30,7 +55,6 @@ export const CartPage = () => {
           </div>
           <h2>Your Cart is Empty</h2>
           <p>Looks like you haven't added any delicious bakery treats yet!</p>
-          {/* CHANGE: Navigates to Home page bakery selection section */}
           <Link to="/#bakery-selection" className="btn-primary">
             Explore Bakery Items
           </Link>
@@ -40,6 +64,8 @@ export const CartPage = () => {
   }
 
   const handleProceedToCheckout = () => {
+    if (hasOutOfStockItems) return;
+
     if (!isAuthenticated) {
       navigate('/login', { state: { from: { pathname: '/checkout' } } });
     } else {
@@ -53,6 +79,24 @@ export const CartPage = () => {
         <h1>Your Shopping Cart</h1>
         <p>Review items before placing your order</p>
       </div>
+
+      {/* CHANGE: Display stock adjustment notice if server stock changed (Issue #07) */}
+      {cartNotice && (
+        <div className="cart-adjustment-banner">
+          <div className="cart-notice-content">
+            <AlertTriangle size={18} className="cart-notice-icon" />
+            <span>{cartNotice}</span>
+          </div>
+          <button
+            type="button"
+            onClick={clearCartNotice}
+            className="btn-notice-dismiss"
+            aria-label="Dismiss notice"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       <div className="cart-grid">
         {/* Item List */}
@@ -68,20 +112,38 @@ export const CartPage = () => {
             <div className="cart-items-list">
               {cartItems.map((item) => {
                 const itemImg = productService.getImageUrl(item.imagePath);
+                const availableStock =
+                  typeof item.availableQuantity === 'number'
+                    ? Math.max(0, item.availableQuantity)
+                    : 0;
+                const isOutOfStock = availableStock <= 0 || item.isOutOfStock;
+                const isMaxStock = !isOutOfStock && item.quantity >= availableStock;
 
                 return (
-                  <div key={item.id} className="cart-item">
+                  <div key={item.id} className={`cart-item ${isOutOfStock ? 'item-out-of-stock' : ''}`}>
                     <img src={itemImg} alt={item.name} className="cart-item-img" />
 
                     <div className="cart-item-details">
                       <h4 className="cart-item-name">{item.name}</h4>
                       <div className="cart-item-price">₹{Number(item.price).toFixed(2)} each</div>
+
+                      {/* CHANGE: Distinct stock status messages (Issue #07) */}
+                      {isOutOfStock ? (
+                        <div className="cart-stock-notice out-of-stock">
+                          Out of Stock
+                        </div>
+                      ) : isMaxStock ? (
+                        <div className="cart-stock-notice max-reached">
+                          Maximum available quantity reached
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="cart-item-qty">
                       <button
                         type="button"
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        disabled={item.quantity <= 1 || isOutOfStock}
                         className="qty-btn"
                         aria-label="Decrease quantity"
                       >
@@ -91,6 +153,7 @@ export const CartPage = () => {
                       <button
                         type="button"
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        disabled={isMaxStock || isOutOfStock}
                         className="qty-btn"
                         aria-label="Increase quantity"
                       >
@@ -142,12 +205,29 @@ export const CartPage = () => {
               <span>₹{totalAmount.toFixed(2)}</span>
             </div>
 
-            <button onClick={handleProceedToCheckout} className="btn-primary btn-block btn-large">
+            <button
+              type="button"
+              onClick={handleProceedToCheckout}
+              disabled={hasOutOfStockItems}
+              className="btn-primary btn-block btn-large"
+              title={
+                hasOutOfStockItems
+                  ? 'Please remove out-of-stock items before proceeding to checkout'
+                  : 'Proceed to Checkout'
+              }
+            >
               <span>Proceed to Checkout</span>
               <ArrowRight size={18} />
             </button>
 
-            {/* CHANGE: Navigates to Home page bakery selection section */}
+            {/* CHANGE: Notice informing user why checkout cannot proceed when out-of-stock items exist (Issue #07) */}
+            {hasOutOfStockItems && (
+              <div className="checkout-blocked-notice">
+                <AlertTriangle size={14} />
+                <span>Remove out-of-stock items to proceed to checkout</span>
+              </div>
+            )}
+
             <Link to="/#bakery-selection" className="continue-shopping-link">
               <ArrowLeft size={16} /> Continue Shopping
             </Link>

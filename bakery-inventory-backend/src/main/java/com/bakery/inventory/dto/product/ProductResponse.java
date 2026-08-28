@@ -19,4 +19,6 @@ public class ProductResponse {
     private Integer supplierId;
     private Boolean isActive;
     private List<ProductImageResponse> images;
+    // CHANGE: Added availableQuantity to provide stock availability for cart and catalog (Issue #07)
+    private Integer availableQuantity;
 }

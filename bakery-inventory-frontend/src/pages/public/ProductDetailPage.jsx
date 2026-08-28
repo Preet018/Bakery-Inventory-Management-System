@@ -36,7 +36,7 @@ import {
  */
 export const ProductDetailPage = () => {
   const { id } = useParams();
-  const { addToCart } = useCart();
+  const { addToCart, cartItems } = useCart();
   const { isCustomer, isAuthenticated } = useAuth();
   const canPurchase = !isAuthenticated || isCustomer;
 
@@ -51,6 +51,17 @@ export const ProductDetailPage = () => {
   // Default placeholder image
   const defaultPlaceholder =
     'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800';
+
+  // CHANGE: Calculate existing cart quantity and effective max additional quantity (Issue #07)
+  const existingCartItem = (cartItems || []).find((item) => String(item.id) === String(id));
+  const existingCartQty = existingCartItem ? existingCartItem.quantity : 0;
+  const availableStock =
+    product && typeof product.availableQuantity === 'number'
+      ? Math.max(0, product.availableQuantity)
+      : 0;
+  const isOutOfStock = availableStock <= 0;
+  const maxAdditionalQuantity = Math.max(0, availableStock - existingCartQty);
+  const isMaxInCart = !isOutOfStock && maxAdditionalQuantity === 0;
 
   // CHANGE: Fetch real product details from backend and resolve category name
   const fetchProduct = useCallback(async () => {
@@ -149,8 +160,10 @@ export const ProductDetailPage = () => {
   };
 
   const handleAddToCart = () => {
-    if (addToCart) {
-      addToCart(product, quantity);
+    if (addToCart && maxAdditionalQuantity > 0) {
+      const addedQty = Math.min(quantity, maxAdditionalQuantity);
+      addToCart(product, addedQty);
+      setQuantity(1);
     }
   };
 
@@ -176,7 +189,7 @@ export const ProductDetailPage = () => {
               }}
             />
 
-            {/* CHANGE: Arrows rendered ONLY when more than one image exists */}
+            {/* Arrows rendered ONLY when more than one image exists */}
             {hasMultipleImages && (
               <>
                 <button
@@ -200,7 +213,7 @@ export const ProductDetailPage = () => {
             )}
           </div>
 
-          {/* CHANGE: Image Thumbnails row shown only when multiple images exist */}
+          {/* Image Thumbnails row shown only when multiple images exist */}
           {hasMultipleImages && (
             <div className="detail-thumbnails-row">
               {displayImages.map((imgUrl, idx) => (
@@ -228,10 +241,16 @@ export const ProductDetailPage = () => {
 
         {/* Right Column: Product Info & Purchase Controls */}
         <div className="detail-info-column">
-          {/* Available Status Badge */}
-          <span className="badge-available">
-            <CheckCircle2 size={12} /> Available
-          </span>
+          {/* CHANGE: Dynamic Available / Out of Stock Badge (Issue #07) */}
+          {isOutOfStock ? (
+            <span className="badge-out-of-stock">
+              <AlertCircle size={12} /> Out of Stock
+            </span>
+          ) : (
+            <span className="badge-available">
+              <CheckCircle2 size={12} /> Available
+            </span>
+          )}
 
           {/* Category Tag */}
           <span className="detail-category-label">{categoryName}</span>
@@ -262,7 +281,9 @@ export const ProductDetailPage = () => {
               <span className="spec-label">
                 <CheckCircle2 size={16} /> Availability
               </span>
-              <span className="spec-value">In Stock</span>
+              <span className="spec-value">
+                {isOutOfStock ? 'Out of Stock' : `In Stock (${availableStock} available)`}
+              </span>
             </div>
 
             <div className="spec-row">
@@ -284,17 +305,17 @@ export const ProductDetailPage = () => {
                     <button
                       type="button"
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      disabled={quantity <= 1}
+                      disabled={quantity <= 1 || isOutOfStock || isMaxInCart}
                       className="qty-step-btn"
                       aria-label="Decrease quantity"
                     >
                       <Minus size={14} />
                     </button>
-                    <span className="qty-step-value">{quantity}</span>
+                    <span className="qty-step-value">{isOutOfStock ? 0 : quantity}</span>
                     <button
                       type="button"
-                      onClick={() => setQuantity((q) => Math.min(99, q + 1))}
-                      disabled={quantity >= 99}
+                      onClick={() => setQuantity((q) => Math.min(maxAdditionalQuantity, q + 1))}
+                      disabled={quantity >= maxAdditionalQuantity || isOutOfStock || isMaxInCart}
                       className="qty-step-btn"
                       aria-label="Increase quantity"
                     >
@@ -302,20 +323,50 @@ export const ProductDetailPage = () => {
                     </button>
                   </div>
 
-                  <span className="stock-available-text">In Stock</span>
+                  {isOutOfStock ? (
+                    <span className="stock-out-of-stock-text">Out of Stock</span>
+                  ) : isMaxInCart ? (
+                    <span className="stock-limit-text">Maximum available quantity reached in cart</span>
+                  ) : (
+                    <span className="stock-available-text">
+                      {existingCartQty > 0
+                        ? `(${existingCartQty} in cart, max ${maxAdditionalQuantity} more)`
+                        : `In Stock`}
+                    </span>
+                  )}
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="detail-action-buttons">
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  className="btn-add-to-cart-large"
-                >
-                  <ShoppingBag size={20} />
-                  <span>Add to Cart</span>
-                </button>
+                {isOutOfStock ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="btn-add-to-cart-large btn-out-of-stock"
+                  >
+                    <ShoppingBag size={20} />
+                    <span>Out of Stock</span>
+                  </button>
+                ) : isMaxInCart ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="btn-add-to-cart-large btn-max-reached"
+                  >
+                    <ShoppingBag size={20} />
+                    <span>Maximum in Cart</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    className="btn-add-to-cart-large"
+                  >
+                    <ShoppingBag size={20} />
+                    <span>Add to Cart</span>
+                  </button>
+                )}
 
                 <button
                   type="button"
