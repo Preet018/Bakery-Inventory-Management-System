@@ -218,6 +218,20 @@ a:hover {
   box-shadow: 0 4px 14px rgba(217, 119, 6, 0.2);
 }
 
+.nav-link.active {
+  background-color: var(--color-primary, #D97706);
+  color: #FFFFFF;
+  border-color: var(--color-primary-hover, #B45309);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+}
+
+.nav-link.active:hover {
+  background-color: var(--color-primary-hover, #B45309);
+  border-color: var(--color-dark, #451A03);
+  color: #FFFFFF;
+}
+
 .nav-link:active {
   transform: translateY(0) scale(0.98);
 }
@@ -834,14 +848,15 @@ a:hover {
   position: absolute;
   left: 12px;
   color: var(--color-text-muted);
+  pointer-events: none;
+  z-index: 2;
 }
 
-.input-with-icon input,
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 0.75rem 0.9rem 0.75rem 2.6rem;
+  padding: 0.75rem 0.9rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
@@ -849,9 +864,15 @@ a:hover {
   transition: border-color var(--transition-fast);
 }
 
+.input-with-icon input {
+  width: 100%;
+  padding: 0.75rem 0.9rem 0.75rem 2.85rem !important;
+}
+
 .form-group input:focus,
 .form-group select:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.input-with-icon input:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
@@ -1777,6 +1798,7 @@ a:hover {
   border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  border: 1px solid #FDE68A;
 }
 
 .last-updated-text {
@@ -3467,12 +3489,13 @@ body.modal-open {
   margin: 0;
 }
 
-/* CHANGE: Password Management Card (Issue #5) */
+/* Password Management Card */
 .password-management-card {
   border: 1px solid #BFDBFE;
   background: #EFF6FF;
   padding: 1.75rem;
   border-radius: 12px;
+  margin-top: 1.5rem;
 }
 
 .icon-blue {
@@ -3501,6 +3524,7 @@ body.modal-open {
   background: #FEF2F2;
   padding: 1.75rem;
   border-radius: 12px;
+  margin-top: 1.5rem;
 }
 
 .danger-zone-header {
@@ -5961,48 +5985,47 @@ body.modal-open {
   font-size: 0.88rem;
 }
 
-/* Fixed Table/Container Stability for Admin Dashboard */
-.admin-table-container {
-  min-height: 280px;
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+/* Fixed Table/Container Stability for Admin User Management */
+.user-admin-page.page-container {
+  max-width: 1320px;
 }
 
 .admin-managers-table {
-  width: 100%;
-  table-layout: fixed;
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
   border-collapse: collapse;
 }
 
-.admin-managers-table th:nth-child(1),
-.admin-managers-table td:nth-child(1) {
-  width: 16%;
+.admin-managers-table th,
+.admin-managers-table td {
+  padding: 0.85rem 0.85rem;
+  vertical-align: middle;
+  box-sizing: border-box;
 }
 
-.admin-managers-table th:nth-child(2),
-.admin-managers-table td:nth-child(2) {
-  width: 25%;
+.admin-managers-table th:first-child,
+.admin-managers-table td:first-child {
+  padding-left: 1.25rem !important;
 }
 
-.admin-managers-table th:nth-child(3),
-.admin-managers-table td:nth-child(3) {
-  width: 27%;
+.admin-managers-table th:last-child,
+.admin-managers-table td:last-child {
+  padding-right: 1.25rem !important;
 }
 
-.admin-managers-table th:nth-child(4),
-.admin-managers-table td:nth-child(4) {
-  width: 18%;
+.admin-managers-table .table-action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.45rem;
+  white-space: nowrap;
 }
 
-.admin-managers-table th:nth-child(5),
-.admin-managers-table td:nth-child(5) {
-  width: 14%;
-  text-align: right;
+@media (max-width: 900px) {
+  .admin-managers-table {
+    min-width: 820px !important;
+  }
 }
 
 .admin-empty-container {
@@ -6013,4 +6036,32 @@ body.modal-open {
   justify-content: center;
   padding: 2.5rem 1.5rem;
   text-align: center;
+}
+
+/* Modal Input with Leading Icon Spacing & Alignment */
+.backoffice-modal .input-with-icon,
+.modal-form .input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.backoffice-modal .input-with-icon .input-icon,
+.modal-form .input-with-icon .input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.backoffice-modal .input-with-icon input,
+.modal-form .input-with-icon input {
+  padding-left: 46px !important;
+  padding-right: 14px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }

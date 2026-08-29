@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { stockTransactionService } from '../../services/stockTransactionService';
 import { productService } from '../../services/productService';
+import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
 import {
   History,
   RefreshCw,
@@ -24,7 +25,7 @@ const TRANSACTION_TYPE_META = {
   PURCHASE: {
     label: 'Purchase (Stock In)',
     badgeClass: 'badge-tx-purchase',
-    icon: <ArrowUpRight size={13} />,
+    icon: <ArrowDownRight size={13} />,
     defaultPositive: true,
   },
   SALE: {
@@ -42,17 +43,17 @@ const TRANSACTION_TYPE_META = {
   SUPPLIER_RETURN: {
     label: 'Supplier Return',
     badgeClass: 'badge-tx-return',
-    icon: <ArrowDownRight size={13} />,
+    icon: <ArrowUpRight size={13} />,
     defaultPositive: false,
   },
   RETURN: {
     label: 'Supplier Return',
     badgeClass: 'badge-tx-return',
-    icon: <ArrowDownRight size={13} />,
+    icon: <ArrowUpRight size={13} />,
     defaultPositive: false,
   },
   ADJUSTMENT: {
-    label: 'Stock Adjustment',
+    label: 'Physical Adjustment',
     badgeClass: 'badge-tx-adjustment',
     icon: <Sliders size={13} />,
     defaultPositive: null, // Direction determined by signed quantity
@@ -87,6 +88,7 @@ export const StockHistoryPage = () => {
   const [productsMap, setProductsMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -132,6 +134,7 @@ export const StockHistoryPage = () => {
         : [];
 
       setRawTransactions(sortedTransactions);
+      setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to load transaction history:', err);
     } finally {
@@ -251,19 +254,15 @@ export const StockHistoryPage = () => {
 
   return (
     <div className="stock-history-page page-container">
-      {/* Top Breadcrumb Link */}
-      <Link to="/inventory/dashboard" className="back-link">
-        <ArrowLeft size={18} /> Back to Inventory Dashboard
+      {/* Sub-Page Back Navigation */}
+      <Link to="/inventory/manage" className="back-link">
+        <ArrowLeft size={16} /> Back to Manage Inventory
       </Link>
 
       {/* Page Header */}
       <div className="dashboard-header-container">
         <div className="dashboard-title-area">
-          <div className="backoffice-badge-row">
-            <span className="backoffice-badge">
-              <History size={14} /> Audit Trail
-            </span>
-          </div>
+          <BackOfficeHeaderBadge lastUpdated={lastUpdated} />
           <h1>Stock Transaction Audit Logs</h1>
           <p className="dashboard-subtitle">
             Complete historical audit trail of inventory movement, purchases, sales, damages, and calibrations

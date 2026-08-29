@@ -1,13 +1,18 @@
 import axiosInstance from '../api/axiosInstance';
 
 /**
- * NEW FILE: AdminService
- * Handles registration and lifecycle of Inventory Managers by Admin.
+ * AdminService
+ * Handles registration and lifecycle of Inventory Managers by Admin via Spring Boot REST API.
  */
 
 export const adminService = {
+  getInventoryManagers: async () => {
+    const response = await axiosInstance.get('/api/admin/inventory-managers');
+    return response.data;
+  },
+
   registerInventoryManager: async (managerData) => {
-    // managerData = { firstName, lastName, email, password, phoneNumber }
+    // managerData = { username, email, password }
     const response = await axiosInstance.post('/api/admin/inventory-managers', managerData);
     return response.data;
   },
@@ -22,74 +27,24 @@ export const adminService = {
     return response.data;
   },
 
-  getInventoryManagers: async () => {
-    try {
-      // If backend provides user listing endpoint in future, query it
-      const response = await axiosInstance.get('/api/admin/inventory-managers');
-      if (Array.isArray(response.data)) {
-        return response.data;
-      }
-    } catch {
-      // Fallback cleanly to local repository of registered inventory managers
-    }
-
-    try {
-      const stored = localStorage.getItem('bakery_registered_managers');
-      const registered = stored ? JSON.parse(stored) : [];
-
-      const defaultManagers = [
-        {
-          id: 1,
-          username: 'chahak',
-          email: 'chahak@bakery.com',
-          role: 'INVENTORY_MANAGER',
-          active: true,
-        },
-        {
-          id: 2,
-          username: 'manager_sarah',
-          email: 'sarah.baker@bakery.com',
-          role: 'INVENTORY_MANAGER',
-          active: true,
-        },
-        {
-          id: 3,
-          username: 'alex_inventory',
-          email: 'alex.inventory@bakery.com',
-          role: 'INVENTORY_MANAGER',
-          active: false,
-        },
-      ];
-
-      const combined = [...defaultManagers];
-      registered.forEach((reg) => {
-        if (!combined.some((m) => m.username === reg.username || (reg.email && m.email === reg.email))) {
-          combined.push({
-            id: reg.id || combined.length + 1,
-            username: reg.username,
-            email: reg.email,
-            role: 'INVENTORY_MANAGER',
-            active: reg.active !== undefined ? reg.active : true,
-          });
-        }
-      });
-
-      return combined;
-    } catch {
-      return [
-        {
-          id: 1,
-          username: 'chahak',
-          email: 'chahak@bakery.com',
-          role: 'INVENTORY_MANAGER',
-          active: true,
-        },
-      ];
-    }
+  requestDeletionOtp: async (managerId, adminEmail) => {
+    const response = await axiosInstance.post(`/api/admin/inventory-managers/${managerId}/deletion-otp`, {
+      adminEmail,
+    });
+    return response.data;
   },
 
-  deleteInventoryManager: async (id) => {
-    const response = await axiosInstance.delete(`/api/admin/inventory-managers/${id}`);
+  verifyDeletionOtp: async (managerId, otp) => {
+    const response = await axiosInstance.post(`/api/admin/inventory-managers/${managerId}/verify-deletion-otp`, {
+      otp,
+    });
     return response.data;
-  }
+  },
+
+  confirmDeleteInventoryManager: async (managerId, verificationToken) => {
+    const response = await axiosInstance.post(`/api/admin/inventory-managers/${managerId}/confirm-delete`, {
+      verificationToken,
+    });
+    return response.data;
+  },
 };

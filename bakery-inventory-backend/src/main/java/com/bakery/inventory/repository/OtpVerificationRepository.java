@@ -24,4 +24,8 @@ public interface OtpVerificationRepository extends JpaRepository<OtpVerification
             @Param("userId") Integer userId,
             @Param("purpose") OtpPurpose purpose
     );
+
+    @Modifying
+    @Query("DELETE FROM OtpVerification o WHERE o.userAccount.id = :userId")
+    void deleteByUserAccountId(@Param("userId") Integer userId);
 }

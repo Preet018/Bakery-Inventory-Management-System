@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supplierService } from '../../services/supplierService';
 import { GoogleMapLocationPicker } from '../../components/address/GoogleMapLocationPicker';
+import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
 import {
   Truck,
   Plus,
@@ -180,6 +181,7 @@ export const SupplierManagementPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState(null);
   const [successBanner, setSuccessBanner] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const fetchSuppliers = async (isManualRefresh = false) => {
     try {
@@ -190,6 +192,7 @@ export const SupplierManagementPage = () => {
       }
       const data = await supplierService.getAllSuppliers();
       setSuppliers(Array.isArray(data) ? data : []);
+      setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to load suppliers:', err);
     } finally {
@@ -373,19 +376,15 @@ export const SupplierManagementPage = () => {
 
   return (
     <div className="supplier-page page-container">
-      {/* Top Breadcrumb Link */}
-      <Link to="/inventory/dashboard" className="back-link">
-        <ArrowLeft size={18} /> Back to Inventory Dashboard
+      {/* Sub-Page Back Navigation */}
+      <Link to="/inventory/manage" className="back-link">
+        <ArrowLeft size={16} /> Back to Manage Inventory
       </Link>
 
       {/* Page Header */}
       <div className="dashboard-header-container">
         <div className="dashboard-title-area">
-          <div className="backoffice-badge-row">
-            <span className="backoffice-badge">
-              <Truck size={14} /> Vendor Directory
-            </span>
-          </div>
+          <BackOfficeHeaderBadge lastUpdated={lastUpdated} />
           <h1>Supplier Management</h1>
           <p className="dashboard-subtitle">
             Manage ingredient vendors, bulk suppliers, contact records, and active procurement listings

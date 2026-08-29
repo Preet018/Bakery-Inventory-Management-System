@@ -35,7 +35,7 @@ import {
  *   - Role-appropriate quick actions
  *   - Saved Delivery Addresses (Customer-only, with Google Maps/Places picker)
  *   - Password reset (all roles, via OTP)
- *   - Account deletion (customer-only, via 2-step OTP flow)
+ *   - Account deletion (CUSTOMER & INVENTORY_MANAGER, via 2-step OTP flow)
  */
 export const AccountPage = () => {
   const { user, isCustomer, isInventoryManager, isAdmin, logout } = useAuth();
@@ -123,7 +123,7 @@ export const AccountPage = () => {
     }
   };
 
-  // Account deletion state (customer-only)
+  // Account deletion state (Customer & Inventory Manager)
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteStep, setDeleteStep] = useState(1); // 1 = Request OTP, 2 = Enter Password & OTP
   const [deletePassword, setDeletePassword] = useState('');
@@ -296,13 +296,29 @@ export const AccountPage = () => {
               </>
             )}
 
-            {/* CHANGE: Inventory Manager quick actions */}
+            {/* Inventory Manager quick actions */}
             {isInventoryManager && (
               <>
                 <Link to="/inventory/dashboard" className="quick-action-link">
                   <div className="action-link-content">
                     <strong>Inventory Dashboard</strong>
-                    <p>Monitor stock levels and manage inventory operations</p>
+                    <p>Overview of inventory health and customer orders</p>
+                  </div>
+                  <ArrowRight size={18} />
+                </Link>
+
+                <Link to="/inventory/orders" className="quick-action-link">
+                  <div className="action-link-content">
+                    <strong>Manage Orders</strong>
+                    <p>Track customer purchases and update order status</p>
+                  </div>
+                  <ArrowRight size={18} />
+                </Link>
+
+                <Link to="/inventory/manage" className="quick-action-link">
+                  <div className="action-link-content">
+                    <strong>Manage Inventory</strong>
+                    <p>Monitor stock levels and record inventory operations</p>
                   </div>
                   <ArrowRight size={18} />
                 </Link>
@@ -520,8 +536,8 @@ export const AccountPage = () => {
         </div>
       )}
 
-      {/* CHANGE: Danger Zone only shown for CUSTOMER (account deletion via OTP) */}
-      {isCustomer && (
+      {/* Danger Zone shown for CUSTOMER and INVENTORY_MANAGER (account deletion via OTP) */}
+      {(isCustomer || isInventoryManager) && (
         <div className="card danger-zone-card">
           <div className="danger-zone-header">
             <div className="danger-icon-wrapper">
@@ -529,13 +545,17 @@ export const AccountPage = () => {
             </div>
             <div>
               <h3>Danger Zone</h3>
-              <p>Irreversible actions for your bakery customer account</p>
+              <p>
+                Irreversible actions for your bakery {isCustomer ? 'customer' : 'staff'} account
+              </p>
             </div>
           </div>
 
           <div className="danger-zone-content">
             <div>
-              <strong>Delete Customer Account</strong>
+              <strong>
+                Delete {isCustomer ? 'Customer' : 'Inventory Manager'} Account
+              </strong>
               <p>
                 Permanently deactivate your account. You will be required to confirm your password and a 6-digit OTP sent to your email.
               </p>
@@ -638,7 +658,7 @@ export const AccountPage = () => {
         </div>
       )}
 
-      {/* Account Deletion Modal (customer-only) */}
+      {/* Account Deletion Modal (Customer & Inventory Manager) */}
       {showDeleteModal && (
         <div className="modal-overlay" onClick={resetDeleteModal}>
           <div

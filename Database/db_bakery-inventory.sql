@@ -46,7 +46,7 @@ CREATE TABLE otp_verification (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     code_hash VARCHAR(100) NOT NULL,
-    purpose VARCHAR(30) NOT NULL,
+    purpose VARCHAR(50) NOT NULL,
     expires_at DATETIME NOT NULL,
     attempts INT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL,
@@ -56,14 +56,15 @@ CREATE TABLE otp_verification (
         FOREIGN KEY (user_id)
         REFERENCES user_account(id)
         ON DELETE CASCADE
-        ON UPDATE CASCADE
+        ON UPDATE CASCADE,
     
     CONSTRAINT chk_otp_verification_purpose
         CHECK (
             purpose IN (
                 'EMAIL_VERIFICATION',
                 'ACCOUNT_DELETION',
-                'PASSWORD_RESET'
+                'PASSWORD_RESET',
+                'ADMIN_INVENTORY_MANAGER_DELETION'
             )
         )
 );

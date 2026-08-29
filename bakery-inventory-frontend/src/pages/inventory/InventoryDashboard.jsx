@@ -4,6 +4,7 @@ import { inventoryService } from '../../services/inventoryService';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { StockOperationsModal } from './StockOperationsModal';
+import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
 import {
   Package,
   AlertTriangle,
@@ -246,19 +247,10 @@ export const InventoryDashboard = () => {
           =================================================== */}
       <div className="dashboard-header-container">
         <div className="dashboard-title-area">
-          <div className="backoffice-badge-row">
-            <span className="backoffice-badge">
-              <Package size={14} /> Back-Office Workspace
-            </span>
-            {lastUpdated && (
-              <span className="last-updated-text">
-                Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            )}
-          </div>
-          <h1>Inventory Manager Dashboard</h1>
+          <BackOfficeHeaderBadge lastUpdated={lastUpdated} />
+          <h1>Manage Bakery Inventory</h1>
           <p className="dashboard-subtitle">
-            Current stock overview, physical calibrations, stock audits, and supplier tracking
+            Live stock tracking, physical calibrations, threshold alerts, and inventory operations
           </p>
         </div>
 

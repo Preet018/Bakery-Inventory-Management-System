@@ -13,4 +13,13 @@ public class UserAccountResponse {
     private boolean emailVerified;
     private boolean isActive;
     private Integer roleId;
+    private String role;
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        this.isActive = active;
+    }
 }

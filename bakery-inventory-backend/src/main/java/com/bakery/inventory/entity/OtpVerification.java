@@ -24,7 +24,7 @@ public class OtpVerification {
     private String codeHash;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "purpose", nullable = false, length = 30)
+    @Column(name = "purpose", nullable = false, length = 50)
     private OtpPurpose purpose;
 
     @Column(name = "expires_at", nullable = false)

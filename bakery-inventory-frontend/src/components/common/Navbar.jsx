@@ -11,6 +11,7 @@ import {
   Shield,
   Layers,
   User,
+  Users,
   LayoutDashboard,
   Menu,  // CHANGE: hamburger icon for mobile menu
   X,     // CHANGE: close icon for mobile menu
@@ -136,7 +137,7 @@ export const Navbar = () => {
               <>
                 <Link
                   to="/customer/orders"
-                  className="nav-link"
+                  className={`nav-link ${location.pathname.startsWith('/customer/orders') || location.pathname === '/orders' ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   <Package size={16} />
@@ -145,7 +146,7 @@ export const Navbar = () => {
 
                 <Link
                   to="/account"
-                  className="nav-link"
+                  className={`nav-link ${location.pathname.startsWith('/account') ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   <User size={16} />
@@ -158,17 +159,26 @@ export const Navbar = () => {
             {isInventoryManager && (
               <>
                 <Link
-                  to="/admin/orders"
-                  className="nav-link"
+                  to="/inventory/dashboard"
+                  className={`nav-link ${location.pathname === '/inventory/dashboard' || location.pathname === '/inventory' || location.pathname === '/inventory-manager' ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
-                  <ShoppingBag size={16} />
-                  <span>Orders</span>
+                  <LayoutDashboard size={16} />
+                  <span>Dashboard</span>
                 </Link>
 
                 <Link
-                  to="/inventory/dashboard"
-                  className="nav-link"
+                  to="/inventory/orders"
+                  className={`nav-link ${location.pathname === '/inventory/orders' || location.pathname === '/admin/orders' || location.pathname.startsWith('/inventory/orders/') ? 'active' : ''}`}
+                  onClick={handleNavClick}
+                >
+                  <ShoppingBag size={16} />
+                  <span>Manage Orders</span>
+                </Link>
+
+                <Link
+                  to="/inventory/manage"
+                  className={`nav-link ${location.pathname === '/inventory/manage' || location.pathname === '/inventory/items' || location.pathname === '/inventory/history' || location.pathname === '/inventory/suppliers' || location.pathname.startsWith('/inventory/manage/') || location.pathname.startsWith('/inventory/history/') || location.pathname.startsWith('/inventory/suppliers/') ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   <Package size={16} />
@@ -177,7 +187,7 @@ export const Navbar = () => {
 
                 <Link
                   to="/account"
-                  className="nav-link"
+                  className={`nav-link ${location.pathname.startsWith('/account') ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   <User size={16} />
@@ -191,7 +201,7 @@ export const Navbar = () => {
               <>
                 <Link
                   to="/admin"
-                  className="nav-link"
+                  className={`nav-link ${location.pathname === '/admin' || location.pathname === '/admin/dashboard' ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   <LayoutDashboard size={16} />
@@ -199,17 +209,26 @@ export const Navbar = () => {
                 </Link>
 
                 <Link
+                  to="/admin/users"
+                  className={`nav-link ${location.pathname.startsWith('/admin/users') ? 'active' : ''}`}
+                  onClick={handleNavClick}
+                >
+                  <Users size={16} />
+                  <span>Manage Staff</span>
+                </Link>
+
+                <Link
                   to="/admin/orders"
-                  className="nav-link"
+                  className={`nav-link ${location.pathname.startsWith('/admin/orders') || location.pathname.startsWith('/inventory/orders') ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   <ShoppingBag size={16} />
-                  <span>Orders</span>
+                  <span>Manage Orders</span>
                 </Link>
 
                 <Link
                   to="/admin/categories"
-                  className="nav-link"
+                  className={`nav-link ${location.pathname.startsWith('/admin/categories') ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   <Layers size={16} />
@@ -217,18 +236,18 @@ export const Navbar = () => {
                 </Link>
 
                 <Link
-                  to="/inventory/dashboard"
-                  className="nav-link"
+                  to="/inventory/manage"
+                  className={`nav-link ${location.pathname === '/inventory/manage' || location.pathname === '/inventory/items' || location.pathname === '/inventory/history' || location.pathname === '/inventory/suppliers' || location.pathname.startsWith('/inventory/manage/') || location.pathname.startsWith('/inventory/history/') || location.pathname.startsWith('/inventory/suppliers/') ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   <Package size={16} />
                   <span>Manage Inventory</span>
                 </Link>
 
-                {/* CHANGE: Universal My Account link for Admin */}
+                {/* Universal My Account link for Admin */}
                 <Link
                   to="/account"
-                  className="nav-link"
+                  className={`nav-link ${location.pathname.startsWith('/account') ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   <User size={16} />

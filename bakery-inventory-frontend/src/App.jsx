@@ -32,6 +32,7 @@ import { OrderDetailPage } from './pages/customer/OrderDetailPage';
 import { AccountPage } from './pages/customer/AccountPage';
 
 // Inventory Manager Pages
+import { InventoryManagerDashboard } from './pages/inventory/InventoryManagerDashboard';
 import { InventoryDashboard } from './pages/inventory/InventoryDashboard';
 import { StockHistoryPage } from './pages/inventory/StockHistoryPage';
 import { SupplierManagementPage } from './pages/inventory/SupplierManagementPage';
@@ -194,7 +195,7 @@ function App() {
                     4. INVENTORY MANAGER BACK-OFFICE ROUTES (INVENTORY_MANAGER, ADMIN)
                     ===================================================== */}
 
-                {/* CHANGE: Structured inventory back-office route boundaries */}
+                {/* Structured inventory back-office route boundaries */}
                 <Route
                   path="/inventory"
                   element={<Navigate to="/inventory/dashboard" replace />}
@@ -209,6 +210,28 @@ function App() {
                   path="/inventory/dashboard"
                   element={
                     <ProtectedRoute
+                      allowedRoles={['INVENTORY_MANAGER']}
+                    >
+                      <InventoryManagerDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/inventory/orders"
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={['INVENTORY_MANAGER', 'ADMIN']}
+                    >
+                      <AdminOrderManagementPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/inventory/manage"
+                  element={
+                    <ProtectedRoute
                       allowedRoles={[
                         'INVENTORY_MANAGER',
                         'ADMIN',
@@ -217,6 +240,11 @@ function App() {
                       <InventoryDashboard />
                     </ProtectedRoute>
                   }
+                />
+
+                <Route
+                  path="/inventory/items"
+                  element={<Navigate to="/inventory/manage" replace />}
                 />
 
                 <Route

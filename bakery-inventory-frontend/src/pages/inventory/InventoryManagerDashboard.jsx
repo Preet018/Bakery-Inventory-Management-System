@@ -1,18 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { adminService } from '../../services/adminService';
 import { orderService } from '../../services/orderService';
 import { inventoryService } from '../../services/inventoryService';
-import { categoryService } from '../../services/categoryService';
 import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
 import {
-  Shield,
-  Users,
-  UserCheck,
-  UserX,
-  ShoppingBag,
   Package,
-  Layers,
+  ShoppingBag,
   RefreshCw,
   Store,
   CheckCircle2,
@@ -25,29 +18,35 @@ import {
 } from 'lucide-react';
 
 /**
- * AdminDashboard Component
- * Executive Overview of Bakery Operations:
+ * InventoryManagerDashboard Component
+ * Operational Overview of Bakery Operations for INVENTORY_MANAGER role.
  *
- * Dedicated strictly to high-level executive summaries:
- * 1. Staff & Inventory Manager Overview (Total, Active, Inactive) -> /admin/users
- * 2. Customer Orders Overview (Total, Placed, In Progress, Delivered, Cancelled) -> /admin/orders
- * 3. Inventory & Stock Health (Total, Healthy, Low Stock, Out of Stock) -> /inventory/dashboard
- * 4. Product Categories Overview (Total Categories) -> /admin/categories
+ * Dedicated strictly to role-appropriate operational summaries:
+ * 1. Customer Orders Overview (Total, Placed, In Progress, Delivered, Cancelled) -> /inventory/orders
+ * 2. Inventory & Stock Health (Total, Healthy, Low Stock, Out of Stock) -> /inventory/manage
  *
- * Detailed searching, filtering, tables, and CRUD/lifecycle actions reside exclusively
- * on their respective dedicated management pages.
+ * Admin-only sections (Staff/User Administration, Category Management) are strictly excluded.
  */
-export const AdminDashboard = () => {
+export const InventoryManagerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [error, setError] = useState(null);
 
   // Summary Metrics State
-  const [managerStats, setManagerStats] = useState({ total: 0, active: 0, inactive: 0 });
-  const [orderStats, setOrderStats] = useState({ total: 0, placed: 0, inProgress: 0, delivered: 0, cancelled: 0 });
-  const [inventoryStats, setInventoryStats] = useState({ total: 0, optimal: 0, lowStock: 0, outOfStock: 0 });
-  const [categoryStats, setCategoryStats] = useState({ total: 0 });
+  const [orderStats, setOrderStats] = useState({
+    total: 0,
+    placed: 0,
+    inProgress: 0,
+    delivered: 0,
+    cancelled: 0,
+  });
+  const [inventoryStats, setInventoryStats] = useState({
+    total: 0,
+    optimal: 0,
+    lowStock: 0,
+    outOfStock: 0,
+  });
 
   const fetchOverviewData = async (isManual = false) => {
     try {
@@ -58,23 +57,12 @@ export const AdminDashboard = () => {
       }
       setError(null);
 
-      const [managersRes, ordersRes, inventoryRes, categoriesRes] = await Promise.allSettled([
-        adminService.getInventoryManagers(),
+      const [ordersRes, inventoryRes] = await Promise.allSettled([
         orderService.getAllOrders(),
         inventoryService.getAllInventory(),
-        categoryService.getAllCategories(),
       ]);
 
-      // 1. Staff / Managers Overview
-      if (managersRes.status === 'fulfilled' && Array.isArray(managersRes.value)) {
-        const mgrs = managersRes.value;
-        const total = mgrs.length;
-        const active = mgrs.filter((m) => m.active !== false && m.isActive !== false).length;
-        const inactive = mgrs.filter((m) => m.active === false || m.isActive === false).length;
-        setManagerStats({ total, active, inactive });
-      }
-
-      // 2. Customer Orders Overview
+      // 1. Customer Orders Overview
       if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value)) {
         const ords = ordersRes.value;
         const total = ords.length;
@@ -87,7 +75,7 @@ export const AdminDashboard = () => {
         setOrderStats({ total, placed, inProgress, delivered, cancelled });
       }
 
-      // 3. Inventory Overview
+      // 2. Inventory & Stock Health Overview
       if (inventoryRes.status === 'fulfilled' && Array.isArray(inventoryRes.value)) {
         const invs = inventoryRes.value;
         const total = invs.length;
@@ -113,14 +101,9 @@ export const AdminDashboard = () => {
         setInventoryStats({ total, optimal, lowStock, outOfStock });
       }
 
-      // 4. Categories Overview
-      if (categoriesRes.status === 'fulfilled' && Array.isArray(categoriesRes.value)) {
-        setCategoryStats({ total: categoriesRes.value.length });
-      }
-
       setLastUpdated(new Date());
     } catch (err) {
-      console.error('Failed to load admin overview data:', err);
+      console.error('Failed to load inventory manager overview data:', err);
       setError('Unable to load overview data from the server.');
     } finally {
       setLoading(false);
@@ -140,9 +123,9 @@ export const AdminDashboard = () => {
       <div className="dashboard-header-container">
         <div className="dashboard-title-area">
           <BackOfficeHeaderBadge lastUpdated={lastUpdated} />
-          <h1>Admin Control Center</h1>
+          <h1>Inventory Operations Center</h1>
           <p className="dashboard-subtitle">
-            Executive overview of bakery operations, staffing, orders, and inventory health
+            Operational overview of bakery inventory health and customer orders
           </p>
         </div>
 
@@ -157,7 +140,11 @@ export const AdminDashboard = () => {
             <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
 
-          <Link to="/#bakery-selection" className="btn-secondary nav-action-btn" title="Browse customer storefront">
+          <Link
+            to="/#bakery-selection"
+            className="btn-secondary nav-action-btn"
+            title="Browse customer storefront"
+          >
             <Store size={16} /> Storefront
           </Link>
         </div>
@@ -173,76 +160,12 @@ export const AdminDashboard = () => {
       {loading && !refreshing ? (
         <div className="admin-table-container admin-empty-container my-6">
           <RefreshCw className="spinner" size={32} />
-          <p className="mt-3 text-muted">Loading executive overview metrics...</p>
+          <p className="mt-3 text-muted">Loading operational overview metrics...</p>
         </div>
       ) : (
         <>
           {/* ===================================================
-              2. STAFF & INVENTORY MANAGERS OVERVIEW
-              =================================================== */}
-          <div className="admin-section mb-6">
-            <div className="section-header-row flex-between mb-3">
-              <div>
-                <h2 className="section-title">Staff & Inventory Managers</h2>
-                <p className="section-subtitle">
-                  Authorized personnel managing bakery inventory operations
-                </p>
-              </div>
-
-              <Link
-                to="/admin/users"
-                className="btn-secondary btn-sm"
-                title="Manage Inventory Managers in User Administration"
-              >
-                <span>Manage Inventory Managers</span>
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-
-            <div
-              className="metrics-grid admin-staff-metrics-grid"
-              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}
-            >
-              {/* Total Managers */}
-              <div className="metric-card card" style={{ cursor: 'default' }}>
-                <div className="metric-icon-wrapper icon-blue">
-                  <Users size={24} />
-                </div>
-                <div className="metric-info">
-                  <div className="metric-value">{managerStats.total}</div>
-                  <div className="metric-label">Total Inventory Managers</div>
-                  <div className="metric-subtext">All registered manager accounts</div>
-                </div>
-              </div>
-
-              {/* Active Managers */}
-              <div className="metric-card card" style={{ cursor: 'default' }}>
-                <div className="metric-icon-wrapper icon-green">
-                  <UserCheck size={24} />
-                </div>
-                <div className="metric-info">
-                  <div className="metric-value">{managerStats.active}</div>
-                  <div className="metric-label">Active Inventory Managers</div>
-                  <div className="metric-subtext">Authorized for stock operations</div>
-                </div>
-              </div>
-
-              {/* Inactive Managers */}
-              <div className="metric-card card" style={{ cursor: 'default' }}>
-                <div className="metric-icon-wrapper icon-red">
-                  <UserX size={24} />
-                </div>
-                <div className="metric-info">
-                  <div className="metric-value">{managerStats.inactive}</div>
-                  <div className="metric-label">Inactive Inventory Managers</div>
-                  <div className="metric-subtext">Deactivated or pending verification</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ===================================================
-              3. CUSTOMER ORDERS OVERVIEW
+              2. CUSTOMER ORDERS OVERVIEW
               =================================================== */}
           <div className="admin-section mb-6">
             <div className="section-header-row flex-between mb-3">
@@ -254,9 +177,9 @@ export const AdminDashboard = () => {
               </div>
 
               <Link
-                to="/admin/orders"
+                to="/inventory/orders"
                 className="btn-secondary btn-sm"
-                title="Manage Orders in Order Administration"
+                title="Manage Orders in Order Management"
               >
                 <span>Manage Orders</span>
                 <ArrowRight size={14} />
@@ -265,7 +188,11 @@ export const AdminDashboard = () => {
 
             <div
               className="metrics-grid"
-              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '1.25rem',
+              }}
             >
               {/* 1. Total Orders */}
               <div className="metric-card card" style={{ cursor: 'default' }}>
@@ -275,7 +202,7 @@ export const AdminDashboard = () => {
                 <div className="metric-info">
                   <div className="metric-value">{orderStats.total}</div>
                   <div className="metric-label">Total Orders</div>
-                  <div className="metric-subtext">All historical customer orders</div>
+                  <div className="metric-subtext">All customer orders</div>
                 </div>
               </div>
 
@@ -330,7 +257,7 @@ export const AdminDashboard = () => {
           </div>
 
           {/* ===================================================
-              4. INVENTORY & STOCK HEALTH OVERVIEW
+              3. INVENTORY & STOCK HEALTH OVERVIEW
               =================================================== */}
           <div className="admin-section mb-6">
             <div className="section-header-row flex-between mb-3">
@@ -353,7 +280,11 @@ export const AdminDashboard = () => {
 
             <div
               className="metrics-grid"
-              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1.25rem',
+              }}
             >
               {/* 1. Tracked Products */}
               <div className="metric-card card" style={{ cursor: 'default' }}>
@@ -400,46 +331,6 @@ export const AdminDashboard = () => {
                   <div className="metric-value">{inventoryStats.optimal}</div>
                   <div className="metric-label">Healthy Stock</div>
                   <div className="metric-subtext">Stock above minimum level</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ===================================================
-              5. PRODUCT CATEGORIES OVERVIEW
-              =================================================== */}
-          <div className="admin-section mb-6">
-            <div className="section-header-row flex-between mb-3">
-              <div>
-                <h2 className="section-title">Product Categories</h2>
-                <p className="section-subtitle">
-                  Taxonomy and catalog organization for bakery products
-                </p>
-              </div>
-
-              <Link
-                to="/admin/categories"
-                className="btn-secondary btn-sm"
-                title="Manage Categories in Category Administration"
-              >
-                <span>Manage Categories</span>
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-
-            <div
-              className="metrics-grid"
-              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}
-            >
-              {/* Total Categories */}
-              <div className="metric-card card" style={{ cursor: 'default' }}>
-                <div className="metric-icon-wrapper icon-purple">
-                  <Layers size={24} />
-                </div>
-                <div className="metric-info">
-                  <div className="metric-value">{categoryStats.total}</div>
-                  <div className="metric-label">Product Categories</div>
-                  <div className="metric-subtext">Active categories structuring catalog</div>
                 </div>
               </div>
             </div>

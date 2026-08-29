@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { orderService } from '../../services/orderService';
 import { productService } from '../../services/productService';
+import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
 import {
   ShoppingBag,
   RefreshCw,
@@ -25,6 +26,7 @@ import {
   ChevronRight,
   Sliders,
   DollarSign,
+  Truck,
 } from 'lucide-react';
 
 /**
@@ -105,12 +107,12 @@ const ORDER_LIFECYCLE_STEPS = ['PLACED', 'CONFIRMED', 'PROCESSING', 'READY', 'DE
 
 /**
  * AdminOrderManagementPage Component
- * Issue #15: Comprehensive Back-Office Order Management for Administrators.
+ * Back-Office Order Management for Admin and Inventory Managers.
  *
- * Provides:
- * - Real-time listing of all customer orders.
- * - Global KPI cards: Total Orders, Pending Placed, Active In-Progress, Delivered, and Cancelled.
- * - Status tabs filter and multi-field search (Order ID, customer contact, address, product).
+ * Capabilities:
+ * - High-level Order Metrics (Total, Placed, In Preparation, Delivered, Cancelled)
+ * - Search filter (by Order #ID, Customer Name, Email, Address, Status)
+ * - Status tab filters (All, Placed, In Preparation, Delivered, Cancelled)
  * - Full Order Details modal with customer details, delivery address, items table, and payment summary.
  * - Strict status transition controls complying with backend business rules.
  * - Order cancellation capability with safety confirmation.
@@ -121,6 +123,7 @@ export const AdminOrderManagementPage = () => {
   const [productsMap, setProductsMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -181,6 +184,8 @@ export const AdminOrderManagementPage = () => {
           setSelectedOrder(refreshedCurrent);
         }
       }
+
+      setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to load orders:', err);
     } finally {
@@ -427,19 +432,10 @@ const formatPaymentMethodFull = (rawMethod) => {
 
   return (
     <div className="admin-orders-page page-container">
-      {/* Top Breadcrumb Navigation */}
-      <Link to="/inventory/dashboard" className="back-link">
-        <Package size={16} /> Back to Inventory Dashboard
-      </Link>
-
       {/* Page Header */}
       <div className="dashboard-header-container">
         <div className="dashboard-title-area">
-          <div className="backoffice-badge-row">
-            <span className="backoffice-badge">
-              <ShoppingBag size={14} /> Back-Office Operations
-            </span>
-          </div>
+          <BackOfficeHeaderBadge lastUpdated={lastUpdated} />
           <h1>Customer Order Management</h1>
           <p className="dashboard-subtitle">
             Track incoming customer purchases, review delivery addresses, update fulfillment statuses, and manage order lifecycles
@@ -523,7 +519,7 @@ const formatPaymentMethodFull = (rawMethod) => {
           title="Filter active in-progress orders"
         >
           <div className="metric-icon-wrapper icon-purple">
-            <RefreshCw size={24} />
+            <Truck size={24} />
           </div>
           <div className="metric-info">
             <div className="metric-value">{inProgressOrders}</div>

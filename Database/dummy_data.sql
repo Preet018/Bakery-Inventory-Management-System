@@ -89,6 +89,15 @@ VALUES
         FALSE,
         TRUE,
         2
+    ),
+    (
+        4,
+        'ghost',
+        '$2a$10$4iyesudZuCETRWHGGU4BTOqgFTmnj8crrODC0LeFHnombNLQL1Ow.',
+        'fragy.1100@gmail.com',
+        FALSE,
+        TRUE,
+        2
     );
 
 
