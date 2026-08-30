@@ -158,7 +158,8 @@ export const InventoryManagerDashboard = () => {
       )}
 
       {loading && !refreshing ? (
-        <div className="admin-table-container admin-empty-container my-6">
+        // CHANGE: Standardized semantic loading state while preserving KPI layout on success
+        <div className="loading-state admin-table-container admin-empty-container card my-6">
           <RefreshCw className="spinner" size={32} />
           <p className="mt-3 text-muted">Loading operational overview metrics...</p>
         </div>

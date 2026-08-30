@@ -239,22 +239,43 @@ export const HomePage = () => {
             <RefreshCw className="spinner" size={32} />
             <p>Loading fresh bakery items...</p>
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : products.length === 0 ? (
+          // CHANGE: Standardized empty dataset state when no products exist
           <div className="empty-state card text-center py-8" style={{ maxWidth: '500px', margin: '2rem auto' }}>
             <div className="empty-icon-circle mb-3" style={{ margin: '0 auto' }}>
               <Cake size={36} className="text-muted" />
             </div>
-            <h3>No products found</h3>
+            <h3>No Bakery Items Available</h3>
             <p className="text-muted mb-3">
-              {searchQuery.trim()
+              We are currently restocking our fresh bakery kitchen. Please check back shortly!
+            </p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          // CHANGE: Standardized filtered empty state with reset controls
+          <div className="empty-state card text-center py-8" style={{ maxWidth: '500px', margin: '2rem auto' }}>
+            <div className="empty-icon-circle mb-3" style={{ margin: '0 auto' }}>
+              <Cake size={36} className="text-muted" />
+            </div>
+            <h3>No matching products found</h3>
+            <p className="text-muted mb-3">
+              {searchQuery.trim() && selectedCategory !== 'ALL'
+                ? `No products match "${searchQuery.trim()}" in the selected category.`
+                : searchQuery.trim()
                 ? `No products match "${searchQuery.trim()}".`
                 : 'No products available in this category.'}
             </p>
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="btn-secondary" style={{ margin: '0 auto' }}>
-                <X size={14} /> Clear Search
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="btn-secondary">
+                  <X size={14} /> Clear Search
+                </button>
+              )}
+              {selectedCategory !== 'ALL' && (
+                <button onClick={() => setSelectedCategory('ALL')} className="btn-secondary">
+                  Show All Items
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="product-grid">

@@ -528,27 +528,50 @@ export const UserManagementPage = () => {
         </div>
 
         {loading ? (
-          <div className="admin-table-container admin-empty-container">
+          // CHANGE: Standardized semantic loading state
+          <div className="loading-state admin-table-container admin-empty-container card">
             <RefreshCw className="spinner" size={28} />
             <p className="mt-2 text-muted">Loading inventory managers from database...</p>
           </div>
+        ) : totalManagers === 0 ? (
+          // CHANGE: Standardized empty dataset state with register CTA
+          <div className="empty-state card text-center py-8">
+            <div className="empty-icon-circle mb-3" style={{ margin: '0 auto' }}>
+              <Users size={36} className="text-muted" />
+            </div>
+            <h3>No Inventory Managers Registered</h3>
+            <p className="text-muted mb-3">No inventory manager accounts have been created yet.</p>
+            <button
+              onClick={() => {
+                setRegError(null);
+                setRegForm({ username: '', email: '', password: '' });
+                setShowRegisterModal(true);
+              }}
+              className="btn-primary mt-2"
+              style={{ margin: '0 auto' }}
+            >
+              <UserPlus size={16} />
+              <span>Register First Manager</span>
+            </button>
+          </div>
         ) : filteredManagers.length === 0 ? (
+          // CHANGE: Standardized filtered empty state with clear search action
           <div className="admin-table-container">
             <div className="table-header-strip">
               <span className="table-count-label">
                 Showing&nbsp;<strong>0</strong>&nbsp;of&nbsp;<strong>{totalManagers}</strong>&nbsp;managers
               </span>
             </div>
-            <div className="admin-empty-container" style={{ minHeight: '232px' }}>
+            <div className="empty-state admin-empty-container card" style={{ minHeight: '232px' }}>
               <Users size={40} className="text-muted mb-2" />
-              <h3>No Inventory Managers Found</h3>
+              <h3>No Matching Managers Found</h3>
               <p className="text-muted mb-3">
                 {searchQuery.trim()
-                  ? 'No managers match your current search query.'
+                  ? `No managers match your current search query "${searchQuery.trim()}".`
                   : 'No inventory managers found for the selected filter.'}
               </p>
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="btn-secondary">
+                <button onClick={() => setSearchQuery('')} className="btn-secondary" style={{ margin: '0 auto' }}>
                   <X size={14} /> Clear Search
                 </button>
               )}

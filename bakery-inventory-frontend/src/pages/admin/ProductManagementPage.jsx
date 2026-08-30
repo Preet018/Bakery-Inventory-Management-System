@@ -819,12 +819,14 @@ export const ProductManagementPage = () => {
       {/* Product Cards Listing (Directory Layout) */}
       <div className="product-cards-container">
         {loading ? (
-          <div className="card table-loading-state">
+          // CHANGE: Standardized semantic loading state
+          <div className="card loading-state table-loading-state">
             <RefreshCw size={28} className="spinner text-primary" />
             <p>Loading bakery products...</p>
           </div>
         ) : products.length === 0 ? (
-          <div className="card empty-table-state">
+          // CHANGE: Standardized empty dataset state with create CTA
+          <div className="card empty-state empty-table-state">
             <div className="empty-icon-circle">
               <Package size={36} />
             </div>
@@ -836,7 +838,8 @@ export const ProductManagementPage = () => {
             </button>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="card empty-table-state">
+          // CHANGE: Standardized filtered empty state with reset filters CTA
+          <div className="card empty-state empty-table-state">
             <div className="empty-icon-circle">
               <Search size={36} />
             </div>

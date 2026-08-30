@@ -527,12 +527,14 @@ export const CheckoutPage = () => {
 
               <div className="step-card-body">
                 {loadingAddresses ? (
-                  <div className="checkout-address-loading">
+                  // CHANGE: Standardized semantic loading state
+                  <div className="loading-state checkout-address-loading">
                     <RefreshCw size={22} className="spinner text-primary" />
                     <span>Loading your saved delivery addresses...</span>
                   </div>
                 ) : addresses.length === 0 ? (
-                  <div className="checkout-no-address-state">
+                  // CHANGE: Standardized semantic empty state
+                  <div className="empty-state checkout-no-address-state">
                     <div className="no-address-icon-circle">
                       <MapPin size={26} />
                     </div>

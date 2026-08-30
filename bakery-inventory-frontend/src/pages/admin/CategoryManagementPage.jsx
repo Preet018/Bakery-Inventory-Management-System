@@ -276,40 +276,44 @@ export const CategoryManagementPage = () => {
           3. CATEGORIES TABLE & LIST
           =================================================== */}
       {loading ? (
-        <div className="admin-table-container admin-empty-container">
+        // CHANGE: Standardized semantic loading state
+        <div className="loading-state admin-table-container admin-empty-container card">
           <RefreshCw className="spinner" size={28} />
           <p className="mt-2 text-muted">Loading categories from database...</p>
         </div>
       ) : categories.length === 0 ? (
-        <div className="empty-state card">
-          <Layers size={48} className="text-muted" />
+        // CHANGE: Standardized empty dataset state with create CTA
+        <div className="empty-state card text-center py-8">
+          <Layers size={48} className="text-muted mb-2" />
           <h3>No Categories Found</h3>
-          <p>Create your first category to group products.</p>
+          <p className="text-muted mb-3">Create your first category to group products.</p>
           <button
             onClick={() => {
               setModalError(null);
               setName('');
               setShowModal(true);
             }}
-            className="btn-primary mt-3"
+            className="btn-primary mt-2"
+            style={{ margin: '0 auto' }}
           >
             <Plus size={16} /> Create First Category
           </button>
         </div>
       ) : filteredCategories.length === 0 ? (
+        // CHANGE: Standardized filtered empty state with clear search CTA
         <div className="table-responsive card inventory-table-card">
           <div className="table-header-strip">
             <span className="table-count-label">
               Showing&nbsp;<strong>0</strong>&nbsp;of&nbsp;<strong>{categories.length}</strong>&nbsp;categories
             </span>
           </div>
-          <div className="admin-empty-container" style={{ minHeight: '232px' }}>
+          <div className="empty-state admin-empty-container" style={{ minHeight: '232px' }}>
             <Layers size={40} className="text-muted mb-2" />
             <h3>No Matching Categories Found</h3>
             <p className="text-muted mb-3">
               No categories match your current search query "{searchQuery.trim()}".
             </p>
-            <button onClick={() => setSearchQuery('')} className="btn-secondary">
+            <button onClick={() => setSearchQuery('')} className="btn-secondary" style={{ margin: '0 auto' }}>
               <X size={14} /> Clear Search
             </button>
           </div>

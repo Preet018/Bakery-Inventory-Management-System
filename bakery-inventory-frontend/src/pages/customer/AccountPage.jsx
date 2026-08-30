@@ -426,12 +426,14 @@ export const AccountPage = () => {
           )}
 
           {loadingAddresses ? (
-            <div className="addresses-loading-state">
+            // CHANGE: Standardized semantic loading state
+            <div className="loading-state addresses-loading-state">
               <RefreshCw size={24} className="spinner text-primary" />
               <span>Loading saved addresses...</span>
             </div>
           ) : addresses.length === 0 ? (
-            <div className="empty-addresses-state">
+            // CHANGE: Standardized semantic empty state
+            <div className="empty-state empty-addresses-state">
               <div className="empty-address-icon-circle">
                 <MapPin size={32} />
               </div>

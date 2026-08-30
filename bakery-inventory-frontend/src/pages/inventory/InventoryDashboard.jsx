@@ -482,20 +482,22 @@ export const InventoryDashboard = () => {
           <RefreshCw className="spinner" size={36} />
           <p>Loading current inventory data...</p>
         </div>
-      ) : filteredInventory.length === 0 ? (
+      ) : totalProductsCount === 0 ? (
+        // CHANGE: Standardized empty dataset state when inventory is empty
         <div className="empty-state card">
           <Package size={48} className="text-muted" />
-          <h3>No inventory items found</h3>
-          <p>
-            {hasActiveFilters
-              ? 'No products matched your current filter criteria.'
-              : 'There are currently no products registered in the inventory.'}
-          </p>
-          {hasActiveFilters && (
-            <button onClick={handleResetFilters} className="btn-secondary mt-3">
-              Clear All Filters
-            </button>
-          )}
+          <h3>No Inventory Items Found</h3>
+          <p>There are currently no products registered in the inventory database.</p>
+        </div>
+      ) : filteredInventory.length === 0 ? (
+        // CHANGE: Standardized filtered empty state with clear filters CTA
+        <div className="empty-state card">
+          <Package size={48} className="text-muted" />
+          <h3>No Matching Inventory Items Found</h3>
+          <p>No products matched your current search or stock status filter criteria.</p>
+          <button onClick={handleResetFilters} className="btn-secondary mt-3">
+            Clear All Filters
+          </button>
         </div>
       ) : (
         <div className="table-responsive card inventory-table-card">
