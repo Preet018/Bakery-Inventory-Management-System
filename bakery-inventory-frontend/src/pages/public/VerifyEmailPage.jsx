@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../services/authService';
+import { getErrorMessage } from '../../utils/apiError';
 import { KeyRound, Mail, CheckCircle2, AlertCircle, ShieldCheck, RefreshCw, Send, ArrowLeft } from 'lucide-react';
 
 /**
@@ -70,11 +71,7 @@ export const VerifyEmailPage = () => {
       setOtp('');
     } catch (err) {
       console.error('Send verification OTP error:', err);
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Failed to send verification OTP. Make sure the email is registered and not already verified.';
-      setError(msg);
+      setError(getErrorMessage(err, 'Failed to send verification OTP. Make sure the email is registered and not already verified.'));
     } finally {
       setSendingOtp(false);
     }
@@ -118,7 +115,7 @@ export const VerifyEmailPage = () => {
           : 'Email verified successfully! Your account is now active.'
       );
 
-      // CHANGE: Consistent 5-second display duration before auto-redirecting to login
+      // Consistent 5-second display duration before auto-redirecting to login
       if (redirectTimerRef.current) {
         clearTimeout(redirectTimerRef.current);
       }
@@ -127,11 +124,7 @@ export const VerifyEmailPage = () => {
       }, 5000);
     } catch (err) {
       console.error('OTP Verification error:', err);
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'OTP verification failed. Invalid or expired verification code.';
-      setError(msg);
+      setError(getErrorMessage(err, 'OTP verification failed. Invalid or expired verification code.'));
     } finally {
       setVerifying(false);
     }
@@ -158,11 +151,7 @@ export const VerifyEmailPage = () => {
       );
     } catch (err) {
       console.error('Resend OTP error:', err);
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Failed to resend OTP. Please try again.';
-      setError(msg);
+      setError(getErrorMessage(err, 'Failed to resend OTP. Please try again.'));
     } finally {
       setResending(false);
     }

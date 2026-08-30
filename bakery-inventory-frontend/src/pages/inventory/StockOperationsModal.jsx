@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { inventoryService } from '../../services/inventoryService';
+import { getErrorMessage } from '../../utils/apiError';
 import {
   X,
   Package,
@@ -199,11 +200,7 @@ export const StockOperationsModal = ({
       onClose();
     } catch (err) {
       console.error('Stock operation error:', err);
-      const serverMessage =
-        err.response?.data?.message ||
-        (typeof err.response?.data === 'string' ? err.response.data : null) ||
-        'Failed to complete stock operation. Please check the values and try again.';
-      setError(serverMessage);
+      setError(getErrorMessage(err, 'Failed to complete stock operation. Please check the values and try again.'));
     } finally {
       setSubmitting(false);
     }

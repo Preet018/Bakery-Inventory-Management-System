@@ -5,6 +5,7 @@ import { authService } from '../../services/authService';
 import { addressService } from '../../services/addressService';
 import { ResetPasswordModal } from '../../components/auth/ResetPasswordModal';
 import { AddressModal } from '../../components/address/AddressModal';
+import { getErrorMessage } from '../../utils/apiError';
 import {
   User,
   Shield,
@@ -63,9 +64,7 @@ export const AccountPage = () => {
       const data = await addressService.getAllAddresses();
       setAddresses(Array.isArray(data) ? data : []);
     } catch (err) {
-      setAddressError(
-        err.response?.data?.message || 'Failed to load saved addresses.'
-      );
+      setAddressError(getErrorMessage(err, 'Failed to load saved addresses.'));
     } finally {
       setLoadingAddresses(false);
     }
@@ -97,9 +96,7 @@ export const AccountPage = () => {
       await fetchAddresses();
       setTimeout(() => setAddressSuccess(null), 4000);
     } catch (err) {
-      setAddressError(
-        err.response?.data?.message || 'Failed to update default address.'
-      );
+      setAddressError(getErrorMessage(err, 'Failed to update default address.'));
     }
   };
 
@@ -115,9 +112,7 @@ export const AccountPage = () => {
       await fetchAddresses();
       setTimeout(() => setAddressSuccess(null), 4000);
     } catch (err) {
-      setAddressError(
-        err.response?.data?.message || 'Failed to delete address.'
-      );
+      setAddressError(getErrorMessage(err, 'Failed to delete address.'));
     } finally {
       setDeletingAddress(false);
     }
@@ -145,11 +140,7 @@ export const AccountPage = () => {
       );
       setDeleteStep(2);
     } catch (err) {
-      setDeleteError(
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Failed to send account deletion OTP. Please ensure your email is verified.'
-      );
+      setDeleteError(getErrorMessage(err, 'Failed to send account deletion OTP. Please ensure your email is verified.'));
     } finally {
       setDeleteLoading(false);
     }
@@ -180,11 +171,7 @@ export const AccountPage = () => {
       logout();
       navigate('/', { replace: true });
     } catch (err) {
-      setDeleteError(
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Account deletion failed. Please verify your password and OTP.'
-      );
+      setDeleteError(getErrorMessage(err, 'Account deletion failed. Please verify your password and OTP.'));
     } finally {
       setDeleteLoading(false);
     }

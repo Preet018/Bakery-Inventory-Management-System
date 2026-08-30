@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { adminService } from '../../services/adminService';
 import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
+import { getErrorMessage, getFieldErrors } from '../../utils/apiError';
 import {
   Shield,
   Users,
@@ -86,11 +87,7 @@ export const UserManagementPage = () => {
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to load Inventory Managers:', err);
-      setError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          'Unable to load inventory managers from the backend database.'
-      );
+      setError(getErrorMessage(err, 'Unable to load inventory managers from the backend database.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -116,10 +113,12 @@ export const UserManagementPage = () => {
     let interval = null;
     if (confirmModal.resendCooldown > 0) {
       interval = setInterval(() => {
-        setConfirmModal((prev) => ({
-          ...prev,
-          resendCooldown: Math.max(0, prev.resendCooldown - 1),
-        }));
+        setConfirmModal((prev) => {
+          if (prev.resendCooldown <= 1) {
+            return { ...prev, resendCooldown: 0 };
+          }
+          return { ...prev, resendCooldown: prev.resendCooldown - 1 };
+        });
       }, 1000);
     }
     return () => {
@@ -231,10 +230,7 @@ export const UserManagementPage = () => {
       }));
     } catch (err) {
       console.error('Failed to request deletion OTP:', err);
-      const errMsg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Failed to verify email and dispatch verification code. Please check the entered email.';
+      const errMsg = getErrorMessage(err, 'Failed to verify email and dispatch verification code. Please check the entered email.');
       setConfirmModal((prev) => ({ ...prev, submitting: false, error: errMsg }));
     }
   };
@@ -257,10 +253,7 @@ export const UserManagementPage = () => {
       }));
     } catch (err) {
       console.error('Failed to resend deletion OTP:', err);
-      const errMsg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Failed to resend verification code. Please wait before trying again.';
+      const errMsg = getErrorMessage(err, 'Failed to resend verification code. Please wait before trying again.');
       setConfirmModal((prev) => ({ ...prev, resending: false, error: errMsg }));
     }
   };
@@ -290,10 +283,7 @@ export const UserManagementPage = () => {
       }));
     } catch (err) {
       console.error('Failed to verify deletion OTP:', err);
-      const errMsg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Invalid or expired verification code. Please check and try again.';
+      const errMsg = getErrorMessage(err, 'Invalid or expired verification code. Please check and try again.');
       setConfirmModal((prev) => ({ ...prev, submitting: false, error: errMsg }));
     }
   };
@@ -318,10 +308,7 @@ export const UserManagementPage = () => {
       await fetchManagers(false);
     } catch (err) {
       console.error('Failed to permanently delete manager:', err);
-      const errMsg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Failed to execute permanent deletion.';
+      const errMsg = getErrorMessage(err, 'Failed to execute permanent deletion.');
       setConfirmModal((prev) => ({ ...prev, submitting: false, error: errMsg }));
     }
   };
@@ -346,10 +333,7 @@ export const UserManagementPage = () => {
       await fetchManagers(false);
     } catch (err) {
       console.error(`Failed to execute ${type} on manager:`, err);
-      const errMsg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        `Action failed: Could not ${type.toLowerCase()} the manager.`;
+      const errMsg = getErrorMessage(err, `Action failed: Could not ${type.toLowerCase()} the manager.`);
       setConfirmModal((prev) => ({ ...prev, submitting: false, error: errMsg }));
     }
   };
@@ -375,11 +359,7 @@ export const UserManagementPage = () => {
       await fetchManagers(false);
     } catch (err) {
       console.error('Registration failed:', err);
-      setRegError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          'Failed to register Inventory Manager. Please verify the entered details.'
-      );
+      setRegError(getErrorMessage(err, 'Failed to register Inventory Manager. Please verify the entered details.'));
     } finally {
       setRegSubmitting(false);
     }

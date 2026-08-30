@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { supplierService } from '../../services/supplierService';
 import { GoogleMapLocationPicker } from '../../components/address/GoogleMapLocationPicker';
 import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
+import { getErrorMessage, getFieldErrors } from '../../utils/apiError';
 import {
   Truck,
   Plus,
@@ -28,20 +29,7 @@ import { Link } from 'react-router-dom';
  * Helper to parse existing supplier address string into structured fields
  */
 const parseExistingAddress = (rawAddress) => {
-  if (!rawAddress || typeof rawAddress !== 'string') {
-    return {
-      addressLabel: 'Warehouse',
-      customAddressLabel: '',
-      addressLine: '',
-      landmark: '',
-      city: '',
-      state: '',
-      postalCode: '',
-      latitude: 19.0760,
-      longitude: 72.8777,
-    };
-  }
-
+  if (!rawAddress) return null;
   const trimmed = rawAddress.trim();
 
   // Check if stored as JSON
@@ -84,45 +72,37 @@ const parseExistingAddress = (rawAddress) => {
 
   // Extract PIN code if present
   let postalCode = '';
-  const pinMatch = content.match(/\b([1-9][0-9]{5})\b/);
+  const pinMatch = content.match(/(?:PIN|Pin|Postal Code|Postal|Zip)[:\s]*([0-9]{5,6})/i);
   if (pinMatch) {
     postalCode = pinMatch[1];
-    content = content.replace(pinMatch[0], '').replace(/PIN:\s*/i, '').replace(/-\s*$/, '').trim();
+    content = content.replace(pinMatch[0], '').trim();
   }
 
-  // Split remaining comma-separated parts
-  const parts = content.split(',').map((p) => p.trim()).filter(Boolean);
-
-  let addressLine = '';
+  // Extract Landmark if present
   let landmark = '';
+  const lmMatch = content.match(/(?:Near|Opposite|Behind|Beside|Adj to|Near by|Landmark)[:\s]*([^,]+)/i);
+  if (lmMatch) {
+    landmark = lmMatch[0].trim();
+  }
+
+  const parts = content.split(',').map((p) => p.trim()).filter(Boolean);
   let city = '';
   let state = '';
+  let addressLine = content;
 
-  if (parts.length >= 4) {
-    state = parts[parts.length - 1] || '';
-    city = parts[parts.length - 2] || '';
-    const potentialLandmark = parts[parts.length - 3] || '';
-    if (potentialLandmark.toLowerCase().startsWith('near ')) {
-      landmark = potentialLandmark.replace(/^near\s+/i, '');
-      addressLine = parts.slice(0, parts.length - 3).join(', ') || '';
-    } else {
-      addressLine = parts.slice(0, parts.length - 2).join(', ') || '';
-    }
-  } else if (parts.length === 3) {
-    state = parts[2] || '';
-    city = parts[1] || '';
-    addressLine = parts[0] || '';
+  if (parts.length >= 3) {
+    state = parts[parts.length - 1];
+    city = parts[parts.length - 2];
+    addressLine = parts.slice(0, parts.length - 2).join(', ');
   } else if (parts.length === 2) {
-    city = parts[1] || '';
-    addressLine = parts[0] || '';
-  } else {
-    addressLine = content;
+    city = parts[1];
+    addressLine = parts[0];
   }
 
   return {
     addressLabel: label,
     customAddressLabel: customLabel,
-    addressLine,
+    addressLine: addressLine || trimmed,
     landmark,
     city,
     state,
@@ -132,54 +112,41 @@ const parseExistingAddress = (rawAddress) => {
   };
 };
 
-const defaultFormData = {
-  name: '',
-  email: '',
-  phone: '',
-  addressLabel: 'Warehouse',
-  customAddressLabel: '',
-  addressLine: '',
-  landmark: '',
-  city: '',
-  state: '',
-  postalCode: '',
-  latitude: 19.0760,
-  longitude: 72.8777,
-};
-
-/**
- * SupplierManagementPage Component
- * Issue #14: Comprehensive Back-Office Supplier Management for Inventory Managers & Admins.
- *
- * Provides:
- * - Full supplier directory with Name, Email, Phone, Address, and Status.
- * - Global KPI cards: Total Suppliers, Active Suppliers, Inactive Suppliers.
- * - Structured Supplier Address Details with Google Places autocomplete/picker.
- * - Add and Edit supplier modals with inline validation and consistent back-office styling.
- * - Activate and Deactivate toggle with confirmation dialogs.
- * - Search by supplier name, email, phone, or address.
- * - Status filtering (All, Active, Inactive).
- * - Polished loading, empty, and success notification states.
- */
 export const SupplierManagementPage = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Filter & Search state
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL | ACTIVE | INACTIVE
 
   // Modal State
-  const [modalMode, setModalMode] = useState(null); // 'ADD' | 'EDIT' | null
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('ADD'); // ADD | EDIT
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [confirmDialog, setConfirmDialog] = useState(null); // { supplier, action: 'activate' | 'deactivate' } | null
 
-  // Form State with Structured Address Details
-  const [formData, setFormData] = useState(defaultFormData);
+  // Deactivate/Activate Confirmation Dialog
+  const [confirmDialog, setConfirmDialog] = useState(null); // { supplier, action: 'activate' | 'deactivate' }
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    addressLabel: 'Warehouse',
+    customAddressLabel: '',
+    addressLine: '',
+    landmark: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    latitude: 19.0760,
+    longitude: 72.8777,
+  });
+
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState(null);
+  const [pageError, setPageError] = useState(null);
   const [successBanner, setSuccessBanner] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
@@ -190,11 +157,13 @@ export const SupplierManagementPage = () => {
       } else {
         setLoading(true);
       }
+      setPageError(null);
       const data = await supplierService.getAllSuppliers();
       setSuppliers(Array.isArray(data) ? data : []);
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to load suppliers:', err);
+      setPageError(getErrorMessage(err, 'Unable to load supplier records from the server.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -218,105 +187,166 @@ export const SupplierManagementPage = () => {
       if (statusFilter === 'ACTIVE' && !isActive) return false;
       if (statusFilter === 'INACTIVE' && isActive) return false;
 
-      // Search Query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const rawId = q.replace(/^#\s*/, '');
-        const idMatch =
-          String(sup.id || '') === rawId ||
-          `#${sup.id}`.toLowerCase().includes(q) ||
-          (rawId && String(sup.id || '').includes(rawId));
-        const nameMatch = (sup.name || '').toLowerCase().includes(q);
-        const emailMatch = (sup.email || '').toLowerCase().includes(q);
-        const phoneMatch = (sup.phone || '').toLowerCase().includes(q);
-        const addressMatch = (sup.address || '').toLowerCase().includes(q);
-        if (!nameMatch && !emailMatch && !phoneMatch && !addressMatch && !idMatch) {
-          return false;
-        }
+      // Search Query Match (name, email, phone, address)
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const nameMatch = sup.name?.toLowerCase().includes(q);
+        const emailMatch = sup.email?.toLowerCase().includes(q);
+        const phoneMatch = sup.phone?.toLowerCase().includes(q);
+        const addrMatch = sup.address?.toLowerCase().includes(q);
+        return nameMatch || emailMatch || phoneMatch || addrMatch;
       }
 
       return true;
     });
-  }, [suppliers, statusFilter, searchQuery]);
-
-  const hasActiveFilters = statusFilter !== 'ALL' || searchQuery.trim() !== '';
-
-  const handleResetFilters = () => {
-    setSearchQuery('');
-    setStatusFilter('ALL');
-  };
+  }, [suppliers, statusFilter, searchTerm]);
 
   // Open Add Modal
   const handleOpenAddModal = () => {
-    setFormData(defaultFormData);
+    setModalMode('ADD');
+    setSelectedSupplier(null);
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      addressLabel: 'Warehouse',
+      customAddressLabel: '',
+      addressLine: '',
+      landmark: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      latitude: 19.0760,
+      longitude: 72.8777,
+    });
     setFormErrors({});
     setServerError(null);
-    setSelectedSupplier(null);
-    setModalMode('ADD');
+    setModalOpen(true);
   };
 
   // Open Edit Modal
   const handleOpenEditModal = (supplier) => {
-    const parsedAddr = parseExistingAddress(supplier.address);
-    setSelectedSupplier(supplier);
-    setFormData({
-      name: supplier.name || '',
-      email: supplier.email || '',
-      phone: supplier.phone || '',
-      ...parsedAddr,
-    });
-    setFormErrors({});
-    setServerError(null);
     setModalMode('EDIT');
+    setSelectedSupplier(supplier);
+    setFormErrors({});
+    setServerError(null);
+
+    const parsed = parseExistingAddress(supplier.address);
+    if (parsed) {
+      setFormData({
+        name: supplier.name || '',
+        email: supplier.email || '',
+        phone: supplier.phone || '',
+        addressLabel: parsed.addressLabel || 'Warehouse',
+        customAddressLabel: parsed.customAddressLabel || '',
+        addressLine: parsed.addressLine || '',
+        landmark: parsed.landmark || '',
+        city: parsed.city || '',
+        state: parsed.state || '',
+        postalCode: parsed.postalCode || '',
+        latitude: parsed.latitude || 19.0760,
+        longitude: parsed.longitude || 72.8777,
+      });
+    } else {
+      setFormData({
+        name: supplier.name || '',
+        email: supplier.email || '',
+        phone: supplier.phone || '',
+        addressLabel: 'Warehouse',
+        customAddressLabel: '',
+        addressLine: supplier.address || '',
+        landmark: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        latitude: 19.0760,
+        longitude: 72.8777,
+      });
+    }
+
+    setModalOpen(true);
   };
 
+  // Close Modal
   const handleCloseModal = () => {
-    setModalMode(null);
+    setModalOpen(false);
     setSelectedSupplier(null);
-    setFormData(defaultFormData);
     setFormErrors({});
     setServerError(null);
   };
 
-  // Form Validation
+  // Validate Form
   const validateForm = () => {
     const errors = {};
     if (!formData.name.trim()) {
-      errors.name = 'Supplier / Company name is required.';
+      errors.name = 'Supplier/Company name is required';
     }
-    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      errors.email = 'Please enter a valid email address.';
+
+    if (formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        errors.email = 'Please enter a valid email address';
+      }
     }
+
+    if (formData.phone.trim()) {
+      const phoneClean = formData.phone.replace(/[\s\-\(\)\+]/g, '');
+      if (phoneClean.length < 7 || phoneClean.length > 15) {
+        errors.phone = 'Phone number must be between 7 and 15 digits';
+      }
+    }
+
+    if (formData.postalCode.trim()) {
+      if (!/^[0-9A-Za-z\s\-]{3,10}$/.test(formData.postalCode.trim())) {
+        errors.postalCode = 'Please enter a valid postal/PIN code';
+      }
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Submit Add / Edit
-  const handleSubmitSupplier = async (e) => {
+  // Handle Location Picker Updates
+  const handleLocationSelect = (loc) => {
+    setFormData((prev) => ({
+      ...prev,
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      addressLine: loc.addressLine || prev.addressLine,
+      city: loc.city || prev.city,
+      state: loc.state || prev.state,
+      postalCode: loc.postalCode || prev.postalCode,
+      landmark: loc.landmark || prev.landmark,
+    }));
+  };
+
+  // Save Supplier (Create / Update)
+  const handleSaveSupplier = async (e) => {
     e.preventDefault();
     setServerError(null);
+    setPageError(null);
 
     if (!validateForm()) {
       return;
     }
 
     setSubmitting(true);
-
     try {
-      // Build structured full address string
-      const finalLabel = formData.addressLabel === 'Other'
-        ? (formData.customAddressLabel.trim() || 'Other')
-        : formData.addressLabel;
+      const activeLabel =
+        formData.addressLabel === 'Other'
+          ? (formData.customAddressLabel.trim() || 'Facility')
+          : formData.addressLabel;
 
       const addressParts = [
         formData.addressLine.trim(),
         formData.landmark.trim() ? `Near ${formData.landmark.trim()}` : null,
         formData.city.trim(),
-        formData.state.trim() ? `${formData.state.trim()}${formData.postalCode.trim() ? ' ' + formData.postalCode.trim() : ''}` : (formData.postalCode.trim() || null),
+        formData.state.trim(),
+        formData.postalCode.trim() ? `PIN: ${formData.postalCode.trim()}` : null,
       ].filter(Boolean);
 
       const fullFormattedAddress = [
-        finalLabel ? `[${finalLabel}]` : null,
+        activeLabel ? `[${activeLabel}]` : null,
         addressParts.join(', '),
       ].filter(Boolean).join(' ');
 
@@ -342,11 +372,12 @@ export const SupplierManagementPage = () => {
       setTimeout(() => setSuccessBanner(null), 5000);
     } catch (err) {
       console.error('Save supplier error:', err);
-      const msg =
-        err.response?.data?.message ||
-        (typeof err.response?.data === 'string' ? err.response.data : null) ||
-        'Failed to save supplier details. Please check the fields and try again.';
+      const msg = getErrorMessage(err, 'Failed to save supplier details. Please check the fields and try again.');
       setServerError(msg);
+      const fields = getFieldErrors(err);
+      if (fields && Object.keys(fields).length > 0) {
+        setFormErrors((prev) => ({ ...prev, ...fields }));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -357,6 +388,7 @@ export const SupplierManagementPage = () => {
     if (!confirmDialog) return;
     const { supplier, action } = confirmDialog;
     setSubmitting(true);
+    setPageError(null);
 
     try {
       if (action === 'activate') {
@@ -372,7 +404,8 @@ export const SupplierManagementPage = () => {
       setTimeout(() => setSuccessBanner(null), 5000);
     } catch (err) {
       console.error('Status toggle error:', err);
-      alert(err.response?.data?.message || 'Failed to update supplier status.');
+      setConfirmDialog(null);
+      setPageError(getErrorMessage(err, 'Failed to update supplier status.'));
     } finally {
       setSubmitting(false);
     }
@@ -411,6 +444,23 @@ export const SupplierManagementPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Page Error Banner */}
+      {pageError && (
+        <div className="alert alert-danger mb-4" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="flex items-center gap-2">
+            <AlertCircle size={18} className="text-danger" />
+            <span>{pageError}</span>
+          </div>
+          <button
+            onClick={() => setPageError(null)}
+            className="banner-close-btn"
+            aria-label="Dismiss error"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Success Notification Banner */}
       {successBanner && (

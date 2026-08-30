@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleMapLocationPicker } from './GoogleMapLocationPicker';
 import { Home, Briefcase, MapPin, X, AlertTriangle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { getErrorMessage, getFieldErrors } from '../../utils/apiError';
 
 /**
  * AddressModal Component
@@ -196,10 +197,7 @@ export const AddressModal = ({
       }
       onClose();
     } catch (err) {
-      setValidationError(
-        err.response?.data?.message ||
-        (typeof err.response?.data === 'string' ? err.response.data : 'Failed to save address. Please check your inputs.')
-      );
+      setValidationError(getErrorMessage(err, 'Failed to save address. Please check your inputs.'));
     } finally {
       setSaving(false);
     }

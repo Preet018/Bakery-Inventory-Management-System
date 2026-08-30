@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { orderService } from '../../services/orderService';
 import { productService } from '../../services/productService';
 import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
+import { getErrorMessage } from '../../utils/apiError';
 import {
   ShoppingBag,
   RefreshCw,
@@ -336,11 +337,7 @@ export const AdminOrderManagementPage = () => {
       setTimeout(() => setSuccessBanner(null), 5000);
     } catch (err) {
       console.error('Order action failed:', err);
-      const msg =
-        err.response?.data?.message ||
-        (typeof err.response?.data === 'string' ? err.response.data : null) ||
-        'Failed to execute order action. Please check the order state and try again.';
-      setActionError(msg);
+      setActionError(getErrorMessage(err, 'Failed to execute order action. Please check the order state and try again.'));
     } finally {
       setActionLoading(false);
     }

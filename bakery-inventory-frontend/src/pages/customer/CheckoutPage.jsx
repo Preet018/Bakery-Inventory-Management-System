@@ -6,6 +6,7 @@ import { orderService } from '../../services/orderService';
 import { addressService } from '../../services/addressService';
 import { paymentService } from '../../services/paymentService';
 import { razorpayService } from '../../services/razorpayService';
+import { getErrorMessage } from '../../utils/apiError';
 import artisanBakeryLogoImg from '../../assets/artisan-baecurry.png';
 import {
   MapPin,
@@ -306,9 +307,7 @@ export const CheckoutPage = () => {
           } catch (verifyErr) {
             console.error('Payment verification failed:', verifyErr);
             const verifyMsg =
-              verifyErr.response?.data?.message ||
-              'Payment verification failed. If your account was debited, please contact support with Order ID #' +
-                createdOrder.id;
+              getErrorMessage(verifyErr, 'Payment verification failed. If your account was debited, please contact support with Order ID #' + createdOrder.id);
             setError(verifyMsg);
             setSubmitting(false);
             setProcessingStatus(null);
@@ -343,10 +342,7 @@ export const CheckoutPage = () => {
       await razorpayService.openRazorpayCheckout(options, onPaymentFailed);
     } catch (err) {
       console.error('Checkout processing error:', err);
-      const msg =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to initiate checkout. Please verify inventory and try again.';
+      const msg = getErrorMessage(err, 'Failed to initiate checkout. Please verify inventory and try again.');
       setError(msg);
       setSubmitting(false);
       setProcessingStatus(null);

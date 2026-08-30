@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { categoryService } from '../../services/categoryService';
 import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
 import { CustomSelect } from '../../components/common/CustomSelect';
+import { getErrorMessage } from '../../utils/apiError';
 import {
   Shield,
   Layers,
@@ -61,11 +62,7 @@ export const CategoryManagementPage = () => {
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to fetch categories:', err);
-      setPageError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          'Failed to load categories from database.'
-      );
+      setPageError(getErrorMessage(err, 'Failed to load categories from database.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -141,11 +138,7 @@ export const CategoryManagementPage = () => {
       await fetchCategories();
     } catch (err) {
       console.error('Failed to create category:', err);
-      setModalError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          'Failed to create category. Please check the name and try again.'
-      );
+      setModalError(getErrorMessage(err, 'Failed to create category. Please check the name and try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -165,11 +158,7 @@ export const CategoryManagementPage = () => {
       await fetchCategories();
     } catch (err) {
       console.error('Failed to delete category:', err);
-      setPageError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          'Failed to delete category. It may have associated products.'
-      );
+      setPageError(getErrorMessage(err, 'Failed to delete category. It may have associated products.'));
     } finally {
       setDeletingId(null);
     }

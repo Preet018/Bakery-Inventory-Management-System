@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { orderService } from '../../services/orderService';
+import { getErrorMessage } from '../../utils/apiError';
 import { ArrowLeft, CheckCircle2, Package, MapPin, Phone, RefreshCw, XCircle, AlertCircle } from 'lucide-react';
 
 /**
- * NEW FILE: OrderDetailPage Component
+ * OrderDetailPage Component
  * Detailed order invoice receipt view with items, shipping details, payment info, and cancellation capability.
  */
 
@@ -25,7 +26,7 @@ export const OrderDetailPage = () => {
         const data = await orderService.getOrderById(id);
         setOrder(data);
       } catch (err) {
-        setError('Failed to load order details.');
+        setError(getErrorMessage(err, 'Failed to load order details.'));
       } finally {
         setLoading(false);
       }
@@ -51,7 +52,7 @@ export const OrderDetailPage = () => {
           : 'Order has been cancelled successfully.'
       );
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to cancel order.');
+      setError(getErrorMessage(err, 'Failed to cancel order.'));
     } finally {
       setCancelling(false);
     }

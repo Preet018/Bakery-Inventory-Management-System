@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { authService } from '../../services/authService';
 import { KeyRound, Lock, User, Mail, X, CheckCircle2, AlertCircle, Send } from 'lucide-react';
+import { getErrorMessage } from '../../utils/apiError';
 
 /**
  * ResetPasswordModal Component
@@ -138,24 +139,10 @@ export const ResetPasswordModal = ({ isOpen, onClose, prefillIdentifier = '' }) 
       startResendCountdown(60);
     } catch (err) {
       console.error('OTP Request error:', err);
-      let msg = 'Failed to send OTP. Please check your username/email.';
-
-      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        msg = 'The request timed out while sending the OTP email. Please try again.';
-      } else if (err.response) {
-        if (err.response.status === 401 || err.response.status === 404) {
-          msg = 'Backend endpoint not found / unauthorized (401). Please restart/recompile your Spring Boot backend.';
-        } else if (typeof err.response.data === 'string' && err.response.data.trim()) {
-          msg = err.response.data;
-        } else if (err.response.data?.message) {
-          msg = err.response.data.message;
-        }
-      } else if (!err.response && err.request) {
-        msg = 'Unable to reach the server. Please verify the backend is running.';
-      }
+      const msg = getErrorMessage(err, 'Failed to send OTP. Please check your username/email.');
       setError(msg);
 
-      // CHANGE: If backend returned a cooldown error, start/maintain the cooldown countdown
+      // If backend returned a cooldown error, start/maintain the cooldown countdown
       if (typeof msg === 'string' && msg.toLowerCase().includes('wait before')) {
         startResendCountdown(60);
       }
@@ -207,18 +194,7 @@ export const ResetPasswordModal = ({ isOpen, onClose, prefillIdentifier = '' }) 
       }, 5000);
     } catch (err) {
       console.error('Password reset error:', err);
-      let msg = 'Failed to reset password. Invalid or expired OTP code.';
-      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        msg = 'The request timed out. Please try again.';
-      } else if (err.response) {
-        if (err.response.status === 401 || err.response.status === 404) {
-          msg = 'Backend endpoint not found / unauthorized. Please restart your Spring Boot backend.';
-        } else if (typeof err.response.data === 'string' && err.response.data.trim()) {
-          msg = err.response.data;
-        } else if (err.response.data?.message) {
-          msg = err.response.data.message;
-        }
-      }
+      const msg = getErrorMessage(err, 'Failed to reset password. Invalid or expired OTP code.');
       setError(msg);
     } finally {
       setSubmitting(false);

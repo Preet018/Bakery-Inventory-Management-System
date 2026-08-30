@@ -20,6 +20,7 @@ import {
   hasAllowedRole,
   normalizeRole,
 } from '../../utils/authUtils';
+import { getErrorMessage } from '../../utils/apiError';
 
 import {
   Lock,
@@ -262,18 +263,12 @@ export const RoleLoginForm = ({
     } catch (err) {
       console.error('Login error:', err);
 
-      let msg = 'Login failed. Please check your credentials.';
+      let msg = getErrorMessage(err, 'Login failed. Please check your credentials.');
 
-      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        msg = 'The login request timed out. Please try again.';
-      } else if (err.response?.status === 401) {
+      if (err.response?.status === 401) {
         msg = 'Unable to sign in. Invalid username/email or password.';
       } else if (err.response?.data?.error === 'EMAIL_NOT_VERIFIED' || err.response?.data?.message?.includes('verified')) {
         msg = err.response.data.message || 'Your email is not verified. Please verify your email before logging in.';
-      } else if (err.response?.data?.message) {
-        msg = err.response.data.message;
-      } else if (typeof err.response?.data === 'string' && err.response.data.trim()) {
-        msg = err.response.data;
       }
 
       setError(msg);

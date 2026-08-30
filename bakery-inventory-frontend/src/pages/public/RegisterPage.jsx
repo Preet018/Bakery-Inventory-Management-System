@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../services/authService';
+import { getErrorMessage, getFieldErrors } from '../../utils/apiError';
 import {
   User,
   Mail,
@@ -116,11 +117,7 @@ export const RegisterPage = () => {
       setResendCooldown(60);
     } catch (err) {
       console.error('Registration error:', err);
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Registration failed. Please check your details.';
-      setError(msg);
+      setError(getErrorMessage(err, 'Registration failed. Please check your details.'));
     } finally {
       setSubmitting(false);
     }
@@ -169,11 +166,7 @@ export const RegisterPage = () => {
       }, 2500);
     } catch (err) {
       console.error('OTP Verification error:', err);
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'OTP verification failed. Invalid or expired verification code.';
-      setError(msg);
+      setError(getErrorMessage(err, 'OTP verification failed. Invalid or expired verification code.'));
     } finally {
       setVerifying(false);
     }
@@ -198,11 +191,7 @@ export const RegisterPage = () => {
       setResendCooldown(60);
     } catch (err) {
       console.error('Resend OTP error:', err);
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        'Failed to resend OTP. Please try again.';
-      setError(msg);
+      setError(getErrorMessage(err, 'Failed to resend OTP. Please try again.'));
     } finally {
       setResending(false);
     }

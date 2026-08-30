@@ -4,6 +4,7 @@ import { categoryService } from '../../services/categoryService';
 import { supplierService } from '../../services/supplierService';
 import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
 import { CustomSelect } from '../../components/common/CustomSelect';
+import { getErrorMessage, getFieldErrors } from '../../utils/apiError';
 import {
   Package,
   Plus,
@@ -428,7 +429,7 @@ export const ProductManagementPage = () => {
       errors.description = 'Description must not exceed 2000 characters';
     }
 
-    if (!formData.price || isNaN(formData.price) || Number(formData.price) <= 0) {
+    if (!formData.price || isNaN(Number(formData.price)) || Number(formData.price) <= 0) {
       errors.price = 'Price must be greater than zero';
     }
 
@@ -471,11 +472,11 @@ export const ProductManagementPage = () => {
       setShowCreateModal(false);
     } catch (err) {
       console.error('Create product failed:', err);
-      setModalError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          'Failed to create product. Please verify inputs.'
-      );
+      setModalError(getErrorMessage(err, 'Failed to create product. Please verify inputs.'));
+      const fields = getFieldErrors(err);
+      if (fields && Object.keys(fields).length > 0) {
+        setFormErrors((prev) => ({ ...prev, ...fields }));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -523,11 +524,11 @@ export const ProductManagementPage = () => {
       setShowEditModal(false);
     } catch (err) {
       console.error('Update product failed:', err);
-      setModalError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          'Failed to update product. Please check form values.'
-      );
+      setModalError(getErrorMessage(err, 'Failed to update product. Please check form values.'));
+      const fields = getFieldErrors(err);
+      if (fields && Object.keys(fields).length > 0) {
+        setFormErrors((prev) => ({ ...prev, ...fields }));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -557,11 +558,8 @@ export const ProductManagementPage = () => {
       setStatusActionProduct(null);
     } catch (err) {
       console.error('Failed to change product status:', err);
-      alert(
-        err.response?.data?.message ||
-          err.response?.data ||
-          'Failed to update product status.'
-      );
+      setStatusActionProduct(null);
+      setPageError(getErrorMessage(err, 'Failed to update product status.'));
     } finally {
       setStatusToggling(false);
     }
@@ -629,9 +627,7 @@ export const ProductManagementPage = () => {
     } catch (err) {
       console.error('Failed to upload images:', err);
       setImageActionError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          'Failed to upload images. Note: images can only be uploaded for active products.'
+        getErrorMessage(err, 'Failed to upload images. Note: images can only be uploaded for active products.')
       );
     } finally {
       setUploadingImages(false);
@@ -666,9 +662,7 @@ export const ProductManagementPage = () => {
     } catch (err) {
       console.error('Failed to remove image:', err);
       setImageActionError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          'Failed to remove image. A product must retain at least one image.'
+        getErrorMessage(err, 'Failed to remove image. A product must retain at least one image.')
       );
       setImageToDelete(null);
     } finally {

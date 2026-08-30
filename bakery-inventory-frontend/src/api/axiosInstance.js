@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getErrorMessage, getFieldErrors } from '../utils/apiError';
 
 /**
  * Centralized Axios Instance
@@ -7,6 +8,7 @@ import axios from 'axios';
  * 1. Uses the Spring Boot backend URL.
  * 2. Adds the JWT token to requests.
  * 3. Handles authentication errors globally.
+ * 4. Normalizes API error responses into user-safe messages.
  */
 
 const API_BASE_URL = 'http://localhost:8080';
@@ -16,7 +18,7 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // CHANGE: Global 30-second timeout. The backend sends OTP emails via
+  // Global 30-second timeout. The backend sends OTP emails via
   // synchronous JavaMailSender.send(), which can block the HTTP response
   // for 5–15+ seconds during SMTP TLS handshake. Without a timeout, the
   // UI would hang indefinitely if SMTP is unresponsive.
@@ -40,13 +42,18 @@ axiosInstance.interceptors.request.use(
 );
 
 // =========================================================
-// RESPONSE INTERCEPTOR: Handle 401 / 403 errors safely
+// RESPONSE INTERCEPTOR: Handle 401 / 403 errors and normalize messages
 // =========================================================
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
     const url = error.config?.url || '';
+
+    // Attach normalized error properties
+    error.userMessage = getErrorMessage(error);
+    error.fieldErrors = getFieldErrors(error);
+    error.isNetworkError = Boolean(!error.response && error.request) || error.code === 'ERR_NETWORK';
 
     // Only clear session on 401 from protected API routes (excluding auth endpoints & public browsing)
     const isPublicRoute =
