@@ -257,7 +257,8 @@ public class PaymentServiceImpl implements PaymentService {
         CustomerOrder order = payment.getOrder();
 
         if (order.getOrderStatus() != OrderStatus.PENDING_PAYMENT && order.getOrderStatus() != OrderStatus.PLACED) {
-            if (order.getOrderStatus() == OrderStatus.CONFIRMED && payment.getPaymentStatus() == PaymentStatus.PAID) {
+            // CHANGE: Idempotency check returns existing payment response if already confirmed/placed
+            if ((order.getOrderStatus() == OrderStatus.PLACED || order.getOrderStatus() == OrderStatus.CONFIRMED) && payment.getPaymentStatus() == PaymentStatus.PAID) {
                 return mapToResponse(payment, providerPaymentId);
             }
             throw new BusinessRuleException(
@@ -286,7 +287,8 @@ public class PaymentServiceImpl implements PaymentService {
 
         paymentRepository.save(payment);
 
-        order.setOrderStatus(OrderStatus.CONFIRMED);
+        // CHANGE: Successfully paid order transitions to PLACED so it can be managed/cancelled before kitchen confirmation
+        order.setOrderStatus(OrderStatus.PLACED);
         order.setUpdatedAt(LocalDateTime.now());
 
         customerOrderRepository.save(order);

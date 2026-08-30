@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { orderService } from '../../services/orderService';
 import { productService } from '../../services/productService';
+import { getErrorMessage } from '../../utils/apiError';
 import {
   Package,
   Calendar,
@@ -14,11 +15,24 @@ import {
   ArrowRight,
   Wallet,
   ReceiptText,
+  AlertCircle,
+  X,
 } from 'lucide-react';
+
+// CHANGE: Order progress lifecycle steps and labels for order history cards
+const LIFECYCLE_STEPS = ['PLACED', 'CONFIRMED', 'PROCESSING', 'READY', 'DELIVERED'];
+
+const STEP_LABELS = {
+  PLACED: 'Placed',
+  CONFIRMED: 'Confirmed',
+  PROCESSING: 'Baking / Processing',
+  READY: 'Ready for Dispatch',
+  DELIVERED: 'Delivered',
+};
 
 /**
  * OrderHistoryPage Component
- * Displays modern customer order history cards with product names, count strip, and standardized status badges.
+ * Displays modern customer order history cards with product names, status badges, progress bar, direct cancellation, and details links.
  */
 export const OrderHistoryPage = () => {
   const { user, isAdmin } = useAuth();
@@ -26,42 +40,77 @@ export const OrderHistoryPage = () => {
   const [productsMap, setProductsMap] = useState({});
   const [loading, setLoading] = useState(true);
 
+  // Cancellation modal & action states
+  const [confirmCancelOrder, setConfirmCancelOrder] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [actionError, setActionError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+
+  const fetchOrdersAndProducts = async () => {
+    try {
+      setLoading(true);
+      const [ordersData, productsData] = await Promise.all([
+        isAdmin
+          ? orderService.getAllOrders().catch(() => [])
+          : user?.userId
+          ? orderService.getOrdersByUserId(user.userId).catch(() => [])
+          : Promise.resolve([]),
+        productService.getAllProducts().catch(() => []),
+      ]);
+
+      // Map products for fast name resolution
+      const pMap = {};
+      (productsData || []).forEach((prod) => {
+        pMap[prod.id] = prod;
+      });
+      setProductsMap(pMap);
+
+      // Sort most recent first
+      const sorted = (ordersData || []).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      setOrders(sorted);
+    } catch (err) {
+      console.error('Failed to load orders or products:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchOrdersAndProducts = async () => {
-      try {
-        setLoading(true);
-        const [ordersData, productsData] = await Promise.all([
-          isAdmin
-            ? orderService.getAllOrders().catch(() => [])
-            : user?.userId
-            ? orderService.getOrdersByUserId(user.userId).catch(() => [])
-            : Promise.resolve([]),
-          productService.getAllProducts().catch(() => []),
-        ]);
-
-        // Map products for fast name resolution
-        const pMap = {};
-        (productsData || []).forEach((prod) => {
-          pMap[prod.id] = prod;
-        });
-        setProductsMap(pMap);
-
-        // Sort most recent first
-        const sorted = (ordersData || []).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        setOrders(sorted);
-      } catch (err) {
-        console.error('Failed to load orders or products:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (user) {
       fetchOrdersAndProducts();
     }
   }, [user, isAdmin]);
 
-  // Exact Status Badges matching Manage Orders
+  const handleExecuteCancel = async () => {
+    if (!confirmCancelOrder) return;
+    setCancelling(true);
+    setActionError(null);
+
+    try {
+      const updated = await orderService.cancelOrder(confirmCancelOrder.id);
+      
+      // Update local orders list state
+      setOrders((prev) =>
+        prev.map((o) => (o.id === confirmCancelOrder.id ? { ...o, ...updated, orderStatus: 'CANCELLED', status: 'CANCELLED' } : o))
+      );
+
+      const isPaid = confirmCancelOrder.payment?.paymentStatus === 'PAID';
+      setSuccessMsg(
+        isPaid
+          ? `Order #${confirmCancelOrder.id} has been cancelled successfully. Your payment has been fully refunded through Razorpay.`
+          : `Order #${confirmCancelOrder.id} has been cancelled successfully.`
+      );
+      setConfirmCancelOrder(null);
+      setTimeout(() => setSuccessMsg(null), 6000);
+    } catch (err) {
+      console.error('Failed to cancel order:', err);
+      setActionError(getErrorMessage(err, 'Failed to cancel order. Please try again.'));
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  // Status Badges
   const getStatusBadge = (status) => {
     switch (status) {
       case 'DELIVERED':
@@ -92,6 +141,12 @@ export const OrderHistoryPage = () => {
         return (
           <span className="order-status-badge badge-order-placed">
             <Clock size={13} /> Placed
+          </span>
+        );
+      case 'PENDING_PAYMENT':
+        return (
+          <span className="order-status-badge badge-order-placed">
+            <Clock size={13} /> Pending Payment
           </span>
         );
       case 'CANCELLED':
@@ -142,6 +197,16 @@ export const OrderHistoryPage = () => {
         <p className="page-header-subtitle">Review and track your recent bakery orders and invoices</p>
       </div>
 
+      {/* Success Notification Banner */}
+      {successMsg && (
+        <div className="supplier-success-banner mb-4">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-success" />
+            <span>{successMsg}</span>
+          </div>
+        </div>
+      )}
+
       {/* Showing X of Y orders header strip */}
       {!loading && orders.length > 0 && (
         <div className="table-header-strip mb-4" style={{ borderRadius: 'var(--radius-sm, 8px)', border: '1px solid var(--color-border, #E5E7EB)' }}>
@@ -171,6 +236,9 @@ export const OrderHistoryPage = () => {
       ) : (
         <div className="orders-list-grid">
           {orders.map((order) => {
+            const currentStatus = order.orderStatus || order.status || 'PLACED';
+            const isEligibleForCancel = ['PLACED', 'PENDING_PAYMENT', 'CONFIRMED'].includes(currentStatus);
+
             const orderDate = new Date(order.createdAt || Date.now());
             const formattedDate = orderDate.toLocaleDateString('en-US', {
               month: 'short',
@@ -201,7 +269,7 @@ export const OrderHistoryPage = () => {
                   </div>
 
                   <div className="order-status-wrap">
-                    {getStatusBadge(order.orderStatus || order.status)}
+                    {getStatusBadge(currentStatus)}
                   </div>
                 </div>
 
@@ -228,7 +296,41 @@ export const OrderHistoryPage = () => {
                   </div>
                 </div>
 
-                {/* Card Bottom Row: Total, Payment & Details Action */}
+                {/* // CHANGE: Added Order Progress Status Bar to history card */}
+                {currentStatus !== 'CANCELLED' && (
+                  <div className="order-card-progress-section">
+                    <div className="invoice-stepper-track">
+                      <div className="invoice-step-connector">
+                        <div
+                          className="invoice-step-connector-progress"
+                          style={{
+                            width: `${(Math.max(0, LIFECYCLE_STEPS.indexOf(currentStatus)) / (LIFECYCLE_STEPS.length - 1)) * 100}%`,
+                          }}
+                        />
+                      </div>
+
+                      {LIFECYCLE_STEPS.map((step, idx) => {
+                        const currentIdx = LIFECYCLE_STEPS.indexOf(currentStatus);
+                        const isCompleted = currentIdx > idx;
+                        const isCurrent = currentIdx === idx;
+
+                        return (
+                          <div
+                            key={step}
+                            className={`invoice-step-node ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}
+                          >
+                            <div className="invoice-step-circle">
+                              {isCompleted ? <CheckCircle2 size={14} /> : <span>{idx + 1}</span>}
+                            </div>
+                            <span className="invoice-step-label">{STEP_LABELS[step] || step}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Card Bottom Row: Total, Payment & Actions */}
                 <div className="order-card-bottom">
                   <div className="order-summary-meta">
                     <div className="order-total-block">
@@ -242,21 +344,109 @@ export const OrderHistoryPage = () => {
                     </div>
                   </div>
 
-                  <Link
-                    to={`/customer/orders/${order.id}`}
-                    className="btn-order-view"
-                  >
-                    <ReceiptText size={15} />
-                    <span>View Invoice</span>
-                    <ArrowRight size={14} />
-                  </Link>
+                  {/* // CHANGE: Matched visual styling with Admin/Inventory Manager Cancel Order button using btn-sm btn-danger */}
+                  <div className="order-card-actions-group">
+                    {isEligibleForCancel && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmCancelOrder(order);
+                          setActionError(null);
+                        }}
+                        className="btn-sm btn-danger"
+                        title="Cancel this order"
+                        disabled={cancelling}
+                      >
+                        <XCircle size={13} style={{ marginRight: '4px' }} />
+                        <span>Cancel Order</span>
+                      </button>
+                    )}
+
+                    {/* // CHANGE: Renamed button from 'View Invoice' to 'View Details' */}
+                    <Link
+                      to={`/customer/orders/${order.id}`}
+                      className="btn-order-view"
+                      title="View complete order details"
+                    >
+                      <ReceiptText size={15} />
+                      <span>View Details</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {/* Safety Confirmation Dialog for Customer Cancellation */}
+      {confirmCancelOrder && (
+        <div className="modal-overlay" onClick={() => setConfirmCancelOrder(null)}>
+          <div
+            className="modal-container card confirmation-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="modal-header-icon-title">
+                <XCircle className="text-danger" size={22} />
+                <h3>Cancel Order #{confirmCancelOrder.id}?</h3>
+              </div>
+              <button
+                onClick={() => setConfirmCancelOrder(null)}
+                className="modal-close-btn"
+                aria-label="Close dialog"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="confirmation-modal-body">
+              {/* Action error banner */}
+              {actionError && (
+                <div className="error-alert mb-3">
+                  <AlertCircle size={18} />
+                  <span>{actionError}</span>
+                </div>
+              )}
+
+              <div className="cancellation-consequences-box">
+                <p className="mb-2">
+                  Are you sure you want to cancel <strong>Order #{confirmCancelOrder.id}</strong>?
+                </p>
+                <ul className="text-sm text-muted" style={{ paddingLeft: '1.25rem', lineHeight: '1.6', margin: '0.5rem 0' }}>
+                  <li>Your order will be permanently marked as <strong>Cancelled</strong>.</li>
+                  <li>Reserved bakery treats will be restored to bakery inventory.</li>
+                  {confirmCancelOrder.payment?.paymentStatus === 'PAID' && (
+                    <li className="font-semibold text-primary">
+                      A full refund of ₹{Number(confirmCancelOrder.totalAmount || 0).toFixed(2)} will be initiated via Razorpay to your payment method.
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                onClick={() => setConfirmCancelOrder(null)}
+                className="btn-secondary"
+                disabled={cancelling}
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteCancel}
+                className="btn-danger"
+                disabled={cancelling}
+              >
+                {cancelling ? 'Cancelling...' : 'Yes, Cancel Order'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-

@@ -493,6 +493,12 @@ a:hover {
   background-color: #DC2626;
 }
 
+/* // CHANGE: Added disabled state for btn-danger */
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-success {
   background-color: var(--color-success);
   color: white;
@@ -2252,9 +2258,11 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
    ========================================================================== */
 
 /* Dashboard Container & Navigation Alignment */
+/* // CHANGE: Include .admin-orders-page.page-container in 1440px back-office dashboard alignment */
 .inventory-dashboard.page-container,
 .stock-history-page.page-container,
-.supplier-page.page-container {
+.supplier-page.page-container,
+.admin-orders-page.page-container {
   max-width: 1440px;
   width: 100%;
   margin: 0 auto;
@@ -6429,9 +6437,7 @@ body.modal-open {
    ADMIN ORDER MANAGEMENT STYLES (Issue #15)
    ========================================================================== */
 
-.admin-orders-page.page-container {
-  max-width: 1320px;
-}
+/* // CHANGE: Container max-width aligned with backoffice standard (1440px) in main layout section */
 
 .admin-orders-metrics-grid {
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
@@ -6447,75 +6453,6 @@ body.modal-open {
   background-color: #EDE9FE;
   color: #6D28D9;
   font-weight: 700;
-}
-
-/* Table Specific Layout */
-.admin-orders-table {
-  table-layout: fixed !important;
-  width: 100% !important;
-}
-
-.admin-orders-table th,
-.admin-orders-table td {
-  padding: 0.8rem 0.65rem;
-  vertical-align: middle;
-}
-
-.order-table-datetime {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  line-height: 1.3;
-}
-
-.datetime-date {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-dark);
-}
-
-.datetime-time {
-  font-size: 0.75rem;
-}
-
-.order-customer-cell {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.35;
-}
-
-.order-items-summary-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  overflow: hidden;
-}
-
-.items-count-tag {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--color-primary-hover);
-  background-color: #FEF3C7;
-  padding: 0.1rem 0.45rem;
-  border-radius: var(--radius-full);
-  width: fit-content;
-}
-
-.items-names-preview {
-  font-size: 0.82rem;
-  color: var(--color-text-main);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.order-total-amount {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--color-dark);
-  font-family: var(--font-heading);
 }
 
 /* Order Status Badges */
@@ -7997,6 +7934,17 @@ body.modal-open {
   margin-left: 0.2rem;
 }
 
+/* // CHANGE: Progress status bar inside customer order history card */
+.order-card-progress-section {
+  padding: 1.1rem 0.5rem 0.5rem;
+  margin: 0.75rem 0 0.5rem;
+  border-top: 1px dashed #F3F4F6;
+}
+
+.order-card-progress-section .invoice-stepper-track {
+  margin-top: 0;
+}
+
 /* Card Bottom: Summary & Action */
 .order-card-bottom {
   display: flex;
@@ -8114,4 +8062,747 @@ body.modal-open {
   border: 1px solid #FDE68A;
   border-radius: 8px;
   padding: 0.85rem 1rem;
+}
+
+/* ==========================================================================
+   CUSTOMER ORDER INVOICE / RECEIPT STYLES
+   ========================================================================== */
+
+.invoice-page-wrapper {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+.invoice-top-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.invoice-top-actions-bar .back-link {
+  margin-bottom: 0;
+}
+
+.invoice-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-dark, #451A03);
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-sm, 8px);
+  background: #FFFFFF;
+  border: 1px solid var(--color-border, #E5E7EB);
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.invoice-back-link:hover {
+  background: var(--color-primary-light, #FEF3C7);
+  color: var(--color-primary-hover, #B45309);
+  border-color: var(--color-border-warm, #FDE68A);
+  transform: translateX(-2px);
+}
+
+.invoice-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-invoice-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--color-border, #E5E7EB);
+  background: #FFFFFF;
+  color: var(--color-text-main, #1F2937);
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.btn-invoice-action:hover {
+  background: #F9FAFB;
+  border-color: #D1D5DB;
+  color: var(--color-dark, #451A03);
+}
+
+/* Stepper Card */
+.invoice-stepper-card {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: var(--radius-md, 14px);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+}
+
+.invoice-stepper-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.invoice-stepper-heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-dark, #451A03);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.invoice-stepper-desc {
+  font-size: 0.84rem;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.invoice-stepper-track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.invoice-step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.invoice-step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #F3F4F6;
+  border: 2px solid #E5E7EB;
+  color: #9CA3AF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  transition: all 0.25s ease;
+}
+
+.invoice-step-node.completed .invoice-step-circle {
+  background: #10B981;
+  border-color: #10B981;
+  color: #FFFFFF;
+}
+
+.invoice-step-node.current .invoice-step-circle {
+  background: var(--color-primary, #D97706);
+  border-color: var(--color-primary, #D97706);
+  color: #FFFFFF;
+  box-shadow: 0 0 0 4px var(--color-primary-light, #FEF3C7);
+}
+
+.invoice-step-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #9CA3AF;
+}
+
+.invoice-step-node.completed .invoice-step-label,
+.invoice-step-node.current .invoice-step-label {
+  color: var(--color-dark, #451A03);
+}
+
+.invoice-step-connector {
+  position: absolute;
+  top: 16px;
+  left: 10%;
+  right: 10%;
+  height: 3px;
+  background: #E5E7EB;
+  z-index: 1;
+}
+
+.invoice-step-connector-progress {
+  height: 100%;
+  background: #10B981;
+  transition: width 0.4s ease;
+}
+
+/* Main Invoice Paper Card */
+.invoice-paper-card {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-top: 5px solid var(--color-primary, #D97706);
+  border-radius: var(--radius-md, 14px);
+  padding: 2.25rem 2rem;
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(69, 26, 3, 0.08));
+  position: relative;
+}
+
+/* Invoice Header */
+.invoice-brand-strip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px dashed var(--color-border, #E5E7EB);
+  margin-bottom: 1.5rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.invoice-brand-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.invoice-brand-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: var(--radius-sm, 8px);
+  background: #FFFBEF;
+  padding: 4px;
+  border: 1px solid var(--color-border-warm, #FDE68A);
+}
+
+.invoice-brand-text h2 {
+  font-size: 1.4rem;
+  margin: 0;
+  color: var(--color-dark, #451A03);
+  letter-spacing: 0.02em;
+}
+
+.invoice-brand-text p {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #6B7280);
+  margin: 0.15rem 0 0;
+}
+
+.invoice-title-block {
+  text-align: right;
+}
+
+.invoice-main-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-dark, #451A03);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.invoice-order-number-chip {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primary, #D97706);
+  background: var(--color-primary-light, #FEF3C7);
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-sm, 8px);
+  margin-top: 0.35rem;
+}
+
+/* Metadata Bar */
+.invoice-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFDF9;
+  border: 1px solid var(--color-border-warm, #FDE68A);
+  border-radius: var(--radius-sm, 8px);
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 1.75rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.invoice-meta-datetime {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.invoice-datetime-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.invoice-meta-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 2-Column Invoice Layout */
+.invoice-body-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+@media (max-width: 860px) {
+  .invoice-body-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Items Table */
+.invoice-items-card {
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: var(--radius-sm, 8px);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.invoice-items-header-bar {
+  background: #F9FAFB;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-dark, #451A03);
+  border-bottom: 1px solid var(--color-border, #E5E7EB);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.invoice-table th {
+  background: #FAFAFA;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #6B7280);
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--color-border, #E5E7EB);
+  letter-spacing: 0.04em;
+}
+
+.invoice-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #F3F4F6;
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.invoice-table tr:last-child td {
+  border-bottom: none;
+}
+
+.invoice-item-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.invoice-item-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--color-border, #E5E7EB);
+  background: #FFFBEF;
+  flex-shrink: 0;
+}
+
+.invoice-item-thumb-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #FFFBEF;
+  border: 1px solid var(--color-border-warm, #FDE68A);
+  color: var(--color-primary, #D97706);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.invoice-item-name {
+  font-weight: 700;
+  color: var(--color-dark, #451A03);
+  font-size: 0.92rem;
+  display: block;
+}
+
+.invoice-item-cat {
+  font-size: 0.76rem;
+  color: var(--color-text-muted, #6B7280);
+  display: inline-block;
+  margin-top: 0.15rem;
+}
+
+.invoice-qty-badge {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  background: #F3F4F6;
+  border-radius: 6px;
+  color: var(--color-text-main, #1F2937);
+}
+
+.invoice-subtotal-cell {
+  font-weight: 700;
+  color: var(--color-dark, #451A03);
+  text-align: right;
+  font-size: 0.95rem;
+}
+
+/* Pricing Breakdown */
+.invoice-price-breakdown-card {
+  background: #FFFDF9;
+  border: 1px solid var(--color-border-warm, #FDE68A);
+  border-radius: var(--radius-sm, 8px);
+  padding: 1.25rem 1.25rem;
+}
+
+.invoice-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  margin-bottom: 0.65rem;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.invoice-price-row:last-child {
+  margin-bottom: 0;
+}
+
+.invoice-grand-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.85rem;
+  margin-top: 0.85rem;
+  border-top: 2px dashed var(--color-border-warm, #FDE68A);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-dark, #451A03);
+}
+
+.invoice-grand-total-amount {
+  font-size: 1.35rem;
+  color: var(--color-primary-hover, #B45309);
+}
+
+/* Sidebar Panels */
+.invoice-sidebar-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.invoice-info-panel {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: var(--radius-sm, 8px);
+  padding: 1.15rem 1.25rem;
+}
+
+.invoice-panel-heading {
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-dark, #451A03);
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  letter-spacing: 0.02em;
+}
+
+.invoice-panel-detail-row {
+  margin-bottom: 0.55rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.invoice-panel-detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.invoice-detail-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #6B7280);
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.invoice-detail-val {
+  color: var(--color-text-main, #1F2937);
+  font-weight: 500;
+}
+
+.invoice-detail-val.strong {
+  font-weight: 700;
+  color: var(--color-dark, #451A03);
+}
+
+.invoice-freshness-guarantee {
+  background: #FFFBEF;
+  border: 1px solid var(--color-border-warm, #FDE68A);
+  border-radius: var(--radius-sm, 8px);
+  padding: 0.85rem 1rem;
+  font-size: 0.82rem;
+  color: var(--color-dark, #451A03);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  line-height: 1.4;
+}
+
+/* // CHANGE: Cancellation Action Section on View Details page */
+.invoice-cancellation-container {
+  margin-top: 1.75rem;
+}
+
+.invoice-cancel-card {
+  background: #FFFDF9;
+  border: 1px solid #FED7AA;
+  border-radius: var(--radius-md, 12px);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.invoice-cancel-info h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--color-dark, #451A03);
+}
+
+.invoice-cancel-info p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--color-text-muted, #6B7280);
+  line-height: 1.45;
+}
+
+/* Action Buttons Group */
+.action-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+}
+
+/* =========================================================
+   // CHANGE: ADMIN / INVENTORY MANAGER ORDERS TABLE LAYOUT & SIZING
+   ========================================================= */
+
+.admin-orders-page .table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-orders-table {
+  width: 100% !important;
+  min-width: 860px !important;
+  table-layout: fixed !important;
+  border-collapse: collapse;
+}
+
+.admin-orders-table th {
+  padding: 0.85rem 0.75rem !important;
+  font-size: 0.76rem !important;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background-color: #F9FAFB;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-orders-table td {
+  padding: 0.85rem 0.75rem !important;
+  vertical-align: middle;
+  border-top: 1px solid var(--color-border);
+}
+
+/* // CHANGE: Boundary padding matching table header strip */
+.admin-orders-table th:first-child,
+.admin-orders-table td:first-child {
+  padding-left: 1.25rem !important;
+}
+
+.admin-orders-table th:last-child,
+.admin-orders-table td:last-child {
+  padding-right: 1.25rem !important;
+}
+
+.admin-orders-table .actions-column-header {
+  text-align: right;
+}
+
+.order-table-datetime {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.order-table-datetime .datetime-date {
+  font-weight: 600;
+  font-size: 0.83rem;
+  color: var(--color-dark, #451A03);
+  white-space: nowrap;
+}
+
+.order-table-datetime .datetime-time {
+  font-size: 0.74rem;
+  color: var(--color-text-muted, #6B7280);
+  white-space: nowrap;
+}
+
+.order-customer-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 110px;
+}
+
+.order-customer-cell .customer-name {
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: var(--color-text-main, #1F2937);
+  white-space: nowrap;
+}
+
+.order-customer-cell .customer-phone {
+  font-size: 0.74rem;
+  color: var(--color-text-muted, #6B7280);
+  white-space: nowrap;
+}
+
+/* // CHANGE: Flexible Items Summary container utilizing available width without artificial truncation */
+.order-items-summary-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.items-count-tag {
+  align-self: flex-start;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  background: var(--color-primary-light, #FEF3C7);
+  color: var(--color-primary-hover, #B45309);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* // CHANGE: Ellipsis handling for items names preview ensuring flex bounds */
+.items-names-preview {
+  font-size: 0.81rem;
+  color: var(--color-text-main, #374151);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+
+.order-total-amount {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--color-dark, #451A03);
+  white-space: nowrap;
+}
+
+/* // CHANGE: Clean Actions cell and button group sizing aligned to right boundary */
+.admin-orders-table .actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.admin-orders-table .action-buttons-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.admin-orders-table .action-buttons-group .btn-sm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Customer Order History Card Actions Group */
+.order-card-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: #FFFFFF !important;
+  }
+  
+  .bakery-navbar,
+  .footer,
+  .invoice-top-actions-bar,
+  .invoice-stepper-card {
+    display: none !important;
+  }
+
+  .invoice-page-wrapper {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .invoice-paper-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
 }

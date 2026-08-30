@@ -34,6 +34,15 @@ import {
  * Metadata definitions for Order Statuses & Transitions
  */
 export const ORDER_STATUS_META = {
+  // CHANGE: Added PENDING_PAYMENT status metadata supporting eligible cancellation
+  PENDING_PAYMENT: {
+    label: 'Pending Payment',
+    badgeClass: 'badge-order-placed',
+    icon: <Clock size={13} />,
+    description: 'Awaiting customer payment completion',
+    nextAction: null,
+    allowCancel: true,
+  },
   PLACED: {
     label: 'Placed',
     badgeClass: 'badge-order-placed',
@@ -58,7 +67,8 @@ export const ORDER_STATUS_META = {
       btnClass: 'btn-warning',
       description: 'Move order into baking / preparation',
     },
-    allowCancel: false,
+    // CHANGE: Allow cancellation for CONFIRMED orders before baking begins
+    allowCancel: true,
   },
   PROCESSING: {
     label: 'Processing',
@@ -201,7 +211,8 @@ export const AdminOrderManagementPage = () => {
 
   // Summary Metrics
   const totalOrders = orders.length;
-  const placedOrders = orders.filter((o) => (o.orderStatus || o.status) === 'PLACED').length;
+  // CHANGE: Include both PLACED and PENDING_PAYMENT under New/Placed orders metric
+  const placedOrders = orders.filter((o) => ['PLACED', 'PENDING_PAYMENT'].includes(o.orderStatus || o.status)).length;
   const inProgressOrders = orders.filter((o) =>
     ['CONFIRMED', 'PROCESSING', 'READY'].includes(o.orderStatus || o.status)
   ).length;
@@ -243,7 +254,8 @@ export const AdminOrderManagementPage = () => {
 
   // Status Tab Counts (Dynamically calculated from the search-filtered subset)
   const tabAllCount = contextuallyFilteredOrders.length;
-  const tabPlacedCount = contextuallyFilteredOrders.filter((o) => (o.orderStatus || o.status) === 'PLACED').length;
+  // CHANGE: Include both PLACED and PENDING_PAYMENT in tab count
+  const tabPlacedCount = contextuallyFilteredOrders.filter((o) => ['PLACED', 'PENDING_PAYMENT'].includes(o.orderStatus || o.status)).length;
   const tabInProgressCount = contextuallyFilteredOrders.filter((o) =>
     ['CONFIRMED', 'PROCESSING', 'READY'].includes(o.orderStatus || o.status)
   ).length;
@@ -257,6 +269,10 @@ export const AdminOrderManagementPage = () => {
       if (statusFilter === 'ALL') return true;
       if (statusFilter === 'IN_PROGRESS') {
         return ['CONFIRMED', 'PROCESSING', 'READY'].includes(currentStatus);
+      }
+      // CHANGE: Match PLACED tab with both PLACED and PENDING_PAYMENT
+      if (statusFilter === 'PLACED') {
+        return ['PLACED', 'PENDING_PAYMENT'].includes(currentStatus);
       }
       return currentStatus === statusFilter;
     });
@@ -296,7 +312,8 @@ export const AdminOrderManagementPage = () => {
   const handleTriggerCancel = (order) => {
     if (!isAdmin && !isInventoryManager) return;
     const currentStatus = order?.orderStatus || order?.status;
-    if (currentStatus !== 'PLACED' && currentStatus !== 'PENDING_PAYMENT') return;
+    // CHANGE: Allow cancellation for PLACED, PENDING_PAYMENT, and CONFIRMED orders
+    if (currentStatus !== 'PLACED' && currentStatus !== 'PENDING_PAYMENT' && currentStatus !== 'CONFIRMED') return;
 
     setConfirmDialog({
       order,
@@ -627,15 +644,16 @@ const formatPaymentMethodFull = (rawMethod) => {
 
           <table className="inventory-table admin-orders-table">
             <thead>
+              {/* // CHANGE: Balanced column widths utilizing middle space for actions and eliminating right boundary overflow */}
               <tr>
-                <th style={{ width: '6%' }}>Order ID</th>
+                <th style={{ width: '8%' }}>Order ID</th>
                 <th style={{ width: '12%' }}>Date & Time</th>
-                <th style={{ width: '16%' }}>Customer / Contact</th>
-                <th style={{ width: '16%' }}>Items Summary</th>
-                <th style={{ width: '10%' }}>Total Amount</th>
-                <th style={{ width: '16%' }}>Payment</th>
-                <th style={{ width: '14%' }}>Status</th>
-                <th style={{ width: '10%' }} className="actions-column-header">
+                <th style={{ width: '14%' }}>Customer</th>
+                <th style={{ width: '18%' }}>Items Summary</th>
+                <th style={{ width: '8%' }}>Total</th>
+                <th style={{ width: '13%' }}>Payment</th>
+                <th style={{ width: '11%' }}>Status</th>
+                <th style={{ width: '16%' }} className="actions-column-header">
                   Actions
                 </th>
               </tr>
@@ -724,11 +742,26 @@ const formatPaymentMethodFull = (rawMethod) => {
 
                     {/* Actions */}
                     <td className="actions-cell">
+                      {/* // CHANGE: Reordered action buttons: Cancel Order first, then View Order */}
                       <div className="action-buttons-group">
+                        {/* Direct Cancel button in table Actions column for eligible orders */}
+                        {['PLACED', 'PENDING_PAYMENT', 'CONFIRMED'].includes(currentStatus) && (
+                          <button
+                            type="button"
+                            onClick={() => handleTriggerCancel(order)}
+                            className="btn-sm btn-danger"
+                            title="Cancel this order"
+                            disabled={actionLoading}
+                          >
+                            <XCircle size={13} style={{ marginRight: '4px' }} /> Cancel
+                          </button>
+                        )}
+
                         <button
+                          type="button"
                           onClick={() => handleOpenDetails(order)}
                           className="btn-sm btn-secondary btn-order-inspect"
-                          title="View complete order details"
+                          title="View complete order invoice & details"
                         >
                           <Eye size={13} style={{ marginRight: '4px' }} /> View
                         </button>
@@ -1046,8 +1079,8 @@ const formatPaymentMethodFull = (rawMethod) => {
                       <span>Fulfillment managed operationally by Inventory & Kitchen staff</span>
                     </div>
 
-                    {((selectedOrder.orderStatus || selectedOrder.status) === 'PLACED' ||
-                      (selectedOrder.orderStatus || selectedOrder.status) === 'PENDING_PAYMENT') && (
+                    {/* CHANGE: Admin can cancel eligible PENDING_PAYMENT, PLACED, and CONFIRMED orders */}
+                    {['PLACED', 'PENDING_PAYMENT', 'CONFIRMED'].includes(selectedOrder.orderStatus || selectedOrder.status) && (
                       <button
                         type="button"
                         className="btn-danger btn-sm"
@@ -1109,6 +1142,14 @@ const formatPaymentMethodFull = (rawMethod) => {
             </div>
 
             <div className="confirmation-modal-body">
+              {/* CHANGE: Surface actual safe backend error message inside confirmation modal */}
+              {actionError && (
+                <div className="error-alert mb-3">
+                  <AlertCircle size={18} />
+                  <span>{actionError}</span>
+                </div>
+              )}
+
               {confirmDialog.action === 'CANCEL' ? (
                 <div className="cancellation-consequences-box">
                   <p className="mb-2">

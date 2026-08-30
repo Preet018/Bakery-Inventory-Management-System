@@ -209,8 +209,9 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                 return customerOrderRepository.findByUserId(userId)
                                 .stream()
                                 .filter(order -> {
+                                    // CHANGE: Only filter out uncompleted PENDING_PAYMENT sessions for customer; CANCELLED orders remain visible in history
                                     if (!"ADMIN".equals(requestingRole) && !"INVENTORY_MANAGER".equals(requestingRole)) {
-                                        return order.getOrderStatus() != OrderStatus.PENDING_PAYMENT && order.getOrderStatus() != OrderStatus.CANCELLED;
+                                        return order.getOrderStatus() != OrderStatus.PENDING_PAYMENT;
                                     }
                                     return true;
                                 })
@@ -272,16 +273,18 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                     );
                 }
 
-                if (order.getOrderStatus() != OrderStatus.PENDING_PAYMENT && order.getOrderStatus() != OrderStatus.PLACED) {
+                // CHANGE: Allow cancellation for PENDING_PAYMENT, PLACED, and CONFIRMED orders before fulfillment processing begins
+                if (order.getOrderStatus() != OrderStatus.PENDING_PAYMENT && order.getOrderStatus() != OrderStatus.PLACED && order.getOrderStatus() != OrderStatus.CONFIRMED) {
                     throw new BusinessRuleException(
-                            "Only pending or placed orders can be cancelled"
+                            "Only pending, placed, or confirmed orders can be cancelled before fulfillment processing begins"
                     );
                 }
 
                 // 1. If order has a captured/paid Razorpay payment, initiate full Razorpay refund first
                 Payment payment = order.getPayment();
+                PaymentResponse refundedPayment = null;
                 if (payment != null && payment.getPaymentStatus() == PaymentStatus.PAID && payment.getProviderPaymentId() != null) {
-                    paymentService.refundPayment(id);
+                    refundedPayment = paymentService.refundPayment(id);
                 }
 
                 // 2. Release reserved inventory
@@ -293,6 +296,10 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                 CustomerOrder cancelledOrder = customerOrderRepository.save(order);
 
+                // CHANGE: Return mapped response with refunded payment metadata if refund was executed
+                if (refundedPayment != null) {
+                    return mapToResponse(cancelledOrder, refundedPayment);
+                }
                 return mapToResponse(cancelledOrder);
         }
 
