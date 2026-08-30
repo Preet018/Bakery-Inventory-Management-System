@@ -111,11 +111,11 @@ export const OrderHistoryPage = () => {
 
   // Helper for Payment Method display
   const formatPaymentMethod = (method) => {
-    const m = (method || 'UPI').toUpperCase();
-    if (m === 'CREDIT_CARD' || m === 'CARD') return 'Paid (Card)';
+    const m = (method || 'NETBANKING').toUpperCase();
+    if (m === 'NETBANKING' || m === 'NET_BANKING') return 'Paid (Netbanking)';
+    if (m === 'CREDIT_CARD') return 'Paid (Credit Card)';
     if (m === 'DEBIT_CARD') return 'Paid (Debit Card)';
-    if (m === 'UPI') return 'Paid (UPI)';
-    if (m === 'CASH_ON_DELIVERY' || m === 'COD') return 'Cash on Delivery';
+    if (m === 'CARD') return 'Paid (Card)';
     return m;
   };
 

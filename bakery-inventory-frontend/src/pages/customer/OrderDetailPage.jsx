@@ -152,7 +152,7 @@ export const OrderDetailPage = () => {
             <div className="info-block">
               <div className="info-title"><Package size={16} /> Payment Summary</div>
               {/* CHANGE: Payment method is nested in order.payment.paymentMethod */}
-              <p className="info-text">Method: <strong>{order.payment?.paymentMethod || order.paymentMethod || 'UPI'}</strong></p>
+              <p className="info-text">Method: <strong>{order.payment?.paymentMethod || order.paymentMethod || 'NETBANKING'}</strong></p>
               <p className="info-text">Total: <strong className="price-large">₹{Number(order.totalAmount).toFixed(2)}</strong></p>
             </div>
 

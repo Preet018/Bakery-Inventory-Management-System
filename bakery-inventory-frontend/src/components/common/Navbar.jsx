@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import artisanBakeryLogoImg from '../../assets/artisan-bakery.png';
+import artisanBakeryLogoImg from '../../assets/artisan-baecurry.png';
 
 import {
   ShoppingBag,
@@ -77,7 +77,7 @@ export const Navbar = () => {
       <div className="navbar-container">
 
         {/* ===================================================
-            BRAND LOGO (Artisan Bakery Image Logo)
+            BRAND LOGO (Artisan BaeCurry Image Logo)
             =================================================== */}
         <Link
           to={brandTarget}
@@ -86,13 +86,13 @@ export const Navbar = () => {
         >
           <img
             src={artisanBakeryLogoImg}
-            alt="Artisan Bakery"
+            alt="Artisan BaeCurry"
             className="brand-logo-img"
           />
 
           <div className="brand-text">
             <span className="brand-title">
-              ARTISAN BAKERY
+              ARTISAN BAECURRY
             </span>
             <span className="brand-subtitle">
               {brandSubtitle}

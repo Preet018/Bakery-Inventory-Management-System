@@ -27,7 +27,7 @@ public class EmailServiceImpl implements EmailService {
 
                 message.setTo(recipientEmail);
 
-                message.setSubject("Bakery Inventory Management - Verification Code");
+                message.setSubject("Artisan BaeCurry - Verification Code");
 
                 message.setText(
                         "Your verification code is: " + otp

@@ -66,7 +66,7 @@ export const ProductCard = ({ product }) => {
         {/* Category Row with Out of Stock badge on extreme right */}
         <div className="product-category-row">
           <span className="product-category">
-            {product.categoryName || 'Artisan Bakery'}
+            {product.categoryName || 'Artisan BaeCurry'}
           </span>
           {isOutOfStock && (
             <span className="badge-out-of-stock-sm">
@@ -76,7 +76,7 @@ export const ProductCard = ({ product }) => {
         </div>
 
         <h3 className="product-title">{product.name}</h3>
-        <p className="product-description">{product.description || 'Fresh artisan bakery product.'}</p>
+        <p className="product-description">{product.description || 'Fresh Artisan BaeCurry product.'}</p>
 
         <div className="product-footer">
           <div className="product-price">

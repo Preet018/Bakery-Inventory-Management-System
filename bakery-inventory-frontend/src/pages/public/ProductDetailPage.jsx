@@ -266,7 +266,7 @@ export const ProductDetailPage = () => {
 
           {/* Short Description */}
           <p className="detail-short-description">
-            {product.description || 'Rich freshly baked artisan bakery selection. Perfect for every occasion.'}
+            {product.description || 'Rich freshly baked Artisan BaeCurry selection. Perfect for every occasion.'}
           </p>
 
           {/* Specs & Bakery Highlights Box (No Stock Numbers) */}

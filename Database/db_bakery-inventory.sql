@@ -331,7 +331,7 @@ CREATE TABLE payment (
     CONSTRAINT chk_payment_method
         CHECK (
             payment_method IN (
-                'UPI',
+                'NETBANKING',
                 'CREDIT_CARD',
                 'DEBIT_CARD'
             )

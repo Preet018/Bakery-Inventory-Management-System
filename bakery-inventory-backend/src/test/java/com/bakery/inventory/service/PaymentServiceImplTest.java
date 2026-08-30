@@ -86,7 +86,7 @@ class PaymentServiceImplTest {
         var response =
                 paymentService.createPayment(
                         100,
-                        PaymentMethod.UPI,
+                        PaymentMethod.NETBANKING,
                         new BigDecimal("500.00")
                 );
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import artisanBakeryLogoImg from '../../assets/artisan-bakery.png';
+import artisanBakeryLogoImg from '../../assets/artisan-baecurry.png';
 
 /**
  * Footer Component
@@ -13,11 +13,11 @@ export const Footer = () => {
           <div className="footer-logo">
             <img
               src={artisanBakeryLogoImg}
-              alt="Artisan Bakery Logo"
+              alt="Artisan BaeCurry Logo"
               className="footer-brand-logo-img"
             />
             <div className="footer-brand-text">
-              <span className="footer-brand-title">ARTISAN BAKERY</span>
+              <span className="footer-brand-title">ARTISAN BAECURRY</span>
               <span className="footer-brand-subtitle">Inventory & Store</span>
             </div>
           </div>

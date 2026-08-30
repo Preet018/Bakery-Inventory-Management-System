@@ -43,7 +43,7 @@ export const HomePage = () => {
           .filter((p) => p.isActive !== false)
           .map((p) => ({
             ...p,
-            categoryName: categoryMap[p.categoryId] || 'Artisan Bakery',
+            categoryName: categoryMap[p.categoryId] || 'Artisan BaeCurry',
           }));
 
         setProducts(activeProducts);
@@ -116,7 +116,7 @@ export const HomePage = () => {
             <Sparkles size={16} /> Freshly Baked Every Morning
           </div>
           <h1 className="hero-title">
-            Artisan Bakery & Real-Time Inventory
+            Artisan BaeCurry & Real-Time Inventory
           </h1>
           <p className="hero-subtitle">
             Experience hand-crafted pastries, sourdough breads, and gourmet cakes made from organic ingredients, with integrated inventory and order tracking.

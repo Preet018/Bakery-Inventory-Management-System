@@ -1,7 +1,7 @@
 package com.bakery.inventory.entity;
 
 public enum PaymentMethod {
-    UPI,
+    NETBANKING,
     CREDIT_CARD,
     DEBIT_CARD
 }

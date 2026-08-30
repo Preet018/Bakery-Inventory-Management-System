@@ -86,7 +86,7 @@ VALUES
         'chahak',
         '$2a$10$4iyesudZuCETRWHGGU4BTOqgFTmnj8crrODC0LeFHnombNLQL1Ow.',
         'fragy2002op@gmail.com',
-        FALSE,
+        TRUE,
         TRUE,
         2
     ),
@@ -617,7 +617,7 @@ VALUES
     (
         1,
         1,
-        'UPI',
+        'NETBANKING',
         'PAID',
         'RAZORPAY',
         'order_dummy_0001',
@@ -645,7 +645,7 @@ VALUES
     (
         3,
         3,
-        'UPI',
+        'NETBANKING',
         'PAID',
         'RAZORPAY',
         'order_dummy_0003',
@@ -673,7 +673,7 @@ VALUES
     (
         5,
         5,
-        'UPI',
+        'NETBANKING',
         'PENDING',
         'RAZORPAY',
         'order_dummy_0005',

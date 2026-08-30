@@ -135,7 +135,7 @@ class CustomerOrderServiceImplTest {
                 new CustomerOrderCreateRequest(
                         "9876543210",
                         10,
-                        PaymentMethod.UPI,
+                        PaymentMethod.NETBANKING,
                         List.of(
                                 new OrderItemRequest(
                                         100,
@@ -172,7 +172,7 @@ class CustomerOrderServiceImplTest {
 
         when(paymentService.createPayment(
                 eq(500),
-                eq(PaymentMethod.UPI),
+                eq(PaymentMethod.NETBANKING),
                 eq(new BigDecimal("500.00"))
         )).thenReturn(null);
 
@@ -198,7 +198,7 @@ class CustomerOrderServiceImplTest {
         verify(paymentService)
                 .createPayment(
                         500,
-                        PaymentMethod.UPI,
+                        PaymentMethod.NETBANKING,
                         new BigDecimal("500.00")
                 );
     }
@@ -218,7 +218,7 @@ class CustomerOrderServiceImplTest {
                 new CustomerOrderCreateRequest(
                         "9876543210",
                         10,
-                        PaymentMethod.UPI,
+                        PaymentMethod.NETBANKING,
                         List.of(
                                 new OrderItemRequest(
                                         100,

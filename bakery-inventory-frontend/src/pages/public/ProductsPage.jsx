@@ -46,7 +46,7 @@ export const ProductsPage = () => {
         .filter((p) => p.isActive !== false)
         .map((p) => ({
           ...p,
-          categoryName: categoryMap[p.categoryId] || 'Artisan Bakery',
+          categoryName: categoryMap[p.categoryId] || 'Artisan BaeCurry',
         }));
 
       setProducts(activeProducts);
