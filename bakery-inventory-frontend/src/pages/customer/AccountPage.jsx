@@ -237,14 +237,14 @@ export const AccountPage = () => {
               <span className="detail-label">Account Role</span>
               {/* CHANGE: Dynamic role pill styling based on authenticated role */}
               <span className={`role-pill ${rolePillClass}`}>
-                {user?.role || 'UNKNOWN'}
+                {user?.role ? user.role.replace(/_/g, ' ') : 'UNKNOWN'}
               </span>
             </div>
 
             <div className="account-detail-item">
               <span className="detail-label">Session Status</span>
-              <span className="status-badge status-active">
-                <CheckCircle2 size={14} /> Active Session
+              <span className="status-badge badge-delivered">
+                <CheckCircle2 size={12} /> Active Session
               </span>
             </div>
           </div>
@@ -333,9 +333,17 @@ export const AccountPage = () => {
               </>
             )}
 
-            {/* CHANGE: Admin quick actions */}
+            {/* Admin quick actions */}
             {isAdmin && (
               <>
+                <Link to="/admin/products" className="quick-action-link">
+                  <div className="action-link-content">
+                    <strong>Product Management</strong>
+                    <p>Manage catalog products, pricing, and image galleries</p>
+                  </div>
+                  <ArrowRight size={18} />
+                </Link>
+
                 <Link to="/admin/categories" className="quick-action-link">
                   <div className="action-link-content">
                     <strong>Category Management</strong>
@@ -603,11 +611,12 @@ export const AccountPage = () => {
                 <h3>Delete Saved Address</h3>
               </div>
               <button
-                className="close-btn"
+                type="button"
+                className="modal-close-btn"
                 onClick={() => setAddressToDelete(null)}
-                aria-label="Close"
+                aria-label="Close modal"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
@@ -671,11 +680,12 @@ export const AccountPage = () => {
                 <h3>Delete Account Confirmation</h3>
               </div>
               <button
-                className="close-btn"
+                type="button"
+                className="modal-close-btn"
                 onClick={resetDeleteModal}
-                aria-label="Close"
+                aria-label="Close modal"
               >
-                &times;
+                <X size={18} />
               </button>
             </div>
 

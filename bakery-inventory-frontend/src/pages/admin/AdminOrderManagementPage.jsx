@@ -211,29 +211,27 @@ export const AdminOrderManagementPage = () => {
   const contextuallyFilteredOrders = useMemo(() => {
     return orders.filter((order) => {
       if (searchQuery.trim()) {
-        const cleanQuery = searchQuery.trim();
+        const q = searchQuery.trim().toLowerCase();
+        const rawId = q.replace(/^#\s*/, '');
 
-        // 1. Order ID Search (exclusively for numeric digits or # followed by digits)
-        if (/^#?\s*\d+$/.test(cleanQuery)) {
-          const rawId = cleanQuery.replace(/^#\s*/, '').trim();
-          return String(order.id || '') === rawId;
-        }
-
-        // 2. Non-numeric text search (Username, Delivery Location, Product Name)
-        const query = cleanQuery.toLowerCase();
-        const usernameMatch = (order.username || '').toLowerCase().includes(query);
+        const idMatch =
+          String(order.id || '') === rawId ||
+          `#${order.id}`.toLowerCase().includes(q) ||
+          (rawId && String(order.id || '').includes(rawId));
+        const usernameMatch = (order.username || '').toLowerCase().includes(q);
+        const phoneMatch = (order.customerPhone || order.phone || '').toLowerCase().includes(q);
         const locationMatch =
-          (order.deliveryAddress || '').toLowerCase().includes(query) ||
-          (order.deliveryLandmark || '').toLowerCase().includes(query) ||
-          (order.deliveryCity || '').toLowerCase().includes(query) ||
-          (order.deliveryState || '').toLowerCase().includes(query);
+          (order.deliveryAddress || '').toLowerCase().includes(q) ||
+          (order.deliveryLandmark || '').toLowerCase().includes(q) ||
+          (order.deliveryCity || '').toLowerCase().includes(q) ||
+          (order.deliveryState || '').toLowerCase().includes(q);
 
         const itemMatch = (order.items || []).some((item) => {
           const product = productsMap[item.productId];
-          return (product?.name || '').toLowerCase().includes(query);
+          return (product?.name || '').toLowerCase().includes(q);
         });
 
-        if (!usernameMatch && !locationMatch && !itemMatch) {
+        if (!idMatch && !usernameMatch && !phoneMatch && !locationMatch && !itemMatch) {
           return false;
         }
       }
@@ -480,7 +478,6 @@ const formatPaymentMethodFull = (rawMethod) => {
           onClick={() => setStatusFilter('ALL')}
           role="button"
           tabIndex={0}
-          title="Show all orders"
         >
           <div className="metric-icon-wrapper icon-blue">
             <ShoppingBag size={24} />
@@ -498,7 +495,6 @@ const formatPaymentMethodFull = (rawMethod) => {
           onClick={() => setStatusFilter(statusFilter === 'PLACED' ? 'ALL' : 'PLACED')}
           role="button"
           tabIndex={0}
-          title="Filter newly placed orders"
         >
           <div className="metric-icon-wrapper icon-amber">
             <Clock size={24} />
@@ -516,10 +512,9 @@ const formatPaymentMethodFull = (rawMethod) => {
           onClick={() => setStatusFilter(statusFilter === 'IN_PROGRESS' ? 'ALL' : 'IN_PROGRESS')}
           role="button"
           tabIndex={0}
-          title="Filter active in-progress orders"
         >
           <div className="metric-icon-wrapper icon-purple">
-            <Truck size={24} />
+            <RefreshCw size={24} />
           </div>
           <div className="metric-info">
             <div className="metric-value">{inProgressOrders}</div>
@@ -534,7 +529,6 @@ const formatPaymentMethodFull = (rawMethod) => {
           onClick={() => setStatusFilter(statusFilter === 'DELIVERED' ? 'ALL' : 'DELIVERED')}
           role="button"
           tabIndex={0}
-          title="Filter delivered orders"
         >
           <div className="metric-icon-wrapper icon-green">
             <CheckCircle2 size={24} />
@@ -552,7 +546,6 @@ const formatPaymentMethodFull = (rawMethod) => {
           onClick={() => setStatusFilter(statusFilter === 'CANCELLED' ? 'ALL' : 'CANCELLED')}
           role="button"
           tabIndex={0}
-          title="Filter cancelled orders"
         >
           <div className="metric-icon-wrapper icon-red">
             <XCircle size={24} />
@@ -565,9 +558,9 @@ const formatPaymentMethodFull = (rawMethod) => {
         </div>
       </div>
 
-      {/* Search & Filter Toolbar */}
-      <div className="inventory-toolbar card">
-        <div className="toolbar-search-wrapper">
+      {/* Search Toolbar */}
+      <div className="inventory-toolbar card mb-6">
+        <div className="toolbar-search-wrapper" style={{ width: '100%' }}>
           <Search size={16} className="search-icon" />
           <input
             type="text"
@@ -575,6 +568,10 @@ const formatPaymentMethodFull = (rawMethod) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-field"
+            aria-label="Search orders"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
           />
           {searchQuery && (
             <button
@@ -583,59 +580,6 @@ const formatPaymentMethodFull = (rawMethod) => {
               aria-label="Clear search"
             >
               <X size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className="toolbar-controls">
-          {/* Status Filter Tabs */}
-          <div className="status-tabs-group order-status-tabs">
-            <button
-              type="button"
-              className={`status-tab ${statusFilter === 'ALL' ? 'active-tab' : ''}`}
-              onClick={() => setStatusFilter('ALL')}
-            >
-              All ({tabAllCount})
-            </button>
-            <button
-              type="button"
-              className={`status-tab tab-amber ${statusFilter === 'PLACED' ? 'active-tab' : ''}`}
-              onClick={() => setStatusFilter('PLACED')}
-            >
-              Placed ({tabPlacedCount})
-            </button>
-            <button
-              type="button"
-              className={`status-tab tab-purple ${statusFilter === 'IN_PROGRESS' ? 'active-tab' : ''}`}
-              onClick={() => setStatusFilter('IN_PROGRESS')}
-            >
-              In Progress ({tabInProgressCount})
-            </button>
-            <button
-              type="button"
-              className={`status-tab tab-optimal ${statusFilter === 'DELIVERED' ? 'active-tab' : ''}`}
-              onClick={() => setStatusFilter('DELIVERED')}
-            >
-              Delivered ({tabDeliveredCount})
-            </button>
-            <button
-              type="button"
-              className={`status-tab tab-out ${statusFilter === 'CANCELLED' ? 'active-tab' : ''}`}
-              onClick={() => setStatusFilter('CANCELLED')}
-            >
-              Cancelled ({tabCancelledCount})
-            </button>
-          </div>
-
-          {/* Reset Filters */}
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="btn-reset-filters"
-              title="Reset all filters"
-            >
-              <X size={14} /> Clear Filters
             </button>
           )}
         </div>

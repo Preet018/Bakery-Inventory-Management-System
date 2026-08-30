@@ -24,6 +24,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.bakery.inventory.dto.auth.EmailVerificationRequest;
+import com.bakery.inventory.dto.auth.PendingRegistration;
+import com.bakery.inventory.dto.useraccount.AccountRegistrationRequest;
+import com.bakery.inventory.repository.RoleRepository;
+import com.bakery.inventory.service.EmailService;
+import com.bakery.inventory.service.PendingRegistrationStore;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
@@ -40,7 +48,19 @@ class AuthServiceImplTest {
     private UserAccountRepository userAccountRepository;
 
     @Mock
+    private RoleRepository roleRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    @Mock
     private OtpService otpService;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
+    private PendingRegistrationStore pendingRegistrationStore;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -210,5 +230,96 @@ class AuthServiceImplTest {
         assertDoesNotThrow(() -> authService.sendPasswordResetOtp("inactive_user"));
 
         verify(otpService, never()).generateAndSendOtp(any(), any());
+    }
+
+    @Test
+    void registerCustomer_shouldSaveToPendingStoreAndSendOtp_withoutCreatingUserAccount() {
+        AccountRegistrationRequest request = new AccountRegistrationRequest();
+        request.setUsername("newuser");
+        request.setEmail("newuser@example.com");
+        request.setPassword("password123");
+
+        when(userAccountRepository.findByUsername("newuser")).thenReturn(Optional.empty());
+        when(userAccountRepository.findByEmail("newuser@example.com")).thenReturn(Optional.empty());
+        when(pendingRegistrationStore.isUsernamePending("newuser", "newuser@example.com")).thenReturn(false);
+        when(pendingRegistrationStore.findByEmail("newuser@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("hashedValue");
+
+        authService.registerCustomer(request);
+
+        // Verify PendingRegistration saved
+        verify(pendingRegistrationStore).save(any(PendingRegistration.class));
+        // Verify email sent with OTP
+        verify(emailService).sendOtpEmail(eq("newuser@example.com"), anyString(), eq(OtpPurpose.EMAIL_VERIFICATION));
+        // Verify user account was NOT created in DB
+        verify(userAccountRepository, never()).save(any());
+    }
+
+    @Test
+    void verifyRegistration_shouldCreateUserAccount_whenOtpIsValid() {
+        PendingRegistration pending = PendingRegistration.builder()
+                .username("newuser")
+                .email("newuser@example.com")
+                .passwordHash("hashedPassword")
+                .otpHash("hashedOtp")
+                .createdAt(java.time.LocalDateTime.now())
+                .expiresAt(java.time.LocalDateTime.now().plusMinutes(5))
+                .attempts(0)
+                .build();
+
+        Role role = new Role();
+        role.setId(1);
+        role.setName("CUSTOMER");
+
+        when(pendingRegistrationStore.findByEmail("newuser@example.com")).thenReturn(Optional.of(pending));
+        when(passwordEncoder.matches("123456", "hashedOtp")).thenReturn(true);
+        when(userAccountRepository.findByUsername("newuser")).thenReturn(Optional.empty());
+        when(userAccountRepository.findByEmail("newuser@example.com")).thenReturn(Optional.empty());
+        when(roleRepository.findByName("CUSTOMER")).thenReturn(Optional.of(role));
+
+        EmailVerificationRequest request = new EmailVerificationRequest();
+        request.setEmail("newuser@example.com");
+        request.setOtp("123456");
+
+        authService.verifyRegistration(request);
+
+        // Verify UserAccount created with emailVerified = true
+        verify(userAccountRepository).save(argThat(user ->
+                user.getUsername().equals("newuser") &&
+                user.getEmail().equals("newuser@example.com") &&
+                user.getPasswordHash().equals("hashedPassword") &&
+                user.isEmailVerified() &&
+                user.isActive()
+        ));
+        // Verify pending registration removed
+        verify(pendingRegistrationStore).remove("newuser@example.com");
+    }
+
+    @Test
+    void verifyRegistration_shouldThrowException_whenOtpIsInvalid() {
+        PendingRegistration pending = PendingRegistration.builder()
+                .username("newuser")
+                .email("newuser@example.com")
+                .passwordHash("hashedPassword")
+                .otpHash("hashedOtp")
+                .createdAt(java.time.LocalDateTime.now())
+                .expiresAt(java.time.LocalDateTime.now().plusMinutes(5))
+                .attempts(0)
+                .build();
+
+        when(pendingRegistrationStore.findByEmail("newuser@example.com")).thenReturn(Optional.of(pending));
+        when(passwordEncoder.matches("999999", "hashedOtp")).thenReturn(false);
+
+        EmailVerificationRequest request = new EmailVerificationRequest();
+        request.setEmail("newuser@example.com");
+        request.setOtp("999999");
+
+        assertThrows(com.bakery.inventory.exception.BadRequestException.class, () ->
+                authService.verifyRegistration(request)
+        );
+
+        // UserAccount must not be saved
+        verify(userAccountRepository, never()).save(any());
+        verify(pendingRegistrationStore, never()).remove("newuser@example.com");
     }
 }

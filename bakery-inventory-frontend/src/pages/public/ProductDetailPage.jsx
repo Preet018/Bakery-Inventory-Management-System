@@ -17,6 +17,7 @@ import {
   Heart,
   Store,
   Clock,
+  Sparkles,
 } from 'lucide-react';
 
 /**
@@ -268,7 +269,7 @@ export const ProductDetailPage = () => {
             {product.description || 'Rich freshly baked artisan bakery selection. Perfect for every occasion.'}
           </p>
 
-          {/* Specs Box */}
+          {/* Specs & Bakery Highlights Box (No Stock Numbers) */}
           <div className="detail-specs-box">
             <div className="spec-row">
               <span className="spec-label">
@@ -282,7 +283,7 @@ export const ProductDetailPage = () => {
                 <CheckCircle2 size={16} /> Availability
               </span>
               <span className="spec-value">
-                {isOutOfStock ? 'Out of Stock' : `In Stock (${availableStock} available)`}
+                {isOutOfStock ? 'Out of Stock' : 'In Stock'}
               </span>
             </div>
 
@@ -290,7 +291,14 @@ export const ProductDetailPage = () => {
               <span className="spec-label">
                 <Clock size={16} /> Freshly Baked
               </span>
-              <span className="spec-value">Today</span>
+              <span className="spec-value">Daily</span>
+            </div>
+
+            <div className="spec-row">
+              <span className="spec-label">
+                <Sparkles size={16} /> Artisan Quality
+              </span>
+              <span className="spec-value">100% Handcrafted</span>
             </div>
           </div>
 
@@ -326,14 +334,12 @@ export const ProductDetailPage = () => {
                   {isOutOfStock ? (
                     <span className="stock-out-of-stock-text">Out of Stock</span>
                   ) : isMaxInCart ? (
-                    <span className="stock-limit-text">Maximum available quantity reached in cart</span>
-                  ) : (
+                    <span className="stock-limit-text">Maximum quantity in cart</span>
+                  ) : existingCartQty > 0 ? (
                     <span className="stock-available-text">
-                      {existingCartQty > 0
-                        ? `(${existingCartQty} in cart, max ${maxAdditionalQuantity} more)`
-                        : `In Stock`}
+                      ({existingCartQty} already in cart)
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </div>
 

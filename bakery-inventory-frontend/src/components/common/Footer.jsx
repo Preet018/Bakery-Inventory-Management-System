@@ -1,18 +1,25 @@
 import React from 'react';
-import { Cake, Heart } from 'lucide-react';
+import artisanBakeryLogoImg from '../../assets/artisan-bakery.png';
 
 /**
- * NEW FILE: Footer Component
+ * Footer Component
+ * Standardized across all customer, backoffice, and public pages
  */
-
 export const Footer = () => {
   return (
     <footer className="bakery-footer">
       <div className="footer-container">
         <div className="footer-brand">
           <div className="footer-logo">
-            <Cake size={24} />
-            <span>Artisan Bakery System</span>
+            <img
+              src={artisanBakeryLogoImg}
+              alt="Artisan Bakery Logo"
+              className="footer-brand-logo-img"
+            />
+            <div className="footer-brand-text">
+              <span className="footer-brand-title">ARTISAN BAKERY</span>
+              <span className="footer-brand-subtitle">Inventory & Store</span>
+            </div>
           </div>
           <p className="footer-tagline">
             Freshly baked goods managed with real-time stock control and order processing.

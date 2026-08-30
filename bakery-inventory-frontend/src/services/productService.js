@@ -57,6 +57,28 @@ export const productService = {
     return response.data;
   },
 
+  // Add product images (ADMIN)
+  addProductImages: async (productId, imageFiles) => {
+    const formData = new FormData();
+    if (imageFiles && imageFiles.length > 0) {
+      for (let i = 0; i < imageFiles.length; i++) {
+        formData.append('images', imageFiles[i]);
+      }
+    }
+    const response = await axiosInstance.post(`/api/products/${productId}/images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Remove product image (ADMIN)
+  removeProductImage: async (productId, imageId) => {
+    const response = await axiosInstance.delete(`/api/products/${productId}/images/${imageId}`);
+    return response.data;
+  },
+
   // Helper to format image URLs returned by backend
   getImageUrl: (imagePath) => {
     if (!imagePath) return '';

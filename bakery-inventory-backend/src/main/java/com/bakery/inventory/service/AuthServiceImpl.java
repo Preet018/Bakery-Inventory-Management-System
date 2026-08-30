@@ -5,6 +5,7 @@ import com.bakery.inventory.dto.auth.LoginRequest;
 import com.bakery.inventory.dto.auth.LoginResponse;
 import com.bakery.inventory.dto.useraccount.AccountDeleteRequest;
 import com.bakery.inventory.dto.useraccount.AccountRegistrationRequest;
+import com.bakery.inventory.dto.auth.PendingRegistration;
 import com.bakery.inventory.entity.OtpPurpose;
 import com.bakery.inventory.entity.Role;
 import com.bakery.inventory.entity.UserAccount;
@@ -24,6 +25,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -34,12 +39,20 @@ public class AuthServiceImpl implements AuthService {
         private final RoleRepository roleRepository;
         private final PasswordEncoder passwordEncoder;
         private final OtpService otpService;
+        private final EmailService emailService;
+        private final PendingRegistrationStore pendingRegistrationStore;
 
         private final AuthenticationManager authenticationManager;
         private final JwtService jwtService;
 
+        private final SecureRandom secureRandom = new SecureRandom();
+
+        private String generateOtp() {
+                int otpNumber = secureRandom.nextInt(1_000_000);
+                return String.format("%06d", otpNumber);
+        }
+
         @Override
-        @Transactional
         public void registerCustomer(AccountRegistrationRequest request) {
                 String username = request.getUsername().trim();
                 String email = request.getEmail().trim().toLowerCase();
@@ -54,22 +67,39 @@ public class AuthServiceImpl implements AuthService {
                                         "Email is already registered.");
                 }
 
-                Role customerRole = roleRepository.findByName(CUSTOMER_ROLE)
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Customer role is not configured."));
+                if (pendingRegistrationStore.isUsernamePending(username, email)) {
+                        throw new BusinessRuleException(
+                                        "Username is currently reserved for a pending registration. Please choose another username.");
+                }
 
-                UserAccount user = new UserAccount();
+                LocalDateTime now = LocalDateTime.now();
+                Optional<PendingRegistration> existingPendingOpt = pendingRegistrationStore.findByEmail(email);
+                if (existingPendingOpt.isPresent()) {
+                        PendingRegistration existing = existingPendingOpt.get();
+                        if (existing.getLastOtpSentAt() != null && existing.getLastOtpSentAt().plusSeconds(60).isAfter(now)) {
+                                throw new BadRequestException(
+                                                "Please wait before requesting another OTP.");
+                        }
+                }
 
-                user.setUsername(username);
-                user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-                user.setEmail(email);
-                user.setEmailVerified(false);
-                user.setActive(true);
-                user.setRole(customerRole);
+                String otp = generateOtp();
+                String passwordHash = passwordEncoder.encode(request.getPassword());
+                String otpHash = passwordEncoder.encode(otp);
 
-                UserAccount savedUser = userAccountRepository.save(user);
+                PendingRegistration pending = PendingRegistration.builder()
+                                .username(username)
+                                .email(email)
+                                .passwordHash(passwordHash)
+                                .otpHash(otpHash)
+                                .createdAt(now)
+                                .expiresAt(now.plusMinutes(5))
+                                .lastOtpSentAt(now)
+                                .attempts(0)
+                                .build();
 
-                otpService.generateAndSendOtp(savedUser, OtpPurpose.EMAIL_VERIFICATION);
+                pendingRegistrationStore.save(pending);
+
+                emailService.sendOtpEmail(email, otp, OtpPurpose.EMAIL_VERIFICATION);
         }
 
         @Override
@@ -141,8 +171,119 @@ public class AuthServiceImpl implements AuthService {
 
         @Override
         @Transactional
+        public void verifyRegistration(EmailVerificationRequest request) {
+                String email = request.getEmail().trim().toLowerCase();
+                String otp = request.getOtp().trim();
+
+                Optional<PendingRegistration> pendingOpt = pendingRegistrationStore.findByEmail(email);
+
+                if (pendingOpt.isEmpty()) {
+                        // Fallback check if user account already exists (e.g. manager or previously created user)
+                        Optional<UserAccount> existingUserOpt = userAccountRepository.findByEmail(email);
+                        if (existingUserOpt.isPresent()) {
+                                verifyEmail(request);
+                                return;
+                        }
+                        throw new BadRequestException(
+                                        "No active registration found for this email, or the verification code has expired. Please register again.");
+                }
+
+                PendingRegistration pending = pendingOpt.get();
+                LocalDateTime now = LocalDateTime.now();
+
+                if (pending.getExpiresAt() != null && pending.getExpiresAt().isBefore(now)) {
+                        pendingRegistrationStore.remove(email);
+                        throw new BadRequestException(
+                                        "Verification code has expired. Please register again.");
+                }
+
+                if (pending.getAttempts() >= 5) {
+                        pendingRegistrationStore.remove(email);
+                        throw new BadRequestException(
+                                        "Maximum verification attempts exceeded. Please register again.");
+                }
+
+                pending.setAttempts(pending.getAttempts() + 1);
+
+                boolean valid = passwordEncoder.matches(otp, pending.getOtpHash());
+                if (!valid) {
+                        pendingRegistrationStore.save(pending);
+                        throw new BadRequestException(
+                                        "Invalid or expired verification OTP.");
+                }
+
+                // Verify username and email uniqueness once more against DB
+                if (userAccountRepository.findByUsername(pending.getUsername()).isPresent()) {
+                        pendingRegistrationStore.remove(email);
+                        throw new BusinessRuleException(
+                                        "Username is already registered.");
+                }
+                if (userAccountRepository.findByEmail(pending.getEmail()).isPresent()) {
+                        pendingRegistrationStore.remove(email);
+                        throw new BusinessRuleException(
+                                        "Email is already registered.");
+                }
+
+                Role customerRole = roleRepository.findByName(CUSTOMER_ROLE)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Customer role is not configured."));
+
+                UserAccount user = new UserAccount();
+                user.setUsername(pending.getUsername());
+                user.setEmail(pending.getEmail());
+                user.setPasswordHash(pending.getPasswordHash()); // already securely hashed
+                user.setEmailVerified(true);
+                user.setActive(true);
+                user.setRole(customerRole);
+
+                userAccountRepository.save(user);
+                pendingRegistrationStore.remove(email);
+        }
+
+        @Override
+        public void resendRegistrationOtp(String email) {
+                String normalizedEmail = email.trim().toLowerCase();
+
+                Optional<PendingRegistration> pendingOpt = pendingRegistrationStore.findByEmail(normalizedEmail);
+                if (pendingOpt.isEmpty()) {
+                        // Fallback: check if existing unverified user account exists (e.g. manager)
+                        Optional<UserAccount> existingUserOpt = userAccountRepository.findByEmail(normalizedEmail);
+                        if (existingUserOpt.isPresent()) {
+                                requestVerificationOtp(normalizedEmail);
+                                return;
+                        }
+                        throw new BadRequestException(
+                                        "No active registration found for this email. Please register first.");
+                }
+
+                PendingRegistration pending = pendingOpt.get();
+                LocalDateTime now = LocalDateTime.now();
+
+                if (pending.getLastOtpSentAt() != null && pending.getLastOtpSentAt().plusSeconds(60).isAfter(now)) {
+                        throw new BadRequestException(
+                                        "Please wait before requesting another OTP.");
+                }
+
+                String otp = generateOtp();
+                pending.setOtpHash(passwordEncoder.encode(otp));
+                pending.setExpiresAt(now.plusMinutes(5));
+                pending.setLastOtpSentAt(now);
+                pending.setAttempts(0);
+
+                pendingRegistrationStore.save(pending);
+                emailService.sendOtpEmail(pending.getEmail(), otp, OtpPurpose.EMAIL_VERIFICATION);
+        }
+
+        @Override
+        @Transactional
         public void verifyEmail(EmailVerificationRequest request) {
                 String email = request.getEmail().trim().toLowerCase();
+
+                // If this is a pending registration, delegate to verifyRegistration
+                if (pendingRegistrationStore.findByEmail(email).isPresent()) {
+                        verifyRegistration(request);
+                        return;
+                }
 
                 UserAccount user = userAccountRepository
                                 .findByEmail(email)
@@ -175,6 +316,12 @@ public class AuthServiceImpl implements AuthService {
         @Transactional
         public void requestVerificationOtp(String email) {
                 String normalizedEmail = email.trim().toLowerCase();
+
+                Optional<PendingRegistration> pendingOpt = pendingRegistrationStore.findByEmail(normalizedEmail);
+                if (pendingOpt.isPresent()) {
+                        resendRegistrationOtp(normalizedEmail);
+                        return;
+                }
 
                 UserAccount user = userAccountRepository
                                 .findByEmail(normalizedEmail)

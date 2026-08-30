@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { stockTransactionService } from '../../services/stockTransactionService';
 import { productService } from '../../services/productService';
 import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
+import { CustomSelect } from '../../components/common/CustomSelect';
 import {
   History,
   RefreshCw,
@@ -15,6 +16,7 @@ import {
   ShoppingBag,
   RotateCcw,
   AlertOctagon,
+  ArrowUpDown,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -90,10 +92,10 @@ export const StockHistoryPage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  // Filters
+  // Filters & Sorting
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
-  const [productFilter, setProductFilter] = useState('ALL');
+  const [orderBy, setOrderBy] = useState('DATE'); // 'DATE' | 'PRODUCT' | 'ID'
 
   const fetchTransactionsAndProducts = async (isManualRefresh = false) => {
     try {
@@ -203,37 +205,25 @@ export const StockHistoryPage = () => {
     });
   }, [rawTransactions, productsMap]);
 
-  // Extract unique products for dropdown filter
-  const productOptions = useMemo(() => {
-    const map = new Map();
-    enrichedTransactions.forEach((tx) => {
-      if (tx.productId && tx.productName) {
-        map.set(String(tx.productId), tx.productName);
-      }
-    });
-    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
-  }, [enrichedTransactions]);
-
-  // Filtered transactions based on search query, type filter, and product filter
+  // Filtered and sorted transactions based on search query, type filter, and order by
   const filteredTransactions = useMemo(() => {
-    return enrichedTransactions.filter((tx) => {
+    const result = enrichedTransactions.filter((tx) => {
       // Type Filter
       if (typeFilter !== 'ALL' && tx.resolvedTypeKey !== typeFilter) {
         return false;
       }
 
-      // Product Filter
-      if (productFilter !== 'ALL' && String(tx.productId) !== productFilter) {
-        return false;
-      }
-
       // Search Query Filter (Matches Product name, remarks/reason, or Tx ID)
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const idMatch = String(tx.id || '').includes(query);
-        const nameMatch = (tx.productName || '').toLowerCase().includes(query);
-        const reasonMatch = (tx.reason || '').toLowerCase().includes(query);
-        const typeMatch = (tx.typeLabel || '').toLowerCase().includes(query);
+        const q = searchQuery.toLowerCase().trim();
+        const rawId = q.replace(/^#\s*/, '');
+        const idMatch =
+          String(tx.id || '') === rawId ||
+          `#${tx.id}`.toLowerCase().includes(q) ||
+          (rawId && String(tx.id || '').includes(rawId));
+        const nameMatch = (tx.productName || '').toLowerCase().includes(q);
+        const reasonMatch = (tx.reason || '').toLowerCase().includes(q);
+        const typeMatch = (tx.typeLabel || '').toLowerCase().includes(q);
         if (!idMatch && !nameMatch && !reasonMatch && !typeMatch) {
           return false;
         }
@@ -241,15 +231,38 @@ export const StockHistoryPage = () => {
 
       return true;
     });
-  }, [enrichedTransactions, typeFilter, productFilter, searchQuery]);
+
+    // Client-side Sorting
+    result.sort((a, b) => {
+      if (orderBy === 'DATE') {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeB !== timeA) return timeB - timeA; // Descending (recent first)
+        return (Number(b.id) || 0) - (Number(a.id) || 0);
+      }
+      if (orderBy === 'PRODUCT') {
+        const nameCmp = (a.productName || '').localeCompare(b.productName || '');
+        if (nameCmp !== 0) return nameCmp;
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      }
+      if (orderBy === 'ID') {
+        return (Number(a.id) || 0) - (Number(b.id) || 0);
+      }
+      return 0;
+    });
+
+    return result;
+  }, [enrichedTransactions, typeFilter, searchQuery, orderBy]);
 
   const hasActiveFilters =
-    typeFilter !== 'ALL' || productFilter !== 'ALL' || searchQuery.trim() !== '';
+    typeFilter !== 'ALL' || searchQuery.trim() !== '' || orderBy !== 'DATE';
 
   const handleResetFilters = () => {
     setSearchQuery('');
     setTypeFilter('ALL');
-    setProductFilter('ALL');
+    setOrderBy('DATE');
   };
 
   return (
@@ -293,6 +306,11 @@ export const StockHistoryPage = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-field"
+            id="history-search-input"
+            aria-label="Search stock history"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
           />
           {searchQuery && (
             <button
@@ -326,24 +344,17 @@ export const StockHistoryPage = () => {
             </select>
           </div>
 
-          {/* Product Filter */}
-          {productOptions.length > 0 && (
-            <div className="category-select-wrapper">
-              <select
-                value={productFilter}
-                onChange={(e) => setProductFilter(e.target.value)}
-                className="category-dropdown"
-                aria-label="Filter by Product"
-              >
-                <option value="ALL">All Products</option>
-                {productOptions.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          {/* Order By Dropdown (same as Category Management) */}
+          <CustomSelect
+            options={[
+              { value: 'DATE', label: 'Date & Time' },
+              { value: 'PRODUCT', label: 'Product Name' },
+              { value: 'ID', label: 'Transaction ID' },
+            ]}
+            value={orderBy}
+            onChange={setOrderBy}
+            icon={<ArrowUpDown size={14} />}
+          />
 
           {/* Reset Filters Button */}
           {hasActiveFilters && (

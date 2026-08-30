@@ -191,11 +191,16 @@ export const InventoryDashboard = () => {
 
       // Search Query
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const nameMatch = (item.productName || '').toLowerCase().includes(query);
-        const catMatch = (item.categoryName || '').toLowerCase().includes(query);
-        const idMatch = String(item.productId || '').includes(query);
-        if (!nameMatch && !catMatch && !idMatch) {
+        const q = searchQuery.toLowerCase().trim();
+        const rawId = q.replace(/^#\s*/, '');
+        const idMatch =
+          String(item.productId || '') === rawId ||
+          `#${item.productId}`.toLowerCase().includes(q) ||
+          (rawId && String(item.productId || '').includes(rawId));
+        const nameMatch = (item.productName || '').toLowerCase().includes(q);
+        const catMatch = (item.categoryName || '').toLowerCase().includes(q);
+        const supplierMatch = (item.supplierName || '').toLowerCase().includes(q);
+        if (!nameMatch && !catMatch && !supplierMatch && !idMatch) {
           return false;
         }
       }
@@ -305,7 +310,6 @@ export const InventoryDashboard = () => {
           onClick={() => handleKpiCardClick('LOW')}
           role="button"
           tabIndex={0}
-          title="Click to filter all low-stock products across all categories"
         >
           <div className="metric-icon-wrapper icon-amber">
             <AlertTriangle size={24} />
@@ -325,7 +329,6 @@ export const InventoryDashboard = () => {
           onClick={() => handleKpiCardClick('OUT')}
           role="button"
           tabIndex={0}
-          title="Click to filter all out-of-stock products across all categories"
         >
           <div className="metric-icon-wrapper icon-red">
             <XCircle size={24} />
@@ -345,7 +348,6 @@ export const InventoryDashboard = () => {
           onClick={() => handleKpiCardClick('OPTIMAL')}
           role="button"
           tabIndex={0}
-          title="Click to filter all optimal stock products across all categories"
         >
           <div className="metric-icon-wrapper icon-green">
             <CheckCircle2 size={24} />
@@ -443,8 +445,11 @@ export const InventoryDashboard = () => {
       {/* ===================================================
           4. SEARCH & FILTER TOOLBAR
           =================================================== */}
+      {/* ===================================================
+          4. SEARCH TOOLBAR
+          =================================================== */}
       <div className="inventory-toolbar card">
-        <div className="toolbar-search-wrapper">
+        <div className="toolbar-search-wrapper" style={{ width: '100%' }}>
           <Search size={16} className="search-icon" />
           <input
             type="text"
@@ -452,6 +457,10 @@ export const InventoryDashboard = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-field"
+            aria-label="Search inventory"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
           />
           {searchQuery && (
             <button
@@ -460,70 +469,6 @@ export const InventoryDashboard = () => {
               aria-label="Clear search"
             >
               <X size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className="toolbar-controls">
-          {/* Category Dropdown Filter */}
-          <div className="category-select-wrapper">
-            <Filter size={14} className="select-icon" />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="category-dropdown"
-              aria-label="Filter by Category"
-            >
-              <option value="ALL">All Categories</option>
-              {categoryOptions.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Status Filter Tabs - Dynamically calculated from search/category filter */}
-          <div className="status-tabs-group">
-            <button
-              type="button"
-              className={`status-tab ${filterMode === 'ALL' ? 'active-tab' : ''}`}
-              onClick={() => setFilterMode('ALL')}
-            >
-              All ({tabAllCount})
-            </button>
-            <button
-              type="button"
-              className={`status-tab tab-low ${filterMode === 'LOW' ? 'active-tab' : ''}`}
-              onClick={() => setFilterMode('LOW')}
-            >
-              Low Stock ({tabLowCount})
-            </button>
-            <button
-              type="button"
-              className={`status-tab tab-out ${filterMode === 'OUT' ? 'active-tab' : ''}`}
-              onClick={() => setFilterMode('OUT')}
-            >
-              Out of Stock ({tabOutCount})
-            </button>
-            <button
-              type="button"
-              className={`status-tab tab-optimal ${filterMode === 'OPTIMAL' ? 'active-tab' : ''}`}
-              onClick={() => setFilterMode('OPTIMAL')}
-            >
-              Optimal ({tabOptimalCount})
-            </button>
-          </div>
-
-          {/* Reset Filters Button */}
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="btn-reset-filters"
-              title="Reset all filters"
-            >
-              <X size={14} /> Clear Filters
             </button>
           )}
         </div>

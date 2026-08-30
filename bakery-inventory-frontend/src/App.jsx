@@ -42,6 +42,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { CategoryManagementPage } from './pages/admin/CategoryManagementPage';
 import { UserManagementPage } from './pages/admin/UserManagementPage';
 import { AdminOrderManagementPage } from './pages/admin/AdminOrderManagementPage';
+import { ProductManagementPage } from './pages/admin/ProductManagementPage';
 
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -308,6 +309,17 @@ function App() {
                 />
 
                 <Route
+                  path="/admin/products"
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={['ADMIN']}
+                    >
+                      <ProductManagementPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
                   path="/admin/orders"
                   element={
                     <ProtectedRoute
@@ -316,11 +328,6 @@ function App() {
                       <AdminOrderManagementPage />
                     </ProtectedRoute>
                   }
-                />
-
-                <Route
-                  path="/inventory/orders"
-                  element={<Navigate to="/admin/orders" replace />}
                 />
 
                 <Route

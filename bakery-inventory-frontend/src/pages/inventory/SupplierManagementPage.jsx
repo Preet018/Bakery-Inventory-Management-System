@@ -220,12 +220,16 @@ export const SupplierManagementPage = () => {
 
       // Search Query
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const nameMatch = (sup.name || '').toLowerCase().includes(query);
-        const emailMatch = (sup.email || '').toLowerCase().includes(query);
-        const phoneMatch = (sup.phone || '').toLowerCase().includes(query);
-        const addressMatch = (sup.address || '').toLowerCase().includes(query);
-        const idMatch = String(sup.id || '').includes(query);
+        const q = searchQuery.toLowerCase().trim();
+        const rawId = q.replace(/^#\s*/, '');
+        const idMatch =
+          String(sup.id || '') === rawId ||
+          `#${sup.id}`.toLowerCase().includes(q) ||
+          (rawId && String(sup.id || '').includes(rawId));
+        const nameMatch = (sup.name || '').toLowerCase().includes(q);
+        const emailMatch = (sup.email || '').toLowerCase().includes(q);
+        const phoneMatch = (sup.phone || '').toLowerCase().includes(q);
+        const addressMatch = (sup.address || '').toLowerCase().includes(q);
         if (!nameMatch && !emailMatch && !phoneMatch && !addressMatch && !idMatch) {
           return false;
         }
@@ -433,7 +437,6 @@ export const SupplierManagementPage = () => {
           onClick={() => setStatusFilter('ALL')}
           role="button"
           tabIndex={0}
-          title="Show all suppliers"
         >
           <div className="metric-icon-wrapper icon-blue">
             <Building size={24} />
@@ -451,7 +454,6 @@ export const SupplierManagementPage = () => {
           onClick={() => setStatusFilter(statusFilter === 'ACTIVE' ? 'ALL' : 'ACTIVE')}
           role="button"
           tabIndex={0}
-          title="Filter active suppliers"
         >
           <div className="metric-icon-wrapper icon-green">
             <CheckCircle2 size={24} />
@@ -469,7 +471,6 @@ export const SupplierManagementPage = () => {
           onClick={() => setStatusFilter(statusFilter === 'INACTIVE' ? 'ALL' : 'INACTIVE')}
           role="button"
           tabIndex={0}
-          title="Filter inactive suppliers"
         >
           <div className="metric-icon-wrapper icon-red">
             <XCircle size={24} />
@@ -492,6 +493,11 @@ export const SupplierManagementPage = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-field"
+            id="supplier-search-input"
+            aria-label="Search suppliers"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
           />
           {searchQuery && (
             <button
@@ -797,7 +803,9 @@ export const SupplierManagementPage = () => {
                   <label htmlFor="supplier-email-input">Email Address</label>
                   <input
                     id="supplier-email-input"
+                    name="email"
                     type="email"
+                    autoComplete="email"
                     placeholder="orders@supplier.com"
                     value={formData.email}
                     onChange={(e) => {

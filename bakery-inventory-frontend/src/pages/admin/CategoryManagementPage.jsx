@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { categoryService } from '../../services/categoryService';
 import { BackOfficeHeaderBadge } from '../../components/common/BackOfficeHeaderBadge';
+import { CustomSelect } from '../../components/common/CustomSelect';
 import {
   Shield,
   Layers,
@@ -91,25 +92,17 @@ export const CategoryManagementPage = () => {
 
     // 1. Search Query Filter
     if (searchQuery.trim()) {
-      const cleanQuery = searchQuery.trim();
-      const isIdSearch = /^#?\s*(\d+)$/.test(cleanQuery);
-
-      if (isIdSearch) {
-        const targetId = cleanQuery.replace(/^#\s*/, '').trim();
-        const queryLower = cleanQuery.toLowerCase();
-        result = result.filter(
-          (cat) =>
-            String(cat.id) === targetId ||
-            (cat.name && cat.name.toLowerCase().includes(queryLower))
-        );
-      } else {
-        const queryLower = cleanQuery.toLowerCase();
-        result = result.filter(
-          (cat) =>
-            (cat.name && cat.name.toLowerCase().includes(queryLower)) ||
-            String(cat.id).includes(cleanQuery)
-        );
-      }
+      const q = searchQuery.trim().toLowerCase();
+      const rawId = q.replace(/^#\s*/, '');
+      result = result.filter((cat) => {
+        const idMatch =
+          String(cat.id || '') === rawId ||
+          `#${cat.id}`.toLowerCase().includes(q) ||
+          (rawId && String(cat.id || '').includes(rawId));
+        const nameMatch = (cat.name || '').toLowerCase().includes(q);
+        const descMatch = (cat.description || '').toLowerCase().includes(q);
+        return idMatch || nameMatch || descMatch;
+      });
     }
 
     // 2. Client-side Ordering
@@ -260,7 +253,11 @@ export const CategoryManagementPage = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-field"
+            id="category-search-input"
             aria-label="Search categories"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
           />
           {searchQuery && (
             <button
@@ -274,18 +271,15 @@ export const CategoryManagementPage = () => {
         </div>
 
         <div className="toolbar-controls">
-          <div className="category-select-wrapper">
-            <ArrowUpDown size={14} className="select-icon" />
-            <select
-              value={orderBy}
-              onChange={(e) => setOrderBy(e.target.value)}
-              className="category-dropdown"
-              aria-label="Order by"
-            >
-              <option value="ID">Category ID</option>
-              <option value="NAME">Category Name</option>
-            </select>
-          </div>
+          <CustomSelect
+            options={[
+              { value: 'ID', label: 'Category ID' },
+              { value: 'NAME', label: 'Category Name' },
+            ]}
+            value={orderBy}
+            onChange={setOrderBy}
+            icon={<ArrowUpDown size={14} />}
+          />
         </div>
       </div>
 

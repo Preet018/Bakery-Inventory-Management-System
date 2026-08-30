@@ -221,7 +221,7 @@ export const InventoryManagerDashboard = () => {
               {/* 3. In Progress / In Preparation */}
               <div className="metric-card card" style={{ cursor: 'default' }}>
                 <div className="metric-icon-wrapper icon-purple">
-                  <Truck size={24} />
+                  <RefreshCw size={24} />
                 </div>
                 <div className="metric-info">
                   <div className="metric-value">{orderStats.inProgress}</div>

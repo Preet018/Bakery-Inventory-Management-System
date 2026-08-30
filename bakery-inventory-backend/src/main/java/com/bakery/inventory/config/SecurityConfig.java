@@ -102,6 +102,8 @@ public class SecurityConfig {
                         // Authentication endpoints remain public.
                         .requestMatchers(
                                 "/api/auth/register",
+                                "/api/auth/register/**",
+                                "/api/auth/verify-registration",
                                 "/api/auth/verify-email",
                                 "/api/auth/request-verification",
                                 "/api/auth/login",
@@ -127,39 +129,26 @@ public class SecurityConfig {
                                 "/api/categories/**"
                         ).hasRole("ADMIN")
 
-                        // Product creation/modification is available to
-                        // ADMIN and INVENTORY_MANAGER.
+                        // Product creation/modification/images belongs ONLY to ADMIN.
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/products/**"
-                        ).hasAnyRole(
-                                "ADMIN",
-                                "INVENTORY_MANAGER"
-                        )
+                        ).hasRole("ADMIN")
 
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/api/products/**"
-                        ).hasAnyRole(
-                                "ADMIN",
-                                "INVENTORY_MANAGER"
-                        )
+                        ).hasRole("ADMIN")
 
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/products/**"
-                        ).hasAnyRole(
-                                "ADMIN",
-                                "INVENTORY_MANAGER"
-                        )
+                        ).hasRole("ADMIN")
 
                         .requestMatchers(
                                 HttpMethod.DELETE,
                                 "/api/products/**"
-                        ).hasAnyRole(
-                                "ADMIN",
-                                "INVENTORY_MANAGER"
-                        )
+                        ).hasRole("ADMIN")
 
                         // Inventory operations:
                         // ADMIN + INVENTORY_MANAGER

@@ -4,11 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { ProductCard } from '../../components/products/ProductCard';
-import { Cake, Sparkles, ArrowRight, ShieldCheck, Truck, RefreshCw } from 'lucide-react';
+import { Cake, Sparkles, ArrowRight, ShieldCheck, Truck, RefreshCw, Search, X } from 'lucide-react';
 
 /**
  * HomePage
- * Landing page with hero banner, category filters, and featured bakery products.
+ * Landing page with hero banner, category filters, product name search, and featured bakery products.
  *
  * CHANGE:
  * - "Browse Bakery Items" smoothly scrolls to the #bakery-selection section on the same page.
@@ -21,6 +21,7 @@ export const HomePage = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,28 +57,28 @@ export const HomePage = () => {
     fetchData();
   }, []);
 
-  // CHANGE: Helper to smoothly scroll to #bakery-selection with fixed navbar offset compensation
+  // Helper to smoothly scroll to #bakery-selection with exact frame alignment
   const scrollToBakerySelection = () => {
     const selectionElement = document.getElementById('bakery-selection');
     if (selectionElement) {
       const navbar = document.querySelector('.bakery-navbar');
-      const navbarHeight = navbar ? navbar.offsetHeight : 75;
+      const navbarHeight = navbar ? navbar.offsetHeight : 72;
       const elementTop = selectionElement.getBoundingClientRect().top;
-      const targetY = elementTop + window.pageYOffset - navbarHeight - 20;
+      const targetY = elementTop + window.pageYOffset - navbarHeight - 16;
 
       window.scrollTo({
-        top: Math.max(0, targetY),
+        top: Math.max(0, Math.round(targetY)),
         behavior: 'smooth',
       });
     }
   };
 
-  // CHANGE: Automatically scroll to #bakery-selection if navigated with that hash from CartPage or other views
+  // Automatically scroll to #bakery-selection if navigated with that hash from CartPage or other views
   useEffect(() => {
     if (window.location.hash === '#bakery-selection') {
       const timer = setTimeout(() => {
         scrollToBakerySelection();
-      }, 150);
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, [products]);
@@ -88,10 +89,23 @@ export const HomePage = () => {
     scrollToBakerySelection();
   };
 
-  const filteredProducts =
-    selectedCategory === 'ALL'
-      ? products
-      : products.filter((p) => String(p.categoryId) === String(selectedCategory));
+  const filteredProducts = products.filter((product) => {
+    // 1. Category Filter
+    if (selectedCategory !== 'ALL' && String(product.categoryId) !== String(selectedCategory)) {
+      return false;
+    }
+
+    // 2. Search ONLY by product name
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const nameMatch = (product.name || '').toLowerCase().includes(q);
+      if (!nameMatch) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   return (
     <div className="home-page">
@@ -168,7 +182,36 @@ export const HomePage = () => {
       <section id="bakery-selection" className="catalog-section">
         <div className="section-header">
           <h2>Our Bakery Selection</h2>
-          <p>Filter by category or explore all delicious treats</p>
+          <p>Filter by category or search delicious treats by product name</p>
+        </div>
+
+        {/* Product Name Search Toolbar */}
+        <div className="inventory-toolbar card mb-5" style={{ maxWidth: '640px', margin: '0 auto 1.5rem auto' }}>
+          <div className="toolbar-search-wrapper" style={{ width: '100%' }}>
+            <Search size={16} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Search by product name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-field"
+              id="customer-product-search"
+              aria-label="Search by product name"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="clear-search-btn"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Category Pills */}
@@ -197,10 +240,21 @@ export const HomePage = () => {
             <p>Loading fresh bakery items...</p>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="empty-state">
-            <Cake size={48} />
-            <h3>No products found in this category</h3>
-            <p>Try selecting a different category or view all products.</p>
+          <div className="empty-state card text-center py-8" style={{ maxWidth: '500px', margin: '2rem auto' }}>
+            <div className="empty-icon-circle mb-3" style={{ margin: '0 auto' }}>
+              <Cake size={36} className="text-muted" />
+            </div>
+            <h3>No products found</h3>
+            <p className="text-muted mb-3">
+              {searchQuery.trim()
+                ? `No products match "${searchQuery.trim()}".`
+                : 'No products available in this category.'}
+            </p>
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="btn-secondary" style={{ margin: '0 auto' }}>
+                <X size={14} /> Clear Search
+              </button>
+            )}
           </div>
         ) : (
           <div className="product-grid">

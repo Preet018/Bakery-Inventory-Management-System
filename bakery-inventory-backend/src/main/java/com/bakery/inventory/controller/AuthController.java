@@ -29,12 +29,27 @@ public class AuthController {
     public ResponseEntity<String> registerCustomer(@Valid @RequestBody AccountRegistrationRequest request) {
         authService.registerCustomer(request);
 
+        return ResponseEntity.ok(
+                "Verification code sent to your email. Please enter the OTP to complete registration."
+        );
+    }
+
+    @PostMapping("/verify-registration")
+    public ResponseEntity<String> verifyRegistration(@Valid @RequestBody EmailVerificationRequest request) {
+        authService.verifyRegistration(request);
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(
-                        "Customer registered successfully. "
-                        + "Please verify your email using the OTP sent to you."
-                );
+                .body("Customer registered successfully. You can now log in.");
+    }
+
+    @PostMapping("/register/resend-otp")
+    public ResponseEntity<String> resendRegistrationOtp(@NotBlank(message = "Email is required") @Email(message = "Email must be valid") @Size(max = 150, message = "Email must not exceed 150 characters") @RequestParam String email) {
+        authService.resendRegistrationOtp(email);
+
+        return ResponseEntity.ok(
+                "A verification OTP has been sent to your email."
+        );
     }
 
     @PostMapping("/login")

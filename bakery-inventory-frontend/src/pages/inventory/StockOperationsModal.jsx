@@ -372,6 +372,9 @@ export const StockOperationsModal = ({
                     onFocus={() => setIsDropdownOpen(true)}
                     className="autocomplete-input"
                     autoFocus
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                   />
                   {productQuery && (
                     <button

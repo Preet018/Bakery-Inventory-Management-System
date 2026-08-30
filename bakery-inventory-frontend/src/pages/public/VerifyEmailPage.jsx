@@ -227,7 +227,9 @@ export const VerifyEmailPage = () => {
               <div className="input-with-icon">
                 <Mail size={16} className="input-icon" />
                 <input
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   placeholder="e.g. customer@example.com"
                   value={email}

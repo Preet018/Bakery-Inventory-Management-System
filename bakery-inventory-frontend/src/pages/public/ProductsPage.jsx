@@ -71,11 +71,21 @@ export const ProductsPage = () => {
   const filteredProducts = products.filter((p) => {
     const matchesCategory =
       selectedCategory === 'ALL' || String(p.categoryId) === String(selectedCategory);
-    const matchesSearch =
-      !searchQuery.trim() ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
+    if (!matchesCategory) return false;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const rawId = q.replace(/^#\s*/, '');
+      const idMatch =
+        String(p.id || '') === rawId ||
+        `#${p.id}`.toLowerCase().includes(q) ||
+        (rawId && String(p.id || '').includes(rawId));
+      const nameMatch = (p.name || '').toLowerCase().includes(q);
+      const descMatch = (p.description || '').toLowerCase().includes(q);
+      return idMatch || nameMatch || descMatch;
+    }
+
+    return true;
   });
 
   return (
@@ -95,7 +105,11 @@ export const ProductsPage = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-field"
+            id="public-catalog-search-input"
             aria-label="Search bakery items"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
           />
         </div>
 

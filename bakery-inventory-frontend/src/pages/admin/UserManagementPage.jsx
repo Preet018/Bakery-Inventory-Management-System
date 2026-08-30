@@ -148,21 +148,19 @@ export const UserManagementPage = () => {
       if (filterMode === 'ACTIVE' && !active) return false;
       if (filterMode === 'INACTIVE' && active) return false;
 
-      // 2. Search Query (supports ID like #1 or 1, and text matching username/name/email)
+      // 2. Search Query (supports partial ID like #1 or 1, and username matching)
       if (searchQuery.trim()) {
-        const cleanQuery = searchQuery.trim();
+        const q = searchQuery.trim().toLowerCase();
+        const rawId = q.replace(/^#\s*/, '');
 
-        if (/^#?\s*\d+$/.test(cleanQuery)) {
-          const rawId = cleanQuery.replace(/^#\s*/, '').trim();
-          return String(manager.id || '') === rawId;
-        }
+        const idMatch =
+          String(manager.id || '') === rawId ||
+          `#${manager.id}`.toLowerCase().includes(q) ||
+          (rawId && String(manager.id || '').includes(rawId));
+        const usernameMatch = (manager.username || '').toLowerCase().includes(q);
+        const nameMatch = (manager.name || '').toLowerCase().includes(q);
 
-        const query = cleanQuery.toLowerCase();
-        const usernameMatch = (manager.username || '').toLowerCase().includes(query);
-        const nameMatch = (manager.name || '').toLowerCase().includes(query);
-        const emailMatch = (manager.email || '').toLowerCase().includes(query);
-
-        if (!usernameMatch && !nameMatch && !emailMatch) {
+        if (!idMatch && !usernameMatch && !nameMatch) {
           return false;
         }
       }
@@ -461,7 +459,6 @@ export const UserManagementPage = () => {
           onClick={() => setFilterMode('ALL')}
           role="button"
           tabIndex={0}
-          title="Show all registered inventory managers"
         >
           <div className="metric-icon-wrapper icon-blue">
             <Users size={24} />
@@ -476,10 +473,9 @@ export const UserManagementPage = () => {
         {/* Active Inventory Managers */}
         <div
           className={`metric-card card ${filterMode === 'ACTIVE' ? 'active-metric metric-card-optimal' : ''}`}
-          onClick={() => setFilterMode('ACTIVE')}
+          onClick={() => setFilterMode(filterMode === 'ACTIVE' ? 'ALL' : 'ACTIVE')}
           role="button"
           tabIndex={0}
-          title="Filter active inventory managers"
         >
           <div className="metric-icon-wrapper icon-green">
             <UserCheck size={24} />
@@ -494,10 +490,9 @@ export const UserManagementPage = () => {
         {/* Inactive Inventory Managers */}
         <div
           className={`metric-card card ${filterMode === 'INACTIVE' ? 'active-metric metric-card-out' : ''}`}
-          onClick={() => setFilterMode('INACTIVE')}
+          onClick={() => setFilterMode(filterMode === 'INACTIVE' ? 'ALL' : 'INACTIVE')}
           role="button"
           tabIndex={0}
-          title="Filter inactive inventory managers"
         >
           <div className="metric-icon-wrapper icon-red">
             <UserX size={24} />
@@ -518,11 +513,14 @@ export const UserManagementPage = () => {
           <Search size={16} className="search-icon" />
           <input
             type="text"
-            placeholder="Search by Manager ID (#1), username, or email..."
+            placeholder="Search by Manager ID (#1) or username..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-field"
             aria-label="Search inventory managers"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
           />
           {searchQuery && (
             <button
@@ -644,26 +642,32 @@ export const UserManagementPage = () => {
                             <button
                               onClick={() => openConfirmModal('DEACTIVATE', manager)}
                               className="btn-sm btn-warning"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                               title="Deactivate account (reversible)"
                             >
-                              <PowerOff size={13} /> Deactivate
+                              <PowerOff size={13} />
+                              <span>Deactivate</span>
                             </button>
                           ) : (
                             <button
                               onClick={() => openConfirmModal('REACTIVATE', manager)}
                               className="btn-sm btn-success"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                               title="Reactivate account (reversible)"
                             >
-                              <Power size={13} /> Reactivate
+                              <Power size={13} />
+                              <span>Reactivate</span>
                             </button>
                           )}
 
                           <button
                             onClick={() => openConfirmModal('DELETE', manager)}
                             className="btn-sm btn-danger"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                             title="Permanently delete account from database"
                           >
-                            <Trash2 size={13} /> Delete
+                            <Trash2 size={13} />
+                            <span>Delete</span>
                           </button>
                         </div>
                       </td>
@@ -691,16 +695,26 @@ export const UserManagementPage = () => {
               <div className="modal-header-icon-title">
                 {confirmModal.type === 'DELETE' ? (
                   confirmModal.deleteStep === 3 ? (
-                    <AlertTriangle className="text-danger" size={22} />
+                    <div className="header-icon-box icon-red">
+                      <AlertTriangle className="text-danger" size={20} />
+                    </div>
                   ) : confirmModal.deleteStep === 2 ? (
-                    <Lock className="text-primary" size={22} />
+                    <div className="header-icon-box icon-blue">
+                      <Lock className="text-primary" size={20} />
+                    </div>
                   ) : (
-                    <Shield className="text-primary" size={22} />
+                    <div className="header-icon-box icon-blue">
+                      <Shield className="text-primary" size={20} />
+                    </div>
                   )
                 ) : confirmModal.type === 'DEACTIVATE' ? (
-                  <PowerOff className="text-warning" size={22} />
+                  <div className="header-icon-box icon-amber">
+                    <PowerOff className="text-amber" size={20} />
+                  </div>
                 ) : (
-                  <Power className="text-success" size={22} />
+                  <div className="header-icon-box icon-green">
+                    <Power className="text-success" size={20} />
+                  </div>
                 )}
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.15rem' }}>
@@ -711,18 +725,20 @@ export const UserManagementPage = () => {
                         ? 'Enter Verification Code (Step 2 of 3)'
                         : 'Confirm Permanent Deletion (Step 3 of 3)'
                       : confirmModal.type === 'DEACTIVATE'
-                      ? 'Deactivate Inventory Manager?'
-                      : 'Reactivate Inventory Manager?'}
+                      ? 'Deactivate Inventory Manager'
+                      : 'Reactivate Inventory Manager'}
                   </h3>
-                  {confirmModal.type === 'DELETE' && (
-                    <div className="modal-subtitle" style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                      {confirmModal.deleteStep === 1
+                  <div className="modal-subtitle" style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                    {confirmModal.type === 'DELETE'
+                      ? confirmModal.deleteStep === 1
                         ? 'Confirm administrator identity before requesting deletion OTP'
                         : confirmModal.deleteStep === 2
                         ? `6-digit verification code sent to ${confirmModal.maskedEmail}`
-                        : 'Review verified authorization and permanently delete account'}
-                    </div>
-                  )}
+                        : 'Review verified authorization and permanently delete account'
+                      : confirmModal.type === 'DEACTIVATE'
+                      ? 'Suspend manager access to inventory operations'
+                      : 'Restore manager access to inventory operations'}
+                  </div>
                 </div>
               </div>
               <button
@@ -773,7 +789,9 @@ export const UserManagementPage = () => {
                         <Mail size={18} className="input-icon" />
                         <input
                           id="admin-verify-email"
+                          name="email"
                           type="email"
+                          autoComplete="email"
                           required
                           placeholder="Enter your admin email (e.g. fragy2002op@gmail.com)"
                           value={confirmModal.adminEmail}
@@ -950,7 +968,7 @@ export const UserManagementPage = () => {
                       type="button"
                       onClick={handleExecuteAction}
                       disabled={confirmModal.submitting}
-                      className="btn-warning"
+                      className="btn-danger"
                     >
                       {confirmModal.submitting ? 'Deactivating...' : 'Confirm Deactivation'}
                     </button>
@@ -1057,6 +1075,7 @@ export const UserManagementPage = () => {
                     id="reg-email"
                     type="email"
                     name="email"
+                    autoComplete="email"
                     required
                     placeholder="manager@bakery.com"
                     value={regForm.email}

@@ -13,14 +13,27 @@ export const authService = {
     return response.data; // LoginResponse: { accessToken, tokenType, expiresIn, username, role }
   },
 
-  // Register new customer account
+  // Register new customer account (initiates pending registration & sends OTP)
   register: async (userData) => {
-    // userData = { firstName, lastName, email, password, phoneNumber }
+    // userData = { username, email, password }
     const response = await axiosInstance.post('/api/auth/register', userData);
     return response.data; // Success message string
   },
 
-  // Verify email using OTP code
+  // Verify registration OTP and create customer account
+  verifyRegistration: async (verificationData) => {
+    // verificationData = { email, otp }
+    const response = await axiosInstance.post('/api/auth/verify-registration', verificationData);
+    return response.data;
+  },
+
+  // Resend OTP for pending registration
+  resendRegistrationOtp: async (email) => {
+    const response = await axiosInstance.post(`/api/auth/register/resend-otp?email=${encodeURIComponent(email)}`);
+    return response.data;
+  },
+
+  // Verify email using OTP code (for legacy/manager accounts or fallback)
   verifyEmail: async (verificationData) => {
     // verificationData = { email, otp }
     const response = await axiosInstance.post('/api/auth/verify-email', verificationData);

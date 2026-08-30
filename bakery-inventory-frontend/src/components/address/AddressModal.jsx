@@ -233,7 +233,7 @@ export const AddressModal = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-form">
+        <form onSubmit={handleSubmit} className="modal-form address-modal-form">
           {validationError && (
             <div className="error-alert">
               <AlertTriangle size={18} className="flex-shrink-0" />
