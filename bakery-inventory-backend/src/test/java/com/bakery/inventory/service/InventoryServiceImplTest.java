@@ -64,7 +64,7 @@ class InventoryServiceImplTest {
                         "Weekly purchase"
                 );
 
-        when(inventoryRepository.findByProductId(1))
+        when(inventoryRepository.findByProductIdForUpdate(1))
                 .thenReturn(java.util.Optional.of(inventory));
 
         when(inventoryRepository.save(inventory))
@@ -104,7 +104,7 @@ class InventoryServiceImplTest {
                         "Damaged stock"
                 );
 
-        when(inventoryRepository.findByProductId(1))
+        when(inventoryRepository.findByProductIdForUpdate(1))
                 .thenReturn(java.util.Optional.of(inventory));
 
         InsufficientStockException exception =
@@ -135,7 +135,7 @@ class InventoryServiceImplTest {
                         "Stock count correction"
                 );
 
-        when(inventoryRepository.findByProductId(1))
+        when(inventoryRepository.findByProductIdForUpdate(1))
                 .thenReturn(java.util.Optional.of(inventory));
 
         BusinessRuleException exception =

@@ -252,6 +252,7 @@ CREATE TABLE customer_order (
     CONSTRAINT chk_order_status
         CHECK (
             order_status IN (
+                'PENDING_PAYMENT',
                 'PLACED',
                 'CONFIRMED',
                 'PROCESSING',
@@ -342,7 +343,8 @@ CREATE TABLE payment (
             payment_status IN (
                 'PENDING',
                 'PAID',
-                'FAILED'
+                'FAILED',
+                'REQUIRES_REFUND'
             )
         )
 );
@@ -384,10 +386,15 @@ CREATE TABLE inventory_reservation (
             status IN (
                 'ACTIVE',
                 'CONVERTED',
-                'RELEASED'
+                'RELEASED',
+                'EXPIRED'
             )
         )
 );
+
+CREATE INDEX idx_reservation_status_expires ON inventory_reservation(status, expires_at);
+CREATE INDEX idx_payment_provider_order ON payment(provider_order_id);
+CREATE INDEX idx_customer_order_user_status ON customer_order(user_id, order_status);
 
 
 -- =========================================================

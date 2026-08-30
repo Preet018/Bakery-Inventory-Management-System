@@ -112,11 +112,27 @@ export const OrderHistoryPage = () => {
   // Helper for Payment Method display
   const formatPaymentMethod = (method) => {
     const m = (method || 'NETBANKING').toUpperCase();
-    if (m === 'NETBANKING' || m === 'NET_BANKING') return 'Paid (Netbanking)';
-    if (m === 'CREDIT_CARD') return 'Paid (Credit Card)';
-    if (m === 'DEBIT_CARD') return 'Paid (Debit Card)';
-    if (m === 'CARD') return 'Paid (Card)';
+    if (m === 'NETBANKING' || m === 'NET_BANKING') return 'Net Banking';
+    if (m === 'CREDIT_CARD') return 'Credit Card';
+    if (m === 'DEBIT_CARD') return 'Debit Card';
+    if (m === 'CARD') return 'Card';
+    if (m === 'UPI') return 'UPI';
+    if (m === 'COD') return 'COD';
     return m;
+  };
+
+  const getPaymentSummaryText = (order) => {
+    const payment = order.payment;
+    if (payment?.paymentStatus === 'REFUNDED') {
+      return 'Payment Refunded';
+    }
+    if (payment?.paymentStatus === 'PAID') {
+      return `Paid (${formatPaymentMethod(payment.paymentMethod)})`;
+    }
+    if (payment?.paymentStatus === 'FAILED') {
+      return 'Payment Failed';
+    }
+    return formatPaymentMethod(payment?.paymentMethod || order.paymentMethod);
   };
 
   return (
@@ -222,7 +238,7 @@ export const OrderHistoryPage = () => {
 
                     <div className="order-payment-block">
                       <Wallet size={14} className="payment-icon" />
-                      <span>{formatPaymentMethod(order.payment?.paymentMethod || order.paymentMethod)}</span>
+                      <span>{getPaymentSummaryText(order)}</span>
                     </div>
                   </div>
 

@@ -1,6 +1,7 @@
 package com.bakery.inventory.service;
 
 import com.bakery.inventory.dto.payment.PaymentGatewayOrder;
+import com.bakery.inventory.dto.payment.PaymentGatewayRefund;
 import com.bakery.inventory.dto.payment.PaymentGatewayVerification;
 import com.bakery.inventory.exception.PaymentGatewayException;
 import com.razorpay.*;
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -82,7 +85,7 @@ public class RazorpayPaymentGateway implements PaymentGateway {
                             .setScale(
                                     0,
                                     RoundingMode.UNNECESSARY
-                            )
+                                )
                             .longValueExact();
 
             if (!providerOrderId.equals(actualOrderId)) {
@@ -117,5 +120,79 @@ public class RazorpayPaymentGateway implements PaymentGateway {
                     "Failed to verify Razorpay payment " + providerPaymentId, e
             );
         }
+    }
+
+    @Override
+    public PaymentGatewayRefund initiateRefund(String providerPaymentId, BigDecimal amount, String currency, String receipt, String idempotencyKey) {
+        long expectedAmountInPaise = amount
+                .movePointRight(2)
+                .setScale(0, RoundingMode.UNNECESSARY)
+                .longValueExact();
+
+        try {
+            // 1. Existing-refund reconciliation: Query existing refunds for this payment
+            List<Refund> existingRefunds = razorpayClient.payments.fetchAllRefunds(providerPaymentId);
+            if (existingRefunds != null && !existingRefunds.isEmpty()) {
+                for (Refund existingRefund : existingRefunds) {
+                    String existingReceipt = existingRefund.get("receipt");
+                    long existingAmount = ((Number) existingRefund.get("amount")).longValue();
+                    String refundStatus = existingRefund.get("status");
+
+                    // POSITIVE ORDER-SPECIFIC ASSOCIATION:
+                    // Must strictly match the order's stable receipt identifier and expected amount.
+                    // Amount alone with a null/missing receipt must NEVER establish association.
+                    boolean receiptMatches = (receipt != null && receipt.equals(existingReceipt));
+                    boolean amountMatches = (existingAmount == expectedAmountInPaise);
+
+                    if (receiptMatches && amountMatches) {
+                        String refundId = existingRefund.get("id");
+                        // ONLY 'processed' status represents a completed/successful refund. 'pending' is NOT completed.
+                        boolean isCompleted = "processed".equalsIgnoreCase(refundStatus);
+                        return new PaymentGatewayRefund(refundId, refundStatus, isCompleted);
+                    }
+                }
+            }
+
+            // 2. Prepare refund request payload with receipt and deterministic metadata
+            JSONObject refundRequest = new JSONObject();
+            refundRequest.put("amount", expectedAmountInPaise);
+            if (receipt != null) {
+                refundRequest.put("receipt", receipt);
+                JSONObject notes = new JSONObject();
+                notes.put("receipt", receipt);
+                if (idempotencyKey != null) {
+                    notes.put("idempotencyKey", idempotencyKey);
+                }
+                refundRequest.put("notes", notes);
+            }
+
+            // 3. API-level idempotency header: set X-Razorpay-Idempotency-Key
+            Refund refund;
+            synchronized (razorpayClient) {
+                if (idempotencyKey != null) {
+                    razorpayClient.addHeaders(Collections.singletonMap("X-Razorpay-Idempotency-Key", idempotencyKey));
+                }
+                refund = razorpayClient.payments.refund(providerPaymentId, refundRequest);
+            }
+
+            String refundId = refund.get("id");
+            String refundStatus = refund.get("status");
+            // ONLY 'processed' status represents a completed/successful refund. 'pending' is NOT completed.
+            boolean isCompleted = "processed".equalsIgnoreCase(refundStatus);
+
+            return new PaymentGatewayRefund(refundId, refundStatus, isCompleted);
+        } catch (RazorpayException e) {
+            throw new PaymentGatewayException(
+                    "Failed to process Razorpay refund for payment " + providerPaymentId + ": " + e.getMessage(), e
+            );
+        }
+    }
+
+    @Override
+    public PaymentGatewayRefund initiateRefund(String providerPaymentId, BigDecimal amount, String currency, String receipt) {
+        String derivedIdempotencyKey = receipt != null
+                ? receipt + "_PAYMENT_" + providerPaymentId
+                : "PAYMENT_" + providerPaymentId + "_REFUND";
+        return initiateRefund(providerPaymentId, amount, currency, receipt, derivedIdempotencyKey);
     }
 }

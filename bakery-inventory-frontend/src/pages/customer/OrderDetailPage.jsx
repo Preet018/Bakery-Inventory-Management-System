@@ -34,13 +34,22 @@ export const OrderDetailPage = () => {
   }, [id]);
 
   const handleCancelOrder = async () => {
-    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    const isPaid = order.payment?.paymentStatus === 'PAID';
+    const confirmMessage = isPaid
+      ? `Are you sure you want to cancel Order #${order.id}?\n\n• The order will be permanently cancelled.\n• Reserved bakery items will be released back into stock.\n• A full refund of ₹${Number(order.totalAmount || 0).toFixed(2)} will be processed through Razorpay to your original payment method.`
+      : `Are you sure you want to cancel Order #${order.id}?\n\n• The order will be permanently cancelled.\n• Reserved bakery items will be released back into stock.`;
+
+    if (!window.confirm(confirmMessage)) return;
     setCancelling(true);
     setError(null);
     try {
       const updated = await orderService.cancelOrder(id);
       setOrder(updated);
-      setMsg('Order has been cancelled successfully.');
+      setMsg(
+        isPaid
+          ? 'Order has been cancelled successfully. Your payment has been fully refunded through Razorpay.'
+          : 'Order has been cancelled successfully.'
+      );
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to cancel order.');
     } finally {
@@ -69,8 +78,8 @@ export const OrderDetailPage = () => {
     );
   }
 
-  // CHANGE: Backend CustomerOrderResponse uses orderStatus (PLACED, CONFIRMED)
-  const canCancel = (order.orderStatus || order.status) === 'PLACED' || (order.orderStatus || order.status) === 'CONFIRMED';
+  // Only PLACED or PENDING_PAYMENT orders are eligible for cancellation
+  const canCancel = (order.orderStatus || order.status) === 'PLACED' || (order.orderStatus || order.status) === 'PENDING_PAYMENT';
 
   return (
     <div className="order-detail-page page-container">
@@ -102,8 +111,12 @@ export const OrderDetailPage = () => {
           </div>
 
           <div className="order-status-pill">
-            {/* CHANGE: Backend CustomerOrderResponse field is orderStatus */}
             Status: <strong>{order.orderStatus || order.status}</strong>
+            {order.payment?.paymentStatus === 'REFUNDED' && (
+              <span className="text-primary font-bold" style={{ marginLeft: '8px' }}>
+                (Payment Refunded)
+              </span>
+            )}
           </div>
         </div>
 

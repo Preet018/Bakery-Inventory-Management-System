@@ -99,7 +99,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // Authentication endpoints remain public.
+                        // Authentication & Webhook endpoints remain public.
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/register/**",
@@ -108,7 +108,8 @@ public class SecurityConfig {
                                 "/api/auth/request-verification",
                                 "/api/auth/login",
                                 "/api/auth/change-password",
-                                "/api/auth/password-reset/**" // CHANGE: Added password-reset OTP endpoints to permitAll
+                                "/api/auth/password-reset/**",
+                                "/api/webhooks/**"
                         ).permitAll()
 
                         // Product/category browsing and static product images are public.
@@ -199,10 +200,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/orders/*/status"
-                        ).hasAnyRole(
-                                "ADMIN",
-                                "INVENTORY_MANAGER"
-                        )
+                        ).hasRole("INVENTORY_MANAGER")
 
                         .requestMatchers(
                                 HttpMethod.POST,

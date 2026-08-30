@@ -291,9 +291,12 @@ export const AdminOrderManagementPage = () => {
     setActionError(null);
   };
 
-  // Cancel Action Trigger (Inventory Manager only)
+  // Cancel Action Trigger (Admin and Inventory Manager for eligible orders)
   const handleTriggerCancel = (order) => {
-    if (!isInventoryManager) return;
+    if (!isAdmin && !isInventoryManager) return;
+    const currentStatus = order?.orderStatus || order?.status;
+    if (currentStatus !== 'PLACED' && currentStatus !== 'PENDING_PAYMENT') return;
+
     setConfirmDialog({
       order,
       action: 'CANCEL',
@@ -302,10 +305,14 @@ export const AdminOrderManagementPage = () => {
     setActionError(null);
   };
 
-  // Confirm and Execute Action (Inventory Manager only)
+  // Confirm and Execute Action
   const handleConfirmAction = async () => {
-    if (!confirmDialog || !isInventoryManager) return;
+    if (!confirmDialog) return;
     const { order, action, targetStatus } = confirmDialog;
+
+    if (action === 'STATUS_UPDATE' && !isInventoryManager) return;
+    if (action === 'CANCEL' && !isAdmin && !isInventoryManager) return;
+
     setActionLoading(true);
     setActionError(null);
 
@@ -318,7 +325,7 @@ export const AdminOrderManagementPage = () => {
         }
       } else if (action === 'CANCEL') {
         const updated = await orderService.cancelOrder(order.id);
-        setSuccessBanner(`Order #${order.id} has been cancelled successfully.`);
+        setSuccessBanner(`Order #${order.id} has been cancelled successfully. Any captured Razorpay payment has been fully refunded.`);
         if (selectedOrder && selectedOrder.id === order.id) {
           setSelectedOrder(updated);
         }
@@ -390,6 +397,13 @@ const formatPaymentMethodFull = (rawMethod) => {
     const status = payment.paymentStatus || 'PENDING';
     const methodLabel = formatPaymentMethod(payment.paymentMethod);
 
+    if (status === 'REFUNDED') {
+      return (
+        <span className="payment-status-badge badge-payment-refunded" title={`Refunded (${methodLabel})`}>
+          <RefreshCw size={12} /> Refunded ({methodLabel})
+        </span>
+      );
+    }
     if (status === 'SUCCESS' || status === 'PAID') {
       return (
         <span className="payment-status-badge badge-payment-success" title={`Method: ${methodLabel}`}>
@@ -1017,7 +1031,7 @@ const formatPaymentMethodFull = (rawMethod) => {
                   </div>
                 </div>
               ) : (
-                /* Admin Read-Only Fulfillment Status Panel */
+                /* Admin Read-Only Fulfillment Status Panel with Eligible Order Cancellation */
                 <div className="order-readonly-status-panel mt-4">
                   <div className="readonly-status-info">
                     <div className="flex items-center gap-2">
@@ -1029,9 +1043,24 @@ const formatPaymentMethodFull = (rawMethod) => {
                     </p>
                   </div>
 
-                  <div className="readonly-status-role-badge">
-                    <ShieldCheck size={14} className="text-primary flex-shrink-0" />
-                    <span>Fulfillment managed operationally by Inventory & Kitchen staff</span>
+                  <div className="flex items-center justify-between gap-3 flex-wrap mt-3">
+                    <div className="readonly-status-role-badge">
+                      <ShieldCheck size={14} className="text-primary flex-shrink-0" />
+                      <span>Fulfillment managed operationally by Inventory & Kitchen staff</span>
+                    </div>
+
+                    {((selectedOrder.orderStatus || selectedOrder.status) === 'PLACED' ||
+                      (selectedOrder.orderStatus || selectedOrder.status) === 'PENDING_PAYMENT') && (
+                      <button
+                        type="button"
+                        className="btn-danger btn-sm"
+                        onClick={() => handleTriggerCancel(selectedOrder)}
+                        disabled={actionLoading}
+                      >
+                        <XCircle size={15} />
+                        <span>Cancel Order</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1052,9 +1081,9 @@ const formatPaymentMethodFull = (rawMethod) => {
       )}
 
       {/* ===================================================
-          CONFIRMATION DIALOG FOR STATUS UPDATES & CANCELLATIONS (Inventory Manager)
+          CONFIRMATION DIALOG FOR STATUS UPDATES & CANCELLATIONS (Admin & Inventory Manager)
           =================================================== */}
-      {confirmDialog && isInventoryManager && (
+      {confirmDialog && (isAdmin || isInventoryManager) && (
         <div className="modal-overlay" onClick={() => setConfirmDialog(null)}>
           <div
             className="modal-container card confirmation-modal"
@@ -1083,20 +1112,28 @@ const formatPaymentMethodFull = (rawMethod) => {
             </div>
 
             <div className="confirmation-modal-body">
-              <p>
-                {confirmDialog.action === 'CANCEL' ? (
-                  <>
+              {confirmDialog.action === 'CANCEL' ? (
+                <div className="cancellation-consequences-box">
+                  <p className="mb-2">
                     Are you sure you want to cancel <strong>Order #{confirmDialog.order?.id}</strong>?
-                    Cancelling this order will release all reserved inventory items back into available stock.
-                  </>
-                ) : (
-                  <>
-                    Are you sure you want to change the status of <strong>Order #{confirmDialog.order?.id}</strong> from{' '}
-                    <strong>{ORDER_STATUS_META[confirmDialog.order?.orderStatus || confirmDialog.order?.status]?.label}</strong> to{' '}
-                    <strong>{ORDER_STATUS_META[confirmDialog.targetStatus]?.label}</strong>?
-                  </>
-                )}
-              </p>
+                  </p>
+                  <ul className="text-sm text-muted" style={{ paddingLeft: '1.25rem', lineHeight: '1.6', margin: '0.5rem 0' }}>
+                    <li>This order will be permanently marked as <strong>Cancelled</strong>.</li>
+                    <li>All reserved bakery items will be automatically released back to available inventory.</li>
+                    {confirmDialog.order?.payment?.paymentStatus === 'PAID' && (
+                      <li className="font-semibold text-primary">
+                        A full refund of ₹{Number(confirmDialog.order?.totalAmount || 0).toFixed(2)} will be initiated via Razorpay to the customer's payment method.
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              ) : (
+                <p>
+                  Are you sure you want to change the status of <strong>Order #{confirmDialog.order?.id}</strong> from{' '}
+                  <strong>{ORDER_STATUS_META[confirmDialog.order?.orderStatus || confirmDialog.order?.status]?.label}</strong> to{' '}
+                  <strong>{ORDER_STATUS_META[confirmDialog.targetStatus]?.label}</strong>?
+                </p>
+              )}
             </div>
 
             <div className="modal-actions">

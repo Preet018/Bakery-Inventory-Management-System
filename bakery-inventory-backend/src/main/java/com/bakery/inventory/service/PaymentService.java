@@ -12,4 +12,10 @@ public interface PaymentService {
     PaymentResponse verifyAndConfirmPayment(Integer paymentId, PaymentVerificationRequest request);
 
     PaymentResponse markAsFailed(Integer paymentId);
+
+    void processWebhookPaymentCaptured(String razorpayOrderId, String razorpayPaymentId, String razorpaySignature);
+
+    void processWebhookPaymentFailed(String razorpayOrderId, String razorpayPaymentId);
+
+    PaymentResponse refundPayment(Integer orderId);
 }

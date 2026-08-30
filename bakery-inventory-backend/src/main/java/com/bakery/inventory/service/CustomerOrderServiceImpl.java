@@ -82,7 +82,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                 order.setDeliveryLongitude(savedAddress.getLongitude());
                 order.setDeliveryPlaceId(savedAddress.getPlaceId());
 
-                order.setOrderStatus(OrderStatus.PLACED);
+                order.setOrderStatus(OrderStatus.PENDING_PAYMENT);
 
                 LocalDateTime now = LocalDateTime.now();
 
@@ -96,7 +96,12 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                 List<OrderItem> orderItems = new ArrayList<>();
 
-                for (OrderItemRequest itemRequest : request.getItems()) {
+                // Sort items ascending by productId to enforce deterministic lock ordering and prevent deadlocks
+                List<OrderItemRequest> sortedItems = request.getItems().stream()
+                        .sorted(java.util.Comparator.comparing(OrderItemRequest::getProductId))
+                        .toList();
+
+                for (OrderItemRequest itemRequest : sortedItems) {
                         Product product = productRepository.findById(
                                         itemRequest.getProductId())
                                         .orElseThrow(() ->
@@ -203,18 +208,30 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
                 return customerOrderRepository.findByUserId(userId)
                                 .stream()
+                                .filter(order -> {
+                                    if (!"ADMIN".equals(requestingRole) && !"INVENTORY_MANAGER".equals(requestingRole)) {
+                                        return order.getOrderStatus() != OrderStatus.PENDING_PAYMENT && order.getOrderStatus() != OrderStatus.CANCELLED;
+                                    }
+                                    return true;
+                                })
                                 .map(this::mapToResponse)
                                 .toList();
         }
 
         @Override
         @Transactional
-        public CustomerOrderResponse updateOrderStatus(Integer id, OrderStatus newStatus) {
+        public CustomerOrderResponse updateOrderStatus(Integer id, OrderStatus newStatus, String requestingRole) {
+                if (!"INVENTORY_MANAGER".equals(requestingRole)) {
+                    throw new AccessDeniedException(
+                            "Only inventory managers can perform order fulfillment status updates."
+                    );
+                }
+
                 CustomerOrder order = customerOrderRepository.findById(id)
                                 .orElseThrow(() ->
-                                        new ResourceNotFoundException(
-                                                "Order not found with id: " + id
-                                        )
+                                         new ResourceNotFoundException(
+                                                 "Order not found with id: " + id
+                                         )
                                 );
 
                 OrderStatus currentStatus = order.getOrderStatus();
@@ -235,28 +252,42 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
         @Override
         @Transactional
+        public CustomerOrderResponse updateOrderStatus(Integer id, OrderStatus newStatus) {
+                return updateOrderStatus(id, newStatus, "INVENTORY_MANAGER");
+        }
+
+        @Override
+        @Transactional
         public CustomerOrderResponse cancelOrder(Integer id, Integer requestingUserId, String requestingRole) {
-                CustomerOrder order = customerOrderRepository.findById(id)
+                CustomerOrder order = customerOrderRepository.findByIdForUpdate(id)
                                 .orElseThrow(() ->
                                         new ResourceNotFoundException(
-                                                "Order not found with id: " + id
-                                        )
+                                                 "Order not found with id: " + id
+                                         )
                                 );
 
                 if (!"ADMIN".equals(requestingRole) && !"INVENTORY_MANAGER".equals(requestingRole) && !order.getUser().getId().equals(requestingUserId)) {
-                    throw new AccessDeniedException( // CHANGE
+                    throw new AccessDeniedException(
                             "You are not authorized to cancel this order."
                     );
                 }
 
-                if (order.getOrderStatus() != OrderStatus.PLACED) {
+                if (order.getOrderStatus() != OrderStatus.PENDING_PAYMENT && order.getOrderStatus() != OrderStatus.PLACED) {
                     throw new BusinessRuleException(
-                            "Only placed orders can be cancelled"
+                            "Only pending or placed orders can be cancelled"
                     );
                 }
 
+                // 1. If order has a captured/paid Razorpay payment, initiate full Razorpay refund first
+                Payment payment = order.getPayment();
+                if (payment != null && payment.getPaymentStatus() == PaymentStatus.PAID && payment.getProviderPaymentId() != null) {
+                    paymentService.refundPayment(id);
+                }
+
+                // 2. Release reserved inventory
                 inventoryReservationService.releaseByOrderId(id);
 
+                // 3. Mark order as CANCELLED and persist
                 order.setOrderStatus(OrderStatus.CANCELLED);
                 order.setUpdatedAt(LocalDateTime.now());
 
@@ -266,7 +297,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         }
 
         private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-                if (currentStatus == OrderStatus.PLACED) {
+                if (currentStatus == OrderStatus.PENDING_PAYMENT || currentStatus == OrderStatus.PLACED) {
                         return newStatus == OrderStatus.CONFIRMED;
                 }
 

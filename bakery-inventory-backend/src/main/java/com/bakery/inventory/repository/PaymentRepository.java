@@ -29,4 +29,12 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
             WHERE p.id = :paymentId
             """)
     Optional<Payment> findByIdForUpdate(@Param("paymentId") Integer paymentId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT p
+            FROM Payment p
+            WHERE p.order.id = :orderId
+            """)
+    Optional<Payment> findByOrderIdForUpdate(@Param("orderId") Integer orderId);
 }

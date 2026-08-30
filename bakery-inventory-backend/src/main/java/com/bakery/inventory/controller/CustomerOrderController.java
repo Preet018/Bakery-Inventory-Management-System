@@ -60,11 +60,16 @@ public class CustomerOrderController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<CustomerOrderResponse> updateOrderStatus(@Positive(message = "Order ID must be positive") @PathVariable Integer id, @Valid @RequestBody CustomerOrderStatusUpdateRequest request) {
+    public ResponseEntity<CustomerOrderResponse> updateOrderStatus(
+            Authentication authentication,
+            @Positive(message = "Order ID must be positive") @PathVariable Integer id,
+            @Valid @RequestBody CustomerOrderStatusUpdateRequest request) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         return ResponseEntity.ok(
                 customerOrderService.updateOrderStatus(
                         id,
-                        request.getStatus()
+                        request.getStatus(),
+                        userDetails.getRoleName()
                 )
         );
     }

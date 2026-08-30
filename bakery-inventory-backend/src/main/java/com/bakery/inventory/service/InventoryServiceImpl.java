@@ -65,7 +65,13 @@ public class InventoryServiceImpl implements InventoryService {
     public InventoryResponse adjustStock(Integer productId, StockAdjustmentRequest request) {
         Integer targetQuantity = request.getTargetQuantity();
 
-        Inventory inventory = getInventory(productId);
+        Inventory inventory = inventoryRepository.findByProductIdForUpdate(productId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Inventory not found for product id: "
+                                        + productId
+                        )
+                );
 
         if (targetQuantity < inventory.getReservedQuantity()) {
             throw new BusinessRuleException(
@@ -129,7 +135,13 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     private InventoryResponse updateInventory(Integer productId, Integer quantityChange, StockTransactionType transactionType, String reason) {
-        Inventory inventory = getInventory(productId);
+        Inventory inventory = inventoryRepository.findByProductIdForUpdate(productId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Inventory not found for product id: "
+                                        + productId
+                        )
+                );
 
         int currentQuantity = inventory.getQuantity();
 

@@ -5,6 +5,7 @@ import com.bakery.inventory.entity.*;
 import com.bakery.inventory.exception.*;
 import com.bakery.inventory.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,13 +15,16 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class InventoryReservationServiceImpl implements InventoryReservationService {
-    private static final int RESERVATION_DURATION_MINUTES = 2;
+
+    @Value("${bakery.inventory.reservation-ttl-minutes:15}")
+    private int reservationDurationMinutes = 15;
 
     private final InventoryRepository inventoryRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
     private final CustomerOrderRepository customerOrderRepository;
     private final ProductRepository productRepository;
     private final StockTransactionRepository stockTransactionRepository;
+    private final PaymentRepository paymentRepository;
 
     @Override
     @Transactional
@@ -49,7 +53,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Inventory not found for product id: " + productId
-                                )
+                                		)
                         );
 
         int availableQuantity = inventory.getQuantity() - inventory.getReservedQuantity();
@@ -76,7 +80,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
         inventoryRepository.save(inventory);
 
         LocalDateTime reservedAt = LocalDateTime.now();
-        LocalDateTime expiresAt = reservedAt.plusMinutes(RESERVATION_DURATION_MINUTES);
+        LocalDateTime expiresAt = reservedAt.plusMinutes(reservationDurationMinutes);
 
         InventoryReservation reservation = new InventoryReservation();
 
@@ -98,9 +102,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
         InventoryReservation reservation = getReservation(reservationId);
 
         if (reservation.getStatus() != ReservationStatus.ACTIVE) {
-            throw new BusinessRuleException(
-                    "Only active reservations can be released"
-            );
+            return mapToResponse(reservation);
         }
 
         Integer productId = reservation.getProduct().getId();
@@ -116,9 +118,7 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
         int newReservedQuantity = inventory.getReservedQuantity() - reservation.getQuantity();
 
         if (newReservedQuantity < 0) {
-            throw new BusinessRuleException(
-                    "Reserved inventory cannot become negative"
-            );
+            newReservedQuantity = 0;
         }
 
         inventory.setReservedQuantity(newReservedQuantity);
@@ -153,13 +153,15 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
 
         if (reservation.getStatus() != ReservationStatus.ACTIVE) {
             throw new BusinessRuleException(
-                    "Only active reservations can be converted"
+                    "Only active reservations can be converted. Current status: " + reservation.getStatus()
             );
         }
 
         if (reservation.getExpiresAt().isBefore(LocalDateTime.now())) {
+            // Expire the reservation and throw exception
+            expireReservation(reservation);
             throw new BusinessRuleException(
-                    "Reservation has expired"
+                    "Reservation has expired and cannot be converted to a sale"
             );
         }
 
@@ -251,12 +253,42 @@ public class InventoryReservationServiceImpl implements InventoryReservationServ
         int releasedCount = 0;
 
         for (InventoryReservation reservation : expiredReservations) {
-            release(reservation.getId());
-
+            expireReservation(reservation);
             releasedCount++;
         }
 
         return releasedCount;
+    }
+
+    private void expireReservation(InventoryReservation reservation) {
+        if (reservation.getStatus() != ReservationStatus.ACTIVE) {
+            return;
+        }
+
+        Integer productId = reservation.getProduct().getId();
+        inventoryRepository.findByProductIdForUpdate(productId).ifPresent(inventory -> {
+            int newReserved = inventory.getReservedQuantity() - reservation.getQuantity();
+            inventory.setReservedQuantity(Math.max(0, newReserved));
+            inventoryRepository.save(inventory);
+        });
+
+        reservation.setStatus(ReservationStatus.EXPIRED);
+        inventoryReservationRepository.save(reservation);
+
+        CustomerOrder order = reservation.getOrder();
+        if (order != null && (order.getOrderStatus() == OrderStatus.PENDING_PAYMENT || order.getOrderStatus() == OrderStatus.PLACED)) {
+            order.setOrderStatus(OrderStatus.CANCELLED);
+            order.setUpdatedAt(LocalDateTime.now());
+            customerOrderRepository.save(order);
+
+            paymentRepository.findByOrderId(order.getId()).ifPresent(payment -> {
+                if (payment.getPaymentStatus() == PaymentStatus.PENDING) {
+                    payment.setPaymentStatus(PaymentStatus.FAILED);
+                    payment.setUpdatedAt(LocalDateTime.now());
+                    paymentRepository.save(payment);
+                }
+            });
+        }
     }
 
     private InventoryReservation getReservation(Integer reservationId) {

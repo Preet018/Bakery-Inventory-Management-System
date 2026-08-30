@@ -29,7 +29,7 @@ import {
  * Executive Overview of Bakery Operations:
  *
  * Dedicated strictly to high-level executive summaries:
- * 1. Staff & Inventory Manager Overview (Total, Active, Inactive) -> /admin/users
+ * 1. Inventory Managers Overview (Total, Active, Inactive) -> /admin/users
  * 2. Customer Orders Overview (Total, Placed, In Progress, Delivered, Cancelled) -> /admin/orders
  * 3. Inventory & Stock Health (Total, Healthy, Low Stock, Out of Stock) -> /inventory/dashboard
  * 4. Product Categories Overview (Total Categories) -> /admin/categories
@@ -178,12 +178,12 @@ export const AdminDashboard = () => {
       ) : (
         <>
           {/* ===================================================
-              2. STAFF & INVENTORY MANAGERS OVERVIEW
+              2. INVENTORY MANAGERS OVERVIEW
               =================================================== */}
           <div className="admin-section mb-6">
-            <div className="section-header-row flex-between mb-3">
+            <div className="section-header-row flex-between mb-4">
               <div>
-                <h2 className="section-title">Staff & Inventory Managers</h2>
+                <h2 className="section-title">Inventory Managers</h2>
                 <p className="section-subtitle">
                   Authorized personnel managing bakery inventory operations
                 </p>

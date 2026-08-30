@@ -155,7 +155,7 @@ public class PaymentServiceImpl implements PaymentService {
             );
         }
 
-        if (order.getOrderStatus() == OrderStatus.PLACED) {
+        if (order.getOrderStatus() == OrderStatus.PENDING_PAYMENT || order.getOrderStatus() == OrderStatus.PLACED) {
             inventoryReservationService.releaseByOrderId(order.getId());
 
             order.setOrderStatus(OrderStatus.CANCELLED);
@@ -177,17 +177,108 @@ public class PaymentServiceImpl implements PaymentService {
         return mapToResponse(updatedPayment, null);
     }
 
+    @Override
+    @Transactional
+    public void processWebhookPaymentCaptured(String razorpayOrderId, String razorpayPaymentId, String razorpaySignature) {
+        paymentRepository.findByProviderOrderId(razorpayOrderId).ifPresent(payment -> {
+            if (payment.getPaymentStatus() == PaymentStatus.PAID) {
+                return;
+            }
+            payment.setProviderPaymentId(razorpayPaymentId);
+            payment.setProviderSignature(razorpaySignature);
+            payment.setUpdatedAt(LocalDateTime.now());
+            paymentRepository.save(payment);
+            confirmPayment(payment, razorpayPaymentId);
+        });
+    }
+
+    @Override
+    @Transactional
+    public void processWebhookPaymentFailed(String razorpayOrderId, String razorpayPaymentId) {
+        paymentRepository.findByProviderOrderId(razorpayOrderId).ifPresent(payment -> {
+            if (payment.getPaymentStatus() == PaymentStatus.FAILED || payment.getPaymentStatus() == PaymentStatus.PAID) {
+                return;
+            }
+            markAsFailed(payment.getId());
+        });
+    }
+
+    @Override
+    @Transactional
+    public PaymentResponse refundPayment(Integer orderId) {
+        Payment payment = paymentRepository.findByOrderIdForUpdate(orderId)
+                .orElse(null);
+
+        if (payment == null) {
+            return null;
+        }
+
+        // Idempotency check: If already refunded, return without duplicating
+        if (payment.getPaymentStatus() == PaymentStatus.REFUNDED) {
+            return mapToResponse(payment, null);
+        }
+
+        // Only PAID payments with captured providerPaymentId require Razorpay refund
+        if (payment.getPaymentStatus() != PaymentStatus.PAID || payment.getProviderPaymentId() == null) {
+            return mapToResponse(payment, null);
+        }
+
+        // Initiate Razorpay external refund with deterministic receipt and API idempotency key
+        String receipt = "REFUND_ORDER_" + orderId;
+        String idempotencyKey = "ORDER_" + orderId + "_PAYMENT_" + payment.getProviderPaymentId() + "_REFUND";
+        PaymentGatewayRefund refundResult = paymentGateway.initiateRefund(
+                payment.getProviderPaymentId(),
+                payment.getAmount(),
+                payment.getCurrency() != null ? payment.getCurrency() : PAYMENT_CURRENCY,
+                receipt,
+                idempotencyKey
+        );
+
+        if (!refundResult.isSuccessful()) {
+            if ("pending".equalsIgnoreCase(refundResult.getStatus())) {
+                throw new BusinessRuleException(
+                        "Razorpay refund for order #" + orderId + " is currently pending processing. " +
+                        "The order cannot be cancelled until Razorpay confirms the refund is completed."
+                );
+            }
+            throw new BusinessRuleException(
+                    "Razorpay refund could not be completed for order #" + orderId + ". Status: " + refundResult.getStatus()
+            );
+        }
+
+        payment.setPaymentStatus(PaymentStatus.REFUNDED);
+        payment.setUpdatedAt(LocalDateTime.now());
+        Payment savedPayment = paymentRepository.save(payment);
+
+        return mapToResponse(savedPayment, null);
+    }
 
     private PaymentResponse confirmPayment(Payment payment, String providerPaymentId) {
         CustomerOrder order = payment.getOrder();
 
-        if (order.getOrderStatus() != OrderStatus.PLACED) {
+        if (order.getOrderStatus() != OrderStatus.PENDING_PAYMENT && order.getOrderStatus() != OrderStatus.PLACED) {
+            if (order.getOrderStatus() == OrderStatus.CONFIRMED && payment.getPaymentStatus() == PaymentStatus.PAID) {
+                return mapToResponse(payment, providerPaymentId);
+            }
             throw new BusinessRuleException(
-                    "Only placed orders can be confirmed by payment"
+                    "Only pending or placed orders can be confirmed by payment. Current status: " + order.getOrderStatus()
             );
         }
 
-        inventoryReservationService.convertByOrderId(order.getId());
+        try {
+            inventoryReservationService.convertByOrderId(order.getId());
+        } catch (BusinessRuleException ex) {
+            payment.setPaymentStatus(PaymentStatus.REQUIRES_REFUND);
+            payment.setProviderPaymentId(providerPaymentId);
+            payment.setUpdatedAt(LocalDateTime.now());
+            paymentRepository.save(payment);
+
+            order.setOrderStatus(OrderStatus.CANCELLED);
+            order.setUpdatedAt(LocalDateTime.now());
+            customerOrderRepository.save(order);
+
+            throw new BusinessRuleException("Payment captured after reservation expired. Flagged for refund: " + ex.getMessage());
+        }
 
         payment.setPaymentStatus(PaymentStatus.PAID);
         payment.setProviderPaymentId(providerPaymentId);

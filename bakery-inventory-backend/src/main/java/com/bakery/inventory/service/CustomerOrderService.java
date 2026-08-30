@@ -15,6 +15,8 @@ public interface CustomerOrderService {
 
     List<CustomerOrderResponse> getOrdersByUserId(Integer userId, Integer requestingUserId, String requestingRole);
 
+    CustomerOrderResponse updateOrderStatus(Integer id, OrderStatus status, String requestingRole);
+
     CustomerOrderResponse updateOrderStatus(Integer id, OrderStatus status);
 
     CustomerOrderResponse cancelOrder(Integer id, Integer requestingUserId, String requestingRole);
