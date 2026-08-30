@@ -321,7 +321,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_GATEWAY,
                 "PAYMENT_GATEWAY_ERROR",
-                "Payment gateway is currently unavailable. Please try again later.",
+                "Payment gateway service is currently unavailable or unable to process the refund. Please try again later.",
                 null,
                 request
         );

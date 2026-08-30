@@ -13,6 +13,45 @@
  */
 
 /**
+ * Sanitizes technical, sensitive, or internal error messages into safe, clear user-facing explanations.
+ */
+function sanitizeUserMessage(rawMessage, fallbackMessage) {
+  if (!rawMessage || typeof rawMessage !== 'string') return fallbackMessage;
+  const trimmed = rawMessage.trim();
+  const lower = trimmed.toLowerCase();
+
+  // Filter sensitive payment gateway details, transaction IDs, duplicate receipt internals, or SDK error codes
+  if (
+    lower.includes('pay_') ||
+    lower.includes('razorpay') ||
+    lower.includes('bad_request_error') ||
+    lower.includes('duplicate receipt')
+  ) {
+    if (lower.includes('refund') || lower.includes('cancel')) {
+      return 'Payment refund could not be processed at this time. Please try again or contact support.';
+    }
+    return 'Payment gateway service is currently unavailable. Please try again later.';
+  }
+
+  // Filter internal stack traces, database exceptions, SQL or class references
+  if (
+    lower.includes('exception') ||
+    lower.includes('sql') ||
+    lower.includes('constraint') ||
+    lower.includes('nullpointer') ||
+    lower.includes('syntax error') ||
+    lower.includes('column') ||
+    lower.includes('table ') ||
+    lower.includes('stacktrace') ||
+    lower.includes('internal server error')
+  ) {
+    return 'A server error occurred while processing your request. Please try again later.';
+  }
+
+  return trimmed;
+}
+
+/**
  * Extracts a normalized, user-friendly error message from any error object.
  *
  * @param {any} error - The caught error (Axios error, Error instance, or string).
@@ -27,12 +66,12 @@ export function getErrorMessage(
 
   // 1. Direct string error
   if (typeof error === 'string' && error.trim().length > 0) {
-    return error.trim();
+    return sanitizeUserMessage(error, fallbackMessage);
   }
 
   // 2. Pre-normalized message attached by Axios interceptor
   if (error.userMessage && typeof error.userMessage === 'string' && error.userMessage.trim().length > 0) {
-    return error.userMessage.trim();
+    return sanitizeUserMessage(error.userMessage, fallbackMessage);
   }
 
   const response = error.response;
@@ -53,28 +92,28 @@ export function getErrorMessage(
           data.message !== 'Validation failed' &&
           data.message.trim().length > 0
         ) {
-          return data.message.trim();
+          return sanitizeUserMessage(data.message, fallbackMessage);
         }
         if (firstFieldMsg && typeof firstFieldMsg === 'string' && firstFieldMsg.trim().length > 0) {
-          return firstFieldMsg.trim();
+          return sanitizeUserMessage(firstFieldMsg, fallbackMessage);
         }
       }
     }
 
     // Explicit top-level user-safe message from backend
     if (data.message && typeof data.message === 'string' && data.message.trim().length > 0) {
-      return data.message.trim();
+      return sanitizeUserMessage(data.message, fallbackMessage);
     }
 
     // Fallback if error description string was returned in error property (e.g. human-readable error name)
     if (data.error && typeof data.error === 'string' && data.error.trim().length > 0 && !data.error.includes('_')) {
-      return data.error.trim();
+      return sanitizeUserMessage(data.error, fallbackMessage);
     }
   }
 
   // Plain-text response body from backend (sanitized against HTML error pages)
   if (typeof data === 'string' && data.trim().length > 0 && !data.includes('<!DOCTYPE') && !data.includes('<html>')) {
-    return data.trim();
+    return sanitizeUserMessage(data, fallbackMessage);
   }
 
   // 4. Known HTTP Status specific user-safe messages

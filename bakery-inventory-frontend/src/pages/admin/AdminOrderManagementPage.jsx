@@ -67,11 +67,11 @@ export const ORDER_STATUS_META = {
       btnClass: 'btn-warning',
       description: 'Move order into baking / preparation',
     },
-    // CHANGE: Allow cancellation for CONFIRMED orders before baking begins
+    // CHANGE: Allow cancellation for CONFIRMED orders before baking/processing begins
     allowCancel: true,
   },
   PROCESSING: {
-    label: 'Processing',
+    label: 'Preparing / Processing',
     badgeClass: 'badge-order-processing',
     icon: <RefreshCw size={13} />,
     description: 'Items are being baked and packed',
@@ -84,7 +84,7 @@ export const ORDER_STATUS_META = {
     allowCancel: false,
   },
   READY: {
-    label: 'Ready',
+    label: 'Ready for Dispatch',
     badgeClass: 'badge-order-ready',
     icon: <Package size={13} />,
     description: 'Order ready for dispatch / customer pickup',
@@ -744,7 +744,7 @@ const formatPaymentMethodFull = (rawMethod) => {
                     <td className="actions-cell">
                       {/* // CHANGE: Reordered action buttons: Cancel Order first, then View Order */}
                       <div className="action-buttons-group">
-                        {/* Direct Cancel button in table Actions column for eligible orders */}
+                        {/* Direct Cancel button in table Actions column for eligible orders (PENDING_PAYMENT, PLACED, CONFIRMED) */}
                         {['PLACED', 'PENDING_PAYMENT', 'CONFIRMED'].includes(currentStatus) && (
                           <button
                             type="button"

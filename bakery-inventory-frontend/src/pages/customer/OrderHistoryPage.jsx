@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { orderService } from '../../services/orderService';
 import { productService } from '../../services/productService';
@@ -25,7 +25,7 @@ const LIFECYCLE_STEPS = ['PLACED', 'CONFIRMED', 'PROCESSING', 'READY', 'DELIVERE
 const STEP_LABELS = {
   PLACED: 'Placed',
   CONFIRMED: 'Confirmed',
-  PROCESSING: 'Baking / Processing',
+  PROCESSING: 'Preparing / Processing',
   READY: 'Ready for Dispatch',
   DELIVERED: 'Delivered',
 };
@@ -36,6 +36,7 @@ const STEP_LABELS = {
  */
 export const OrderHistoryPage = () => {
   const { user, isAdmin } = useAuth();
+  const location = useLocation();
   const [orders, setOrders] = useState([]);
   const [productsMap, setProductsMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -45,6 +46,28 @@ export const OrderHistoryPage = () => {
   const [cancelling, setCancelling] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+
+  // Auto-display and auto-dismiss success banner from checkout redirection
+  useEffect(() => {
+    if (location.state?.orderPlaced) {
+      const msg = location.state?.orderId
+        ? `Order #${location.state.orderId} placed successfully! Thank you for choosing Artisan BaeCurry.`
+        : 'Order placed successfully! Thank you for choosing Artisan BaeCurry.';
+      setSuccessMsg(msg);
+      // Clean up navigation state so message does not persist on page refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  // Auto-dismiss success notification banner after 6 seconds (5-8 seconds range)
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => {
+        setSuccessMsg(null);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
 
   const fetchOrdersAndProducts = async () => {
     try {
@@ -122,13 +145,13 @@ export const OrderHistoryPage = () => {
       case 'READY':
         return (
           <span className="order-status-badge badge-order-ready">
-            <Package size={13} /> Ready
+            <Package size={13} /> Ready for Dispatch
           </span>
         );
       case 'PROCESSING':
         return (
           <span className="order-status-badge badge-order-processing">
-            <RefreshCw size={13} /> Processing
+            <RefreshCw size={13} /> Preparing / Processing
           </span>
         );
       case 'CONFIRMED':
@@ -237,7 +260,9 @@ export const OrderHistoryPage = () => {
         <div className="orders-list-grid">
           {orders.map((order) => {
             const currentStatus = order.orderStatus || order.status || 'PLACED';
-            const isEligibleForCancel = ['PLACED', 'PENDING_PAYMENT', 'CONFIRMED'].includes(currentStatus);
+            // CHANGE: Customer can cancel orders with PENDING_PAYMENT, PLACED, or CONFIRMED status before kitchen preparation
+            const isEligibleForCancel =
+              currentStatus === 'PENDING_PAYMENT' || currentStatus === 'PLACED' || currentStatus === 'CONFIRMED';
 
             const orderDate = new Date(order.createdAt || Date.now());
             const formattedDate = orderDate.toLocaleDateString('en-US', {
@@ -296,23 +321,27 @@ export const OrderHistoryPage = () => {
                   </div>
                 </div>
 
-                {/* // CHANGE: Added Order Progress Status Bar to history card */}
-                {currentStatus !== 'CANCELLED' && (
+                {/* // CHANGE: Added Order Progress Status Bar to history card for active placed orders */}
+                {currentStatus !== 'CANCELLED' && currentStatus !== 'PENDING_PAYMENT' && (
                   <div className="order-card-progress-section">
                     <div className="invoice-stepper-track">
                       <div className="invoice-step-connector">
                         <div
                           className="invoice-step-connector-progress"
                           style={{
-                            width: `${(Math.max(0, LIFECYCLE_STEPS.indexOf(currentStatus)) / (LIFECYCLE_STEPS.length - 1)) * 100}%`,
+                            width:
+                              currentStatus === 'DELIVERED'
+                                ? '100%'
+                                : `${(Math.max(0, LIFECYCLE_STEPS.indexOf(currentStatus)) / (LIFECYCLE_STEPS.length - 1)) * 100}%`,
                           }}
                         />
                       </div>
 
                       {LIFECYCLE_STEPS.map((step, idx) => {
                         const currentIdx = LIFECYCLE_STEPS.indexOf(currentStatus);
-                        const isCompleted = currentIdx > idx;
-                        const isCurrent = currentIdx === idx;
+                        const isDelivered = currentStatus === 'DELIVERED';
+                        const isCompleted = isDelivered ? true : currentIdx > idx;
+                        const isCurrent = isDelivered ? false : currentIdx === idx;
 
                         return (
                           <div

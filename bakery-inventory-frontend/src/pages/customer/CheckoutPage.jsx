@@ -299,10 +299,10 @@ export const CheckoutPage = () => {
 
             await paymentService.verifyAndConfirmPayment(paymentId, verificationPayload);
 
-            // Step 4: Verification successful -> Clear cart & navigate to receipt
+            // Step 4: Verification successful -> Clear cart & navigate to My Orders history page
             clearCart();
-            navigate(`/customer/orders/${createdOrder.id}`, {
-              state: { orderPlaced: true, paymentSuccess: true },
+            navigate('/customer/orders', {
+              state: { orderPlaced: true, orderId: createdOrder.id, paymentSuccess: true },
             });
           } catch (verifyErr) {
             console.error('Payment verification failed:', verifyErr);

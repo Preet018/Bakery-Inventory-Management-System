@@ -276,7 +276,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                 // CHANGE: Allow cancellation for PENDING_PAYMENT, PLACED, and CONFIRMED orders before fulfillment processing begins
                 if (order.getOrderStatus() != OrderStatus.PENDING_PAYMENT && order.getOrderStatus() != OrderStatus.PLACED && order.getOrderStatus() != OrderStatus.CONFIRMED) {
                     throw new BusinessRuleException(
-                            "Only pending, placed, or confirmed orders can be cancelled before fulfillment processing begins"
+                            "Only pending, placed, or confirmed orders can be cancelled before kitchen processing begins"
                     );
                 }
 

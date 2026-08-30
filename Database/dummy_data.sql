@@ -514,7 +514,7 @@ VALUES
         77.64115100,
         'ChIJ_test_indiranagar',
         700.00,
-        'CONFIRMED',
+        'READY',
         '2026-08-22 15:00:00',
         '2026-08-22 15:10:00'
     ),
@@ -674,7 +674,7 @@ VALUES
         5,
         5,
         'NETBANKING',
-        'PENDING',
+        'PAID',
         'RAZORPAY',
         'order_dummy_0005',
         NULL,

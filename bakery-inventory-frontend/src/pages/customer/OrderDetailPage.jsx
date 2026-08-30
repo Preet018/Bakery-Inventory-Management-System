@@ -45,10 +45,10 @@ const STATUS_META = {
     description: 'Order confirmed! Queued for kitchen preparation',
   },
   PROCESSING: {
-    label: 'Baking / Processing',
+    label: 'Preparing / Processing',
     badgeClass: 'badge-order-processing',
     icon: <RefreshCw size={13} />,
-    description: 'Your artisan bakery items are being freshly baked and packed',
+    description: 'Your bakery items are being freshly prepared and packed',
   },
   READY: {
     label: 'Ready for Dispatch',
@@ -95,6 +95,17 @@ export const OrderDetailPage = () => {
   const [msg, setMsg] = useState(
     location.state?.orderPlaced ? 'Order placed successfully! Thank you for choosing Artisan BaeCurry.' : null
   );
+
+  // Auto-dismiss success notification banner after 6 seconds (5-8 seconds range)
+  useEffect(() => {
+    if (msg) {
+      window.history.replaceState({}, document.title);
+      const timer = setTimeout(() => {
+        setMsg(null);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [msg]);
 
   // CHANGE: State management for customer cancellation in View Details page
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
@@ -163,7 +174,7 @@ export const OrderDetailPage = () => {
   const statusMeta = STATUS_META[currentStatus] || STATUS_META.PLACED;
   const isCancelled = currentStatus === 'CANCELLED';
 
-  // CHANGE: Eligible customer orders can be cancelled before kitchen preparation
+  // CHANGE: Eligible customer orders can be cancelled while status is PENDING_PAYMENT, PLACED, or CONFIRMED
   const canCancel = ['PENDING_PAYMENT', 'PLACED', 'CONFIRMED'].includes(currentStatus);
 
   const handleExecuteCancellation = async () => {
@@ -246,7 +257,28 @@ export const OrderDetailPage = () => {
       )}
 
       {/* Order Lifecycle Progress Stepper */}
-      {!isCancelled ? (
+      {currentStatus === 'CANCELLED' ? (
+        <div className="alert alert-danger mb-4 flex items-center gap-3">
+          <XCircle size={22} className="text-danger flex-shrink-0" />
+          <div>
+            <strong>Order Cancelled</strong>
+            <p className="text-sm mt-0.5">
+              This order has been cancelled and reserved items were restored to inventory.
+              {isRefunded && ' Your payment has been fully refunded through Razorpay.'}
+            </p>
+          </div>
+        </div>
+      ) : currentStatus === 'PENDING_PAYMENT' ? (
+        <div className="alert alert-warning mb-4 flex items-center gap-3">
+          <Clock size={22} className="text-warning flex-shrink-0" />
+          <div>
+            <strong>Payment Pending</strong>
+            <p className="text-sm mt-0.5">
+              Awaiting payment confirmation before your order can be placed with the bakery.
+            </p>
+          </div>
+        </div>
+      ) : (
         <div className="invoice-stepper-card">
           <div className="invoice-stepper-title-row">
             <div className="invoice-stepper-heading">
@@ -262,15 +294,19 @@ export const OrderDetailPage = () => {
               <div
                 className="invoice-step-connector-progress"
                 style={{
-                  width: `${(Math.max(0, LIFECYCLE_STEPS.indexOf(currentStatus)) / (LIFECYCLE_STEPS.length - 1)) * 100}%`,
+                  width:
+                    currentStatus === 'DELIVERED'
+                      ? '100%'
+                      : `${(Math.max(0, LIFECYCLE_STEPS.indexOf(currentStatus)) / (LIFECYCLE_STEPS.length - 1)) * 100}%`,
                 }}
               />
             </div>
 
             {LIFECYCLE_STEPS.map((step, idx) => {
               const currentIdx = LIFECYCLE_STEPS.indexOf(currentStatus);
-              const isCompleted = currentIdx > idx;
-              const isCurrent = currentIdx === idx;
+              const isDelivered = currentStatus === 'DELIVERED';
+              const isCompleted = isDelivered ? true : currentIdx > idx;
+              const isCurrent = isDelivered ? false : currentIdx === idx;
 
               return (
                 <div
@@ -284,17 +320,6 @@ export const OrderDetailPage = () => {
                 </div>
               );
             })}
-          </div>
-        </div>
-      ) : (
-        <div className="alert alert-danger mb-4 flex items-center gap-3">
-          <XCircle size={22} className="text-danger flex-shrink-0" />
-          <div>
-            <strong>Order Cancelled</strong>
-            <p className="text-sm mt-0.5">
-              This order has been cancelled and reserved items were restored to inventory.
-              {isRefunded && ' Your payment has been fully refunded through Razorpay.'}
-            </p>
           </div>
         </div>
       )}
