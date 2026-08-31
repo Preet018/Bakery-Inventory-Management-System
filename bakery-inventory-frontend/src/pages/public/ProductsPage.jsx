@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { ProductCard } from '../../components/products/ProductCard';
+import { CustomSelect } from '../../components/common/CustomSelect';
 import { Search, RefreshCw, Filter, AlertCircle, ShoppingBag } from 'lucide-react';
 
 /**
@@ -113,22 +114,15 @@ export const ProductsPage = () => {
           />
         </div>
 
-        <div className="category-select-wrapper">
-          <Filter size={18} className="filter-icon" />
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="category-dropdown"
-            aria-label="Filter by category"
-          >
-            <option value="ALL">All Categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <CustomSelect
+          options={[
+            { value: 'ALL', label: 'All Categories' },
+            ...categories.map((c) => ({ value: c.id, label: c.name }))
+          ]}
+          value={selectedCategory}
+          onChange={setSelectedCategory}
+          icon={<Filter size={16} />}
+        />
       </div>
 
       {/* ========================================================

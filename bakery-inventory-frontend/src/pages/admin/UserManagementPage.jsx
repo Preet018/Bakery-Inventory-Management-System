@@ -702,12 +702,12 @@ export const UserManagementPage = () => {
                       <AlertTriangle className="text-danger" size={20} />
                     </div>
                   ) : confirmModal.deleteStep === 2 ? (
-                    <div className="header-icon-box icon-blue">
-                      <Lock className="text-primary" size={20} />
+                    <div className="header-icon-box icon-admin">
+                      <Lock style={{ color: '#1D4ED8' }} size={20} />
                     </div>
                   ) : (
-                    <div className="header-icon-box icon-blue">
-                      <Shield className="text-primary" size={20} />
+                    <div className="header-icon-box icon-admin">
+                      <Shield style={{ color: '#1D4ED8' }} size={20} />
                     </div>
                   )
                 ) : confirmModal.type === 'DEACTIVATE' ? (
@@ -768,14 +768,23 @@ export const UserManagementPage = () => {
                      STEP 1: ADMIN EMAIL CONFIRMATION
                      =================================================== */
                   <form onSubmit={handleRequestDeleteOtp} className="modal-form">
-                    <div className="target-manager-card mb-3" style={{ background: '#F9FAFB', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '0.85rem 1rem' }}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <User size={16} className="text-primary" />
-                        <span className="font-semibold">{confirmModal.manager.username}</span>
-                        <span className="text-muted text-sm">(#{confirmModal.manager.id})</span>
+                    <div className="target-manager-card mb-3" style={{ background: '#FFFDF9', border: '1.5px solid #FDE68A', borderRadius: '10px', padding: '0.9rem 1.15rem', boxShadow: '0 2px 6px rgba(120, 53, 15, 0.04)' }}>
+                      <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#FEF3C7', border: '1px solid #FDE68A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706', flexShrink: 0 }}>
+                            <User size={15} />
+                          </div>
+                          <span className="font-bold" style={{ color: '#451A03', fontSize: '1rem' }}>{confirmModal.manager.username}</span>
+                          <span style={{ fontSize: '0.74rem', fontWeight: '700', padding: '2px 8px', borderRadius: '9999px', background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A', letterSpacing: '0.02em' }}>
+                            #{confirmModal.manager.id}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '9999px', background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
+                          Inventory Manager
+                        </span>
                       </div>
-                      <div className="text-sm text-muted">
-                        <Mail size={13} className="inline-icon mr-1" />
+                      <div className="text-sm" style={{ color: '#6B7280', display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '6px' }}>
+                        <Mail size={14} style={{ color: '#9CA3AF' }} />
                         <span>{confirmModal.manager.email || 'No email assigned'}</span>
                       </div>
                     </div>
@@ -833,13 +842,18 @@ export const UserManagementPage = () => {
                      STEP 2: OTP VERIFICATION
                      =================================================== */
                   <form onSubmit={handleVerifyDeleteOtp} className="modal-form">
-                    <div className="target-manager-card mb-3" style={{ background: '#F9FAFB', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '0.85rem 1rem' }}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-semibold">{confirmModal.manager.username}</span>
-                          <span className="text-muted text-sm ml-1">(#{confirmModal.manager.id})</span>
+                    <div className="target-manager-card mb-3" style={{ background: '#FFFDF9', border: '1.5px solid #FDE68A', borderRadius: '10px', padding: '0.9rem 1.15rem', boxShadow: '0 2px 6px rgba(120, 53, 15, 0.04)' }}>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#FEF3C7', border: '1px solid #FDE68A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706', flexShrink: 0 }}>
+                            <User size={15} />
+                          </div>
+                          <span className="font-bold" style={{ color: '#451A03', fontSize: '1rem' }}>{confirmModal.manager.username}</span>
+                          <span style={{ fontSize: '0.74rem', fontWeight: '700', padding: '2px 8px', borderRadius: '9999px', background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A', letterSpacing: '0.02em' }}>
+                            #{confirmModal.manager.id}
+                          </span>
                         </div>
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                           Step 2: Enter Code
                         </span>
                       </div>
@@ -918,10 +932,13 @@ export const UserManagementPage = () => {
                       <span><strong>Identity Verified:</strong> Administrator authorization token generated for this deletion operation.</span>
                     </div>
 
-                    <p className="mb-2">
-                      You are about to permanently delete Inventory Manager{' '}
-                      <strong>{confirmModal.manager.username}</strong> (#{confirmModal.manager.id}).
-                    </p>
+                    <div className="mb-3" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{ color: '#4B5563' }}>You are about to permanently delete Inventory Manager:</span>
+                      <strong style={{ color: '#451A03', fontSize: '1.02rem' }}>{confirmModal.manager.username}</strong>
+                      <span style={{ fontSize: '0.75rem', fontWeight: '700', padding: '2px 7px', borderRadius: '9999px', background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A' }}>
+                        #{confirmModal.manager.id}
+                      </span>
+                    </div>
 
                     <div className="warning-banner mb-4" style={{ backgroundColor: '#FEF2F2', border: '1px solid #F87171', color: '#991B1B', padding: '0.75rem', borderRadius: '6px', fontSize: '0.85rem' }}>
                       <strong>Permanent Deletion:</strong> The manager account, stock operation permissions, and associated records will be permanently removed from the database.
@@ -950,10 +967,13 @@ export const UserManagementPage = () => {
                 )
               ) : confirmModal.type === 'DEACTIVATE' ? (
                 <>
-                  <p className="mb-2">
-                    Are you sure you want to deactivate manager{' '}
-                    <strong>{confirmModal.manager.username}</strong> (#{confirmModal.manager.id})?
-                  </p>
+                  <div className="mb-2" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ color: '#4B5563' }}>Are you sure you want to deactivate manager:</span>
+                    <strong style={{ color: '#451A03', fontSize: '1.02rem' }}>{confirmModal.manager.username}</strong>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', padding: '2px 7px', borderRadius: '9999px', background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A' }}>
+                      #{confirmModal.manager.id}
+                    </span>
+                  </div>
                   <p className="text-muted text-sm mb-3">
                     <strong>Reversible:</strong> This manager will be marked inactive and unable to access inventory management operations. Their email address and account records are preserved, and you can reactivate this account at any time.
                   </p>
@@ -979,10 +999,13 @@ export const UserManagementPage = () => {
                 </>
               ) : (
                 <>
-                  <p className="mb-2">
-                    Are you sure you want to reactivate manager{' '}
-                    <strong>{confirmModal.manager.username}</strong> (#{confirmModal.manager.id})?
-                  </p>
+                  <div className="mb-2" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ color: '#4B5563' }}>Are you sure you want to reactivate manager:</span>
+                    <strong style={{ color: '#451A03', fontSize: '1.02rem' }}>{confirmModal.manager.username}</strong>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', padding: '2px 7px', borderRadius: '9999px', background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A' }}>
+                      #{confirmModal.manager.id}
+                    </span>
+                  </div>
                   <p className="text-muted text-sm mb-3">
                     <strong>Reversible:</strong> The manager will be restored to active status and will regain full access to inventory and stock operations.
                   </p>

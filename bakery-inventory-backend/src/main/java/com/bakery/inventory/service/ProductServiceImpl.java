@@ -186,14 +186,6 @@ public class ProductServiceImpl implements ProductService {
 
         product.setIsActive(false);
 
-        List<ProductImage> images = productImageRepository.findByProductId(id);
-
-        for (ProductImage image : images) {
-            image.setIsActive(false);
-        }
-
-        productImageRepository.saveAll(images);
-
         Product updatedProduct = productRepository.save(product);
 
         return mapToResponse(updatedProduct);
@@ -211,14 +203,6 @@ public class ProductServiceImpl implements ProductService {
 
         product.setIsActive(true);
 
-        List<ProductImage> images = productImageRepository.findByProductId(id);
-
-        for (ProductImage image : images) {
-            image.setIsActive(true);
-        }
-
-        productImageRepository.saveAll(images);
-
         Product updatedProduct = productRepository.save(product);
 
         return mapToResponse(updatedProduct);
@@ -233,12 +217,6 @@ public class ProductServiceImpl implements ProductService {
                                         "Product not found with id: " + productId
                                 )
                         );
-
-        if (!Boolean.TRUE.equals(product.getIsActive())) {
-            throw new BusinessRuleException(
-                    "Cannot upload images for an inactive product"
-            );
-        }
 
         validateImagesPresent(images);
 
@@ -315,7 +293,7 @@ public class ProductServiceImpl implements ProductService {
 
     private ProductResponse mapToResponse(Product product) {
         List<ProductImageResponse> images = productImageRepository
-                        .findByProductIdAndIsActiveTrue(
+                        .findByProductId(
                                 product.getId()
                         )
                         .stream()

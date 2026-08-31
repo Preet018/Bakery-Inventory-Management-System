@@ -366,9 +366,8 @@ export const StockOperationsModal = ({
                       setProductQuery(e.target.value);
                       setIsDropdownOpen(true);
                     }}
-                    onFocus={() => setIsDropdownOpen(true)}
+                    onClick={() => setIsDropdownOpen(true)}
                     className="autocomplete-input"
-                    autoFocus
                     autoComplete="off"
                     autoCorrect="off"
                     spellCheck="false"
@@ -376,8 +375,12 @@ export const StockOperationsModal = ({
                   {productQuery && (
                     <button
                       type="button"
-                      onClick={() => setProductQuery('')}
+                      onClick={() => {
+                        setProductQuery('');
+                        setIsDropdownOpen(false);
+                      }}
                       className="clear-search-btn"
+                      aria-label="Clear search"
                     >
                       <X size={14} />
                     </button>

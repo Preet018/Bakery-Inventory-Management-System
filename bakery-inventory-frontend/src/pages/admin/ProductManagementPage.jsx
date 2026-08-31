@@ -709,9 +709,6 @@ export const ProductManagementPage = () => {
         <div className="alert alert-success mt-2 mb-3">
           <CheckCircle2 size={18} />
           <span>{successMsg}</span>
-          <button className="alert-close-btn" onClick={() => setSuccessMsg(null)}>
-            <X size={16} />
-          </button>
         </div>
       )}
 
@@ -719,9 +716,6 @@ export const ProductManagementPage = () => {
         <div className="alert alert-danger mt-2 mb-3">
           <AlertCircle size={18} />
           <span>{pageError}</span>
-          <button className="alert-close-btn" onClick={() => setPageError(null)}>
-            <X size={16} />
-          </button>
         </div>
       )}
 
@@ -953,19 +947,17 @@ export const ProductManagementPage = () => {
                     <label className="form-label" htmlFor="create-product-category">
                       Category <span className="text-danger">*</span>
                     </label>
-                    <select
+                    <CustomSelect
                       id="create-product-category"
-                      className={`form-input ${formErrors.categoryId ? 'input-error' : ''}`}
+                      className={`modal-custom-select ${formErrors.categoryId ? 'input-error' : ''}`}
+                      options={[
+                        { value: '', label: 'Select Category' },
+                        ...categories.map((c) => ({ value: c.id, label: c.name }))
+                      ]}
                       value={formData.categoryId}
-                      onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, categoryId: val })}
+                      placeholder="Select Category"
+                    />
                     {formErrors.categoryId && (
                       <span className="field-error-text">{formErrors.categoryId}</span>
                     )}
@@ -977,19 +969,17 @@ export const ProductManagementPage = () => {
                   <label className="form-label" htmlFor="create-product-supplier">
                     Supplier <span className="text-danger">*</span>
                   </label>
-                  <select
+                  <CustomSelect
                     id="create-product-supplier"
-                    className={`form-input ${formErrors.supplierId ? 'input-error' : ''}`}
+                    className={`modal-custom-select ${formErrors.supplierId ? 'input-error' : ''}`}
+                    options={[
+                      { value: '', label: 'Select Supplier' },
+                      ...suppliers.map((s) => ({ value: s.id, label: `${s.name}${!s.isActive ? ' (Inactive)' : ''}` }))
+                    ]}
                     value={formData.supplierId}
-                    onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
-                  >
-                    <option value="">Select Supplier</option>
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} {!s.isActive ? '(Inactive)' : ''}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, supplierId: val })}
+                    placeholder="Select Supplier"
+                  />
                   {formErrors.supplierId && (
                     <span className="field-error-text">{formErrors.supplierId}</span>
                   )}
@@ -1176,19 +1166,17 @@ export const ProductManagementPage = () => {
                     <label className="form-label" htmlFor="edit-product-category">
                       Category <span className="text-danger">*</span>
                     </label>
-                    <select
+                    <CustomSelect
                       id="edit-product-category"
-                      className={`form-input ${formErrors.categoryId ? 'input-error' : ''}`}
+                      className={`modal-custom-select ${formErrors.categoryId ? 'input-error' : ''}`}
+                      options={[
+                        { value: '', label: 'Select Category' },
+                        ...categories.map((c) => ({ value: c.id, label: c.name }))
+                      ]}
                       value={formData.categoryId}
-                      onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, categoryId: val })}
+                      placeholder="Select Category"
+                    />
                     {formErrors.categoryId && (
                       <span className="field-error-text">{formErrors.categoryId}</span>
                     )}
@@ -1200,19 +1188,17 @@ export const ProductManagementPage = () => {
                   <label className="form-label" htmlFor="edit-product-supplier">
                     Supplier <span className="text-danger">*</span>
                   </label>
-                  <select
+                  <CustomSelect
                     id="edit-product-supplier"
-                    className={`form-input ${formErrors.supplierId ? 'input-error' : ''}`}
+                    className={`modal-custom-select ${formErrors.supplierId ? 'input-error' : ''}`}
+                    options={[
+                      { value: '', label: 'Select Supplier' },
+                      ...suppliers.map((s) => ({ value: s.id, label: `${s.name}${!s.isActive ? ' (Inactive)' : ''}` }))
+                    ]}
                     value={formData.supplierId}
-                    onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
-                  >
-                    <option value="">Select Supplier</option>
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} {!s.isActive ? '(Inactive)' : ''}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, supplierId: val })}
+                    placeholder="Select Supplier"
+                  />
                   {formErrors.supplierId && (
                     <span className="field-error-text">{formErrors.supplierId}</span>
                   )}
@@ -1305,16 +1291,6 @@ export const ProductManagementPage = () => {
                 </div>
               )}
 
-              {/* Status Warning if product is inactive */}
-              {!selectedProduct.isActive && (
-                <div className="warning-alert mb-3">
-                  <AlertTriangle size={16} />
-                  <span>
-                    This product is currently inactive. New images can only be uploaded to active products.
-                  </span>
-                </div>
-              )}
-
               {/* Current Active Gallery Images */}
               <div className="gallery-section">
                 <h4 className="gallery-section-title">
@@ -1368,15 +1344,13 @@ export const ProductManagementPage = () => {
                     id="add-images-input"
                     multiple
                     accept="image/png,image/jpeg,image/jpg,image/webp"
-                    disabled={!selectedProduct.isActive || uploadingImages}
+                    disabled={uploadingImages}
                     onChange={handleNewImagesSelected}
                     style={{ display: 'none' }}
                   />
                   <label
                     htmlFor="add-images-input"
-                    className={`upload-dropzone-label ${
-                      !selectedProduct.isActive ? 'disabled-dropzone' : ''
-                    }`}
+                    className="upload-dropzone-label"
                   >
                     <Upload size={22} className="text-primary mb-1" />
                     <span>Select new image(s) to add to gallery</span>
@@ -1406,7 +1380,7 @@ export const ProductManagementPage = () => {
                       type="button"
                       onClick={handleUploadAdditionalImages}
                       className="btn-primary"
-                      disabled={uploadingImages || !selectedProduct.isActive}
+                      disabled={uploadingImages}
                     >
                       {uploadingImages ? (
                         <>

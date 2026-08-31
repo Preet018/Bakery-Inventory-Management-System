@@ -326,23 +326,20 @@ export const StockHistoryPage = () => {
         {/* Toolbar Controls */}
         <div className="toolbar-controls">
           {/* Transaction Type Filter */}
-          <div className="category-select-wrapper">
-            <Filter size={14} className="select-icon" />
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="category-dropdown"
-              aria-label="Filter by Transaction Type"
-            >
-              <option value="ALL">All Transaction Types</option>
-              <option value="PURCHASE">Purchase (Stock In)</option>
-              <option value="SALE">Customer Sale</option>
-              <option value="DAMAGE">Damage / Spoilage</option>
-              <option value="SUPPLIER_RETURN">Supplier Return</option>
-              <option value="ADJUSTMENT">Stock Adjustment</option>
-              <option value="CANCEL">Order Cancellation</option>
-            </select>
-          </div>
+          <CustomSelect
+            options={[
+              { value: 'ALL', label: 'All Transaction Types' },
+              { value: 'PURCHASE', label: 'Purchase (Stock In)' },
+              { value: 'SALE', label: 'Customer Sale' },
+              { value: 'DAMAGE', label: 'Damage / Spoilage' },
+              { value: 'SUPPLIER_RETURN', label: 'Supplier Return' },
+              { value: 'ADJUSTMENT', label: 'Stock Adjustment' },
+              { value: 'CANCEL', label: 'Order Cancellation' },
+            ]}
+            value={typeFilter}
+            onChange={setTypeFilter}
+            icon={<Filter size={14} />}
+          />
 
           {/* Order By Dropdown (same as Category Management) */}
           <CustomSelect

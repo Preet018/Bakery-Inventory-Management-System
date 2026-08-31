@@ -201,6 +201,13 @@ export const SupplierManagementPage = () => {
     });
   }, [suppliers, statusFilter, searchTerm]);
 
+  const hasActiveFilters = Boolean(searchTerm.trim()) || statusFilter !== 'ALL';
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('ALL');
+  };
+
   // Open Add Modal
   const handleOpenAddModal = () => {
     setModalMode('ADD');
@@ -533,15 +540,15 @@ export const SupplierManagementPage = () => {
         </div>
       </div>
 
-      {/* Search & Filter Toolbar */}
+      {/* Search Toolbar */}
       <div className="inventory-toolbar card">
-        <div className="toolbar-search-wrapper">
+        <div className="toolbar-search-wrapper" style={{ width: '100%' }}>
           <Search size={16} className="search-icon" />
           <input
             type="text"
             placeholder="Search by supplier name, email, phone, or location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="search-field"
             id="supplier-search-input"
             aria-label="Search suppliers"
@@ -549,52 +556,13 @@ export const SupplierManagementPage = () => {
             autoCorrect="off"
             spellCheck="false"
           />
-          {searchQuery && (
+          {searchTerm && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => setSearchTerm('')}
               className="clear-search-btn"
               aria-label="Clear search"
             >
               <X size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className="toolbar-controls">
-          {/* Status Filter Tabs */}
-          <div className="status-tabs-group">
-            <button
-              type="button"
-              className={`status-tab ${statusFilter === 'ALL' ? 'active-tab' : ''}`}
-              onClick={() => setStatusFilter('ALL')}
-            >
-              All ({totalCount})
-            </button>
-            <button
-              type="button"
-              className={`status-tab tab-optimal ${statusFilter === 'ACTIVE' ? 'active-tab' : ''}`}
-              onClick={() => setStatusFilter('ACTIVE')}
-            >
-              Active ({activeCount})
-            </button>
-            <button
-              type="button"
-              className={`status-tab tab-out ${statusFilter === 'INACTIVE' ? 'active-tab' : ''}`}
-              onClick={() => setStatusFilter('INACTIVE')}
-            >
-              Inactive ({inactiveCount})
-            </button>
-          </div>
-
-          {/* Reset Filters Button */}
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="btn-reset-filters"
-              title="Reset all filters"
-            >
-              <X size={14} /> Clear Filters
             </button>
           )}
         </div>
@@ -783,7 +751,7 @@ export const SupplierManagementPage = () => {
       {/* ===================================================
           ADD / EDIT SUPPLIER MODAL
           =================================================== */}
-      {modalMode && (
+      {modalOpen && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div
             className="modal-container card backoffice-modal supplier-modal-container"

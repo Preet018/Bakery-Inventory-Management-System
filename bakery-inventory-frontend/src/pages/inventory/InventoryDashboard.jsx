@@ -233,10 +233,14 @@ export const InventoryDashboard = () => {
     setSearchQuery('');
   };
 
-  // KPI card click handler: clears selected category filter and applies global status filter
+  // KPI card click handler: clears category filter and toggles status filter back to ALL (Total) if already selected
   const handleKpiCardClick = (targetMode) => {
     setSelectedCategory('ALL');
-    setFilterMode(targetMode);
+    if (targetMode === 'ALL') {
+      setFilterMode('ALL');
+    } else {
+      setFilterMode((prev) => (prev === targetMode ? 'ALL' : targetMode));
+    }
   };
 
   // Open modal from table row or global quick actions
@@ -286,7 +290,7 @@ export const InventoryDashboard = () => {
       <div className="metrics-grid">
         {/* Total Tracked Products */}
         <div
-          className={`metric-card card ${filterMode === 'ALL' && selectedCategory === 'ALL' ? 'active-metric metric-card-all' : ''}`}
+          className={`metric-card card ${filterMode === 'ALL' ? 'active-metric metric-card-all' : ''}`}
           onClick={() => handleKpiCardClick('ALL')}
           role="button"
           tabIndex={0}
@@ -306,7 +310,7 @@ export const InventoryDashboard = () => {
 
         {/* Low Stock Alerts */}
         <div
-          className={`metric-card card ${filterMode === 'LOW' && selectedCategory === 'ALL' ? 'active-metric metric-card-low' : ''}`}
+          className={`metric-card card ${filterMode === 'LOW' ? 'active-metric metric-card-low' : ''}`}
           onClick={() => handleKpiCardClick('LOW')}
           role="button"
           tabIndex={0}
@@ -325,7 +329,7 @@ export const InventoryDashboard = () => {
 
         {/* Out of Stock Items */}
         <div
-          className={`metric-card card ${filterMode === 'OUT' && selectedCategory === 'ALL' ? 'active-metric metric-card-out' : ''}`}
+          className={`metric-card card ${filterMode === 'OUT' ? 'active-metric metric-card-out' : ''}`}
           onClick={() => handleKpiCardClick('OUT')}
           role="button"
           tabIndex={0}
@@ -344,7 +348,7 @@ export const InventoryDashboard = () => {
 
         {/* Optimal Stock */}
         <div
-          className={`metric-card card ${filterMode === 'OPTIMAL' && selectedCategory === 'ALL' ? 'active-metric metric-card-optimal' : ''}`}
+          className={`metric-card card ${filterMode === 'OPTIMAL' ? 'active-metric metric-card-optimal' : ''}`}
           onClick={() => handleKpiCardClick('OPTIMAL')}
           role="button"
           tabIndex={0}

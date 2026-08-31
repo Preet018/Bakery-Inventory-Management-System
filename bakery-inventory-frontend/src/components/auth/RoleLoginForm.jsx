@@ -123,6 +123,7 @@ export const RoleLoginForm = ({
 
   if (isAuthenticated) {
     const canReturnToRequestedPage =
+      normalizedCurrentRole !== 'CUSTOMER' &&
       Boolean(from) &&
       hasAllowedRole(
         normalizedCurrentRole,
@@ -134,7 +135,7 @@ export const RoleLoginForm = ({
         to={
           canReturnToRequestedPage
             ? from
-            : getRoleHome(normalizedCurrentRole)
+            : (normalizedCurrentRole === 'CUSTOMER' ? '/' : getRoleHome(normalizedCurrentRole))
         }
         replace
       />
@@ -232,11 +233,8 @@ export const RoleLoginForm = ({
       });
 
       // =====================================================
-      // CHANGE: Only return to the original page if this
-      // authenticated role is allowed to access it.
-      // =====================================================
-
       const canReturnToRequestedPage =
+        authenticatedRole !== 'CUSTOMER' &&
         Boolean(from) &&
         hasAllowedRole(
           authenticatedRole,
@@ -244,18 +242,14 @@ export const RoleLoginForm = ({
         );
 
       // =====================================================
-      // CHANGE:
-      //
-      // If the user originally requested a page and has
-      // permission, return there.
-      //
-      // Otherwise send them to their normal role landing page.
+      // Customers always land on the Home page (/) upon login.
+      // Other roles navigate to requested page or their role dashboard.
       // =====================================================
 
       navigate(
         canReturnToRequestedPage
           ? from
-          : getRoleHome(authenticatedRole),
+          : (authenticatedRole === 'CUSTOMER' ? '/' : getRoleHome(authenticatedRole)),
         {
           replace: true,
         }
