@@ -789,7 +789,7 @@ export const SupplierManagementPage = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmitSupplier} className="modal-form">
+            <form onSubmit={handleSaveSupplier} className="modal-form">
               {/* Supplier Name */}
               <div className="form-group">
                 <label htmlFor="supplier-name-input">

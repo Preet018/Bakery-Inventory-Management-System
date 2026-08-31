@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MapPin, AlertTriangle, CheckCircle2, Navigation } from 'lucide-react';
+import { MapPin, CheckCircle2, Navigation } from 'lucide-react';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
@@ -39,7 +39,7 @@ export const GoogleMapLocationPicker = ({
     if (!GOOGLE_MAPS_API_KEY) {
       setLoadStatus('error');
       setErrorMessage(
-        'Google Maps API key is not configured (VITE_GOOGLE_MAPS_API_KEY). You can enter your delivery address details manually below.'
+        'Interactive map is currently unavailable. Please enter your address details in the fields below.'
       );
       return;
     }
@@ -299,9 +299,9 @@ export const GoogleMapLocationPicker = ({
     return (
       <div className="location-picker-fallback">
         <div className="location-fallback-header">
-          <AlertTriangle size={20} className="text-amber" />
+          <MapPin size={20} className="text-amber" />
           <div>
-            <strong>Google Maps Unavailable</strong>
+            <strong>Enter Address Manually</strong>
             <p>{errorMessage}</p>
           </div>
         </div>
